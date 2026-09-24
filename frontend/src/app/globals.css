@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+/* Design tokens (light) — components use the semantic Tailwind colors mapped below. */
+:root {
+  --background: #f7f7f5;
+  --surface: #ffffff;
+  --surface-muted: #f1f1ee;
+  --border: #e3e3de;
+  --foreground: #1a1a17;
+  --muted: #6b6b63;
+  --accent: #4f46e5;
+  --accent-soft: #eef0ff;
+  --success: #15803d;
+  --success-soft: #e8f6ec;
+  --warning: #b45309;
+  --warning-soft: #fdf3e2;
+  --danger: #b91c1c;
+  --danger-soft: #fdecec;
+  --code-bg: #16161a;
+  --code-fg: #e6e6e6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f0f10;
+    --surface: #18181b;
+    --surface-muted: #202024;
+    --border: #2c2c31;
+    --foreground: #ececec;
+    --muted: #9a9aa3;
+    --accent: #8b8cf8;
+    --accent-soft: #23234a;
+    --success: #4ade80;
+    --success-soft: #13301f;
+    --warning: #fbbf24;
+    --warning-soft: #33280f;
+    --danger: #f87171;
+    --danger-soft: #3a1717;
+    --code-bg: #0b0b0d;
+    --code-fg: #e6e6e6;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-code-bg: var(--code-bg);
+  --color-code-fg: var(--code-fg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

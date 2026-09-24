@@ -1,0 +1,17 @@
+[
+  {
+    "name": "churn-f1",
+    "path": "../data/samples/customer_churn.csv",
+    "prompt": "Build a model to predict which customers will churn. Optimise macro F1; the classes are imbalanced."
+  },
+  {
+    "name": "house-price",
+    "path": "../data/samples/house_prices.csv",
+    "prompt": "Predict the house price from its features. Report RMSE."
+  },
+  {
+    "name": "review-sentiment",
+    "path": "../data/samples/product_reviews.csv",
+    "prompt": "Classify the sentiment of product reviews (positive / negative / neutral) with at least 85% accuracy."
+  }
+]

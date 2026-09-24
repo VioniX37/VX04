@@ -1,0 +1,1501 @@
+review_id,product_category,review_text,sentiment
+1,outdoor,"Bought this backpack last month. Highly recommend, five stars and as described.",positive
+2,electronics,"Bought this speaker last month. Fine for the price, as described.",neutral
+3,outdoor,"Bought this water bottle last month. Refund, poor quality.",negative
+4,outdoor,"Bought this tent last month. Highly recommend, fast shipping.",positive
+5,electronics,"Bought this headphones last month. Five stars, sturdy and well made.",positive
+6,outdoor,"Bought this backpack last month. As described, it is okay.",neutral
+7,home,"Bought this vacuum last month. Sturdy and well made, five stars.",positive
+8,electronics,"Bought this speaker last month. Average quality, not bad not great.",neutral
+9,home,"Bought this kettle last month. Sturdy and well made, very happy with.",positive
+10,home,"Bought this blender last month. Very happy with, fast shipping.",positive
+11,home,"Bought this lamp last month. Very happy with, sturdy and well made.",positive
+12,outdoor,"Bought this tent last month. Not bad not great, it is okay.",neutral
+13,home,"Bought this blender last month. Mixed feelings, it is okay.",neutral
+14,outdoor,"Bought this backpack last month. Very happy with, highly recommend and average quality.",positive
+15,home,"Bought this kettle last month. Very disappointed, terrible.",negative
+16,home,"Bought this lamp last month. Highly recommend, very happy with.",positive
+17,home,"Bought this kettle last month. Exceeded my expectations, works perfectly.",positive
+18,electronics,"Bought this charger last month. Refund, customer service ignored me and as described.",negative
+19,outdoor,"Bought this water bottle last month. Waste of money, very disappointed.",negative
+20,home,"Bought this lamp last month. Not bad not great, expected more features.",neutral
+21,electronics,"Bought this speaker last month. Very happy with, exceeded my expectations and decent but.",positive
+22,outdoor,"Bought this backpack last month. Great value, fast shipping.",positive
+23,home,"Bought this blender last month. Great value, highly recommend and fine for the price.",positive
+24,electronics,"Bought this keyboard last month. Exceeded my expectations, works perfectly.",positive
+25,electronics,"Bought this speaker last month. Love, great value and as described.",positive
+26,electronics,"Bought this headphones last month. Terrible, poor quality.",negative
+27,home,"Bought this kettle last month. Highly recommend, great value.",positive
+28,electronics,"Bought this headphones last month. Very happy with, love.",positive
+29,home,"Bought this blender last month. Fast shipping, highly recommend.",positive
+30,electronics,"Bought this speaker last month. Excellent, works perfectly and as described.",positive
+31,electronics,"Bought this keyboard last month. Arrived damaged, stopped working and average quality.",negative
+32,electronics,"Bought this charger last month. Fine for the price, as described and highly recommend.",neutral
+33,home,"Bought this lamp last month. Nothing special, it is okay and exceeded my expectations.",neutral
+34,outdoor,"Bought this camping chair last month. Would not recommend, broke after a week.",negative
+35,outdoor,"Bought this backpack last month. Excellent, works perfectly.",positive
+36,electronics,"Bought this speaker last month. Average quality, expected more features.",neutral
+37,electronics,"Bought this keyboard last month. Not bad not great, decent but.",neutral
+38,electronics,"Bought this speaker last month. Arrived damaged, broke after a week.",negative
+39,home,"Bought this lamp last month. Works perfectly, five stars.",positive
+40,outdoor,"Bought this backpack last month. Mixed feelings, it is okay.",neutral
+41,outdoor,"Bought this camping chair last month. Great value, love.",positive
+42,outdoor,"Bought this water bottle last month. Arrived damaged, waste of money and not bad not great.",negative
+43,electronics,"Bought this headphones last month. Fast shipping, great value.",positive
+44,outdoor,"Bought this backpack last month. Sturdy and well made, exceeded my expectations.",positive
+45,electronics,"Bought this headphones last month. Sturdy and well made, love and it is okay.",positive
+46,home,"Bought this kettle last month. Decent but, expected more features.",neutral
+47,electronics,"Bought this headphones last month. Not bad not great, decent but.",neutral
+48,outdoor,"Bought this tent last month. Nothing special, does the job.",neutral
+49,home,"Bought this kettle last month. Exceeded my expectations, works perfectly.",positive
+50,electronics,"Bought this headphones last month. Fast shipping, five stars.",positive
+51,home,"Bought this blender last month. Very disappointed, customer service ignored me.",negative
+52,outdoor,"Bought this water bottle last month. Terrible, very disappointed and expected more features.",negative
+53,electronics,"Bought this keyboard last month. Love, great value.",positive
+54,electronics,"Bought this keyboard last month. Waste of money, arrived damaged and not bad not great.",negative
+55,outdoor,"Bought this tent last month. Exceeded my expectations, very happy with.",positive
+56,electronics,"Bought this speaker last month. Highly recommend, works perfectly.",positive
+57,electronics,"Bought this headphones last month. Stopped working, poor quality.",negative
+58,home,"Bought this lamp last month. Love, sturdy and well made.",positive
+59,home,"Bought this lamp last month. Very happy with, love.",positive
+60,electronics,"Bought this speaker last month. Does the job, nothing special and love.",neutral
+61,outdoor,"Bought this camping chair last month. Broke after a week, terrible.",negative
+62,electronics,"Bought this keyboard last month. Exceeded my expectations, fast shipping.",positive
+63,home,"Bought this blender last month. Love, highly recommend and as described.",positive
+64,outdoor,"Bought this camping chair last month. Highly recommend, very happy with.",positive
+65,home,"Bought this vacuum last month. It is okay, expected more features.",neutral
+66,home,"Bought this vacuum last month. Mixed feelings, as described.",neutral
+67,home,"Bought this kettle last month. Average quality, it is okay.",neutral
+68,electronics,"Bought this speaker last month. Arrived damaged, customer service ignored me.",negative
+69,outdoor,"Bought this tent last month. Refund, poor quality.",negative
+70,electronics,"Bought this charger last month. Stopped working, refund.",negative
+71,electronics,"Bought this keyboard last month. Great value, works perfectly.",positive
+72,electronics,"Bought this charger last month. Very happy with, excellent.",positive
+73,outdoor,"Bought this tent last month. Five stars, great value and not bad not great.",positive
+74,outdoor,"Bought this water bottle last month. Great value, five stars.",positive
+75,electronics,"Bought this keyboard last month. Waste of money, customer service ignored me and as described.",negative
+76,home,"Bought this vacuum last month. Fine for the price, decent but.",neutral
+77,electronics,"Bought this headphones last month. Works perfectly, very happy with.",positive
+78,home,"Bought this kettle last month. Not bad not great, as described.",neutral
+79,outdoor,"Bought this water bottle last month. Excellent, fast shipping.",positive
+80,home,"Bought this vacuum last month. Arrived damaged, customer service ignored me.",negative
+81,home,"Bought this kettle last month. Arrived damaged, refund.",negative
+82,home,"Bought this kettle last month. Great value, very happy with.",positive
+83,electronics,"Bought this keyboard last month. Exceeded my expectations, excellent and does the job.",positive
+84,outdoor,"Bought this backpack last month. Exceeded my expectations, five stars.",positive
+85,outdoor,"Bought this camping chair last month. Very disappointed, would not recommend.",negative
+86,outdoor,"Bought this tent last month. Expected more features, nothing special and love.",neutral
+87,outdoor,"Bought this camping chair last month. Poor quality, arrived damaged and nothing special.",negative
+88,outdoor,"Bought this tent last month. As described, fine for the price.",neutral
+89,home,"Bought this kettle last month. Five stars, fast shipping.",positive
+90,outdoor,"Bought this tent last month. Would not recommend, very disappointed.",negative
+91,electronics,"Bought this charger last month. Poor quality, would not recommend.",negative
+92,electronics,"Bought this charger last month. Customer service ignored me, broke after a week.",negative
+93,electronics,"Bought this charger last month. Great value, works perfectly.",positive
+94,electronics,"Bought this headphones last month. Would not recommend, customer service ignored me.",negative
+95,home,"Bought this vacuum last month. Would not recommend, refund and fine for the price.",negative
+96,home,"Bought this vacuum last month. Would not recommend, refund.",negative
+97,electronics,"Bought this headphones last month. Waste of money, broke after a week.",negative
+98,outdoor,"Bought this water bottle last month. Refund, terrible.",negative
+99,outdoor,"Bought this tent last month. Great value, five stars.",positive
+100,home,"Bought this kettle last month. Excellent, love.",positive
+101,electronics,"Bought this speaker last month. Waste of money, stopped working.",negative
+102,home,"Bought this kettle last month. Arrived damaged, stopped working.",negative
+103,home,"Bought this lamp last month. Highly recommend, great value.",positive
+104,home,"Bought this kettle last month. Works perfectly, five stars.",positive
+105,electronics,"Bought this headphones last month. Arrived damaged, terrible.",negative
+106,electronics,"Bought this speaker last month. Customer service ignored me, terrible.",negative
+107,outdoor,"Bought this water bottle last month. Great value, exceeded my expectations.",positive
+108,electronics,"Bought this charger last month. Five stars, love and it is okay.",positive
+109,home,"Bought this kettle last month. Waste of money, terrible.",negative
+110,outdoor,"Bought this backpack last month. Love, excellent and decent but.",positive
+111,home,"Bought this kettle last month. Decent but, mixed feelings and very happy with.",neutral
+112,outdoor,"Bought this tent last month. Customer service ignored me, would not recommend.",negative
+113,electronics,"Bought this charger last month. Excellent, love.",positive
+114,electronics,"Bought this speaker last month. Nothing special, it is okay.",neutral
+115,electronics,"Bought this headphones last month. Works perfectly, great value.",positive
+116,electronics,"Bought this keyboard last month. Very disappointed, arrived damaged.",negative
+117,electronics,"Bought this speaker last month. Five stars, very happy with and expected more features.",positive
+118,outdoor,"Bought this camping chair last month. Stopped working, arrived damaged.",negative
+119,home,"Bought this kettle last month. Broke after a week, refund and decent but.",negative
+120,electronics,"Bought this speaker last month. Refund, waste of money.",negative
+121,home,"Bought this blender last month. Very happy with, exceeded my expectations.",positive
+122,outdoor,"Bought this tent last month. Sturdy and well made, great value and not bad not great.",positive
+123,home,"Bought this lamp last month. Arrived damaged, terrible and average quality.",negative
+124,electronics,"Bought this headphones last month. Nothing special, expected more features.",neutral
+125,electronics,"Bought this headphones last month. Works perfectly, very happy with.",positive
+126,electronics,"Bought this keyboard last month. Poor quality, stopped working.",negative
+127,outdoor,"Bought this water bottle last month. Expected more features, does the job and sturdy and well made.",neutral
+128,outdoor,"Bought this camping chair last month. Would not recommend, poor quality.",negative
+129,outdoor,"Bought this tent last month. Nothing special, as described.",neutral
+130,outdoor,"Bought this backpack last month. Arrived damaged, refund.",negative
+131,electronics,"Bought this keyboard last month. Great value, excellent and not bad not great.",positive
+132,electronics,"Bought this headphones last month. Fine for the price, not bad not great.",neutral
+133,outdoor,"Bought this water bottle last month. Fast shipping, exceeded my expectations.",positive
+134,home,"Bought this lamp last month. Very disappointed, poor quality.",negative
+135,outdoor,"Bought this camping chair last month. Very happy with, exceeded my expectations and as described.",positive
+136,electronics,"Bought this headphones last month. Very happy with, great value.",positive
+137,outdoor,"Bought this backpack last month. Five stars, excellent.",positive
+138,home,"Bought this blender last month. Poor quality, terrible and as described.",negative
+139,home,"Bought this kettle last month. Sturdy and well made, love.",positive
+140,home,"Bought this blender last month. Very happy with, fast shipping.",positive
+141,outdoor,"Bought this tent last month. Broke after a week, customer service ignored me and average quality.",negative
+142,outdoor,"Bought this camping chair last month. Arrived damaged, terrible.",negative
+143,outdoor,"Bought this water bottle last month. Stopped working, very disappointed and fine for the price.",negative
+144,electronics,"Bought this speaker last month. Customer service ignored me, refund.",negative
+145,outdoor,"Bought this camping chair last month. Arrived damaged, poor quality.",negative
+146,outdoor,"Bought this tent last month. Would not recommend, poor quality.",negative
+147,outdoor,"Bought this water bottle last month. Arrived damaged, waste of money.",negative
+148,electronics,"Bought this speaker last month. Arrived damaged, customer service ignored me.",negative
+149,electronics,"Bought this keyboard last month. Fast shipping, sturdy and well made.",positive
+150,home,"Bought this vacuum last month. Very happy with, five stars.",positive
+151,outdoor,"Bought this tent last month. Highly recommend, love.",positive
+152,home,"Bought this vacuum last month. Fine for the price, nothing special.",neutral
+153,home,"Bought this kettle last month. Arrived damaged, broke after a week.",negative
+154,home,"Bought this vacuum last month. Broke after a week, poor quality.",negative
+155,home,"Bought this kettle last month. It is okay, decent but.",neutral
+156,home,"Bought this blender last month. Broke after a week, would not recommend.",negative
+157,electronics,"Bought this charger last month. Great value, sturdy and well made.",positive
+158,electronics,"Bought this charger last month. Love, great value.",positive
+159,outdoor,"Bought this water bottle last month. Would not recommend, waste of money.",negative
+160,electronics,"Bought this keyboard last month. Fast shipping, five stars.",positive
+161,home,"Bought this blender last month. Average quality, nothing special and excellent.",neutral
+162,electronics,"Bought this speaker last month. Waste of money, would not recommend.",negative
+163,electronics,"Bought this charger last month. Broke after a week, arrived damaged.",negative
+164,outdoor,"Bought this backpack last month. Five stars, excellent and decent but.",positive
+165,electronics,"Bought this keyboard last month. It is okay, not bad not great.",neutral
+166,electronics,"Bought this charger last month. Love, sturdy and well made.",positive
+167,home,"Bought this kettle last month. Poor quality, customer service ignored me.",negative
+168,outdoor,"Bought this camping chair last month. Refund, stopped working.",negative
+169,electronics,"Bought this headphones last month. Very happy with, sturdy and well made and as described.",positive
+170,electronics,"Bought this charger last month. Not bad not great, it is okay and highly recommend.",neutral
+171,home,"Bought this kettle last month. Love, fast shipping and average quality.",positive
+172,home,"Bought this kettle last month. Exceeded my expectations, excellent.",positive
+173,outdoor,"Bought this backpack last month. Sturdy and well made, five stars.",positive
+174,home,"Bought this kettle last month. Customer service ignored me, arrived damaged.",negative
+175,outdoor,"Bought this camping chair last month. Exceeded my expectations, excellent.",positive
+176,outdoor,"Bought this tent last month. Waste of money, poor quality.",negative
+177,home,"Bought this vacuum last month. Stopped working, refund.",negative
+178,outdoor,"Bought this backpack last month. Broke after a week, stopped working.",negative
+179,home,"Bought this blender last month. Customer service ignored me, very disappointed.",negative
+180,outdoor,"Bought this backpack last month. Customer service ignored me, stopped working.",negative
+181,outdoor,"Bought this backpack last month. It is okay, decent but.",neutral
+182,electronics,"Bought this speaker last month. Exceeded my expectations, great value and as described.",positive
+183,electronics,"Bought this charger last month. Customer service ignored me, refund.",negative
+184,home,"Bought this blender last month. Fast shipping, great value.",positive
+185,electronics,"Bought this keyboard last month. Expected more features, average quality.",neutral
+186,home,"Bought this lamp last month. Highly recommend, excellent.",positive
+187,home,"Bought this blender last month. As described, expected more features.",neutral
+188,home,"Bought this vacuum last month. Arrived damaged, very disappointed.",negative
+189,home,"Bought this lamp last month. Great value, fast shipping.",positive
+190,home,"Bought this vacuum last month. Broke after a week, customer service ignored me.",negative
+191,outdoor,"Bought this backpack last month. Very happy with, five stars.",positive
+192,home,"Bought this blender last month. Love, very happy with.",positive
+193,home,"Bought this lamp last month. Stopped working, terrible.",negative
+194,home,"Bought this vacuum last month. Waste of money, stopped working.",negative
+195,home,"Bought this lamp last month. Excellent, highly recommend and not bad not great.",positive
+196,outdoor,"Bought this tent last month. Love, five stars.",positive
+197,outdoor,"Bought this camping chair last month. Fine for the price, does the job.",neutral
+198,electronics,"Bought this headphones last month. Average quality, decent but.",neutral
+199,home,"Bought this vacuum last month. Excellent, sturdy and well made.",positive
+200,electronics,"Bought this headphones last month. Stopped working, poor quality and does the job.",negative
+201,home,"Bought this kettle last month. Arrived damaged, customer service ignored me and mixed feelings.",negative
+202,electronics,"Bought this charger last month. Very disappointed, refund.",negative
+203,outdoor,"Bought this water bottle last month. Fine for the price, expected more features.",neutral
+204,home,"Bought this blender last month. Does the job, decent but.",neutral
+205,home,"Bought this blender last month. Not bad not great, average quality and fast shipping.",neutral
+206,outdoor,"Bought this backpack last month. Great value, highly recommend.",positive
+207,home,"Bought this blender last month. Refund, broke after a week.",negative
+208,electronics,"Bought this speaker last month. Refund, stopped working.",negative
+209,home,"Bought this blender last month. Great value, excellent.",positive
+210,electronics,"Bought this keyboard last month. Great value, very happy with and not bad not great.",positive
+211,electronics,"Bought this speaker last month. Love, five stars.",positive
+212,home,"Bought this kettle last month. Poor quality, waste of money.",negative
+213,outdoor,"Bought this backpack last month. Would not recommend, terrible.",negative
+214,home,"Bought this vacuum last month. Broke after a week, customer service ignored me.",negative
+215,outdoor,"Bought this water bottle last month. Does the job, it is okay.",neutral
+216,outdoor,"Bought this camping chair last month. Five stars, excellent.",positive
+217,outdoor,"Bought this tent last month. Stopped working, waste of money and does the job.",negative
+218,electronics,"Bought this charger last month. Great value, sturdy and well made.",positive
+219,outdoor,"Bought this water bottle last month. Waste of money, stopped working.",negative
+220,outdoor,"Bought this water bottle last month. Very happy with, exceeded my expectations.",positive
+221,outdoor,"Bought this camping chair last month. Sturdy and well made, love.",positive
+222,electronics,"Bought this keyboard last month. Great value, exceeded my expectations.",positive
+223,outdoor,"Bought this backpack last month. Exceeded my expectations, love.",positive
+224,outdoor,"Bought this camping chair last month. Excellent, five stars.",positive
+225,home,"Bought this kettle last month. Five stars, sturdy and well made.",positive
+226,electronics,"Bought this speaker last month. Exceeded my expectations, sturdy and well made.",positive
+227,home,"Bought this vacuum last month. Decent but, expected more features.",neutral
+228,electronics,"Bought this charger last month. Sturdy and well made, love and does the job.",positive
+229,outdoor,"Bought this water bottle last month. Broke after a week, stopped working.",negative
+230,electronics,"Bought this headphones last month. Arrived damaged, very disappointed and mixed feelings.",negative
+231,home,"Bought this kettle last month. Exceeded my expectations, five stars.",positive
+232,outdoor,"Bought this camping chair last month. Expected more features, nothing special.",neutral
+233,electronics,"Bought this keyboard last month. Refund, customer service ignored me and it is okay.",negative
+234,electronics,"Bought this charger last month. Refund, very disappointed.",negative
+235,electronics,"Bought this headphones last month. Poor quality, very disappointed.",negative
+236,home,"Bought this lamp last month. Does the job, fine for the price.",neutral
+237,outdoor,"Bought this camping chair last month. Fast shipping, great value and as described.",positive
+238,home,"Bought this lamp last month. Highly recommend, sturdy and well made.",positive
+239,electronics,"Bought this speaker last month. Would not recommend, refund.",negative
+240,home,"Bought this blender last month. Exceeded my expectations, sturdy and well made.",positive
+241,outdoor,"Bought this water bottle last month. Excellent, works perfectly.",positive
+242,outdoor,"Bought this camping chair last month. Nothing special, fine for the price.",neutral
+243,electronics,"Bought this charger last month. Broke after a week, arrived damaged.",negative
+244,electronics,"Bought this charger last month. Fast shipping, five stars.",positive
+245,outdoor,"Bought this backpack last month. Great value, sturdy and well made and not bad not great.",positive
+246,electronics,"Bought this keyboard last month. Great value, love.",positive
+247,home,"Bought this kettle last month. Stopped working, customer service ignored me.",negative
+248,electronics,"Bought this keyboard last month. Terrible, arrived damaged.",negative
+249,electronics,"Bought this charger last month. Arrived damaged, customer service ignored me.",negative
+250,home,"Bought this blender last month. Very disappointed, customer service ignored me.",negative
+251,electronics,"Bought this keyboard last month. Arrived damaged, terrible.",negative
+252,electronics,"Bought this headphones last month. Works perfectly, excellent.",positive
+253,electronics,"Bought this keyboard last month. Poor quality, would not recommend.",negative
+254,home,"Bought this kettle last month. Exceeded my expectations, love.",positive
+255,electronics,"Bought this keyboard last month. Sturdy and well made, exceeded my expectations and average quality.",positive
+256,electronics,"Bought this speaker last month. Very happy with, highly recommend.",positive
+257,home,"Bought this lamp last month. Love, very happy with.",positive
+258,outdoor,"Bought this backpack last month. Does the job, average quality and exceeded my expectations.",neutral
+259,home,"Bought this lamp last month. Arrived damaged, very disappointed.",negative
+260,electronics,"Bought this keyboard last month. Terrible, arrived damaged.",negative
+261,electronics,"Bought this headphones last month. Stopped working, very disappointed.",negative
+262,home,"Bought this kettle last month. Works perfectly, very happy with.",positive
+263,electronics,"Bought this headphones last month. Very happy with, highly recommend.",positive
+264,outdoor,"Bought this backpack last month. Refund, very disappointed.",negative
+265,outdoor,"Bought this tent last month. Broke after a week, arrived damaged and decent but.",negative
+266,home,"Bought this lamp last month. Exceeded my expectations, five stars.",positive
+267,electronics,"Bought this speaker last month. Highly recommend, fast shipping.",positive
+268,electronics,"Bought this keyboard last month. Mixed feelings, it is okay.",neutral
+269,electronics,"Bought this speaker last month. Terrible, very disappointed and decent but.",negative
+270,outdoor,"Bought this tent last month. Waste of money, broke after a week and not bad not great.",negative
+271,outdoor,"Bought this tent last month. Love, sturdy and well made.",positive
+272,outdoor,"Bought this backpack last month. Great value, sturdy and well made and it is okay.",positive
+273,home,"Bought this vacuum last month. Very happy with, fast shipping.",positive
+274,outdoor,"Bought this camping chair last month. Customer service ignored me, very disappointed.",negative
+275,outdoor,"Bought this camping chair last month. Poor quality, refund and decent but.",negative
+276,electronics,"Bought this keyboard last month. Love, five stars.",positive
+277,home,"Bought this lamp last month. Exceeded my expectations, great value.",positive
+278,outdoor,"Bought this tent last month. Does the job, fine for the price and excellent.",neutral
+279,home,"Bought this kettle last month. Would not recommend, arrived damaged and nothing special.",negative
+280,electronics,"Bought this charger last month. Fast shipping, exceeded my expectations.",positive
+281,home,"Bought this lamp last month. Great value, very happy with and expected more features.",positive
+282,outdoor,"Bought this water bottle last month. Very disappointed, refund and expected more features.",negative
+283,outdoor,"Bought this backpack last month. Exceeded my expectations, five stars.",positive
+284,electronics,"Bought this headphones last month. Arrived damaged, refund and does the job.",negative
+285,outdoor,"Bought this tent last month. Very disappointed, poor quality and expected more features.",negative
+286,home,"Bought this kettle last month. Not bad not great, as described.",neutral
+287,electronics,"Bought this headphones last month. Would not recommend, poor quality and does the job.",negative
+288,electronics,"Bought this keyboard last month. Sturdy and well made, very happy with and average quality.",positive
+289,electronics,"Bought this speaker last month. Fine for the price, average quality.",neutral
+290,outdoor,"Bought this camping chair last month. Customer service ignored me, arrived damaged.",negative
+291,electronics,"Bought this headphones last month. Broke after a week, customer service ignored me.",negative
+292,electronics,"Bought this speaker last month. Highly recommend, works perfectly and as described.",positive
+293,outdoor,"Bought this water bottle last month. Five stars, sturdy and well made.",positive
+294,electronics,"Bought this keyboard last month. Waste of money, stopped working and not bad not great.",negative
+295,electronics,"Bought this charger last month. Works perfectly, very happy with.",positive
+296,electronics,"Bought this speaker last month. Waste of money, poor quality and average quality.",negative
+297,electronics,"Bought this keyboard last month. Five stars, very happy with and mixed feelings.",positive
+298,outdoor,"Bought this backpack last month. Love, works perfectly.",positive
+299,home,"Bought this kettle last month. Expected more features, does the job.",neutral
+300,outdoor,"Bought this camping chair last month. Love, excellent.",positive
+301,outdoor,"Bought this water bottle last month. Waste of money, arrived damaged.",negative
+302,home,"Bought this lamp last month. Would not recommend, terrible.",negative
+303,home,"Bought this lamp last month. Fast shipping, works perfectly.",positive
+304,electronics,"Bought this headphones last month. Fast shipping, works perfectly.",positive
+305,electronics,"Bought this keyboard last month. Love, great value.",positive
+306,outdoor,"Bought this tent last month. Very disappointed, terrible.",negative
+307,electronics,"Bought this keyboard last month. Great value, works perfectly.",positive
+308,outdoor,"Bought this camping chair last month. Very happy with, great value.",positive
+309,electronics,"Bought this headphones last month. Works perfectly, love.",positive
+310,outdoor,"Bought this camping chair last month. Waste of money, stopped working.",negative
+311,home,"Bought this lamp last month. Terrible, refund and does the job.",negative
+312,electronics,"Bought this speaker last month. Decent but, mixed feelings.",neutral
+313,outdoor,"Bought this water bottle last month. Great value, sturdy and well made.",positive
+314,electronics,"Bought this speaker last month. Poor quality, terrible.",negative
+315,home,"Bought this lamp last month. Terrible, very disappointed.",negative
+316,outdoor,"Bought this tent last month. Does the job, it is okay.",neutral
+317,electronics,"Bought this charger last month. Arrived damaged, terrible.",negative
+318,electronics,"Bought this charger last month. Broke after a week, terrible.",negative
+319,outdoor,"Bought this tent last month. Very disappointed, terrible.",negative
+320,home,"Bought this kettle last month. Exceeded my expectations, sturdy and well made.",positive
+321,electronics,"Bought this charger last month. Great value, love and average quality.",positive
+322,home,"Bought this blender last month. Fast shipping, five stars.",positive
+323,home,"Bought this kettle last month. Mixed feelings, average quality.",neutral
+324,home,"Bought this blender last month. Very happy with, fast shipping and as described.",positive
+325,home,"Bought this lamp last month. Great value, five stars.",positive
+326,home,"Bought this blender last month. Does the job, expected more features and fast shipping.",neutral
+327,outdoor,"Bought this camping chair last month. Arrived damaged, poor quality.",negative
+328,home,"Bought this lamp last month. Five stars, highly recommend.",positive
+329,outdoor,"Bought this backpack last month. Decent but, average quality.",neutral
+330,electronics,"Bought this headphones last month. Customer service ignored me, would not recommend and it is okay.",negative
+331,outdoor,"Bought this camping chair last month. Five stars, very happy with.",positive
+332,home,"Bought this kettle last month. Refund, very disappointed.",negative
+333,home,"Bought this kettle last month. Works perfectly, very happy with.",positive
+334,electronics,"Bought this speaker last month. As described, not bad not great.",neutral
+335,home,"Bought this kettle last month. Decent but, does the job.",neutral
+336,outdoor,"Bought this camping chair last month. Highly recommend, exceeded my expectations.",positive
+337,electronics,"Bought this speaker last month. Expected more features, it is okay.",neutral
+338,home,"Bought this vacuum last month. Excellent, exceeded my expectations and not bad not great.",positive
+339,home,"Bought this vacuum last month. Highly recommend, five stars and fine for the price.",positive
+340,home,"Bought this kettle last month. Decent but, mixed feelings.",neutral
+341,electronics,"Bought this speaker last month. Sturdy and well made, great value.",positive
+342,home,"Bought this blender last month. Fine for the price, it is okay.",neutral
+343,electronics,"Bought this speaker last month. Very happy with, five stars.",positive
+344,outdoor,"Bought this tent last month. Excellent, highly recommend.",positive
+345,outdoor,"Bought this backpack last month. Five stars, works perfectly and it is okay.",positive
+346,home,"Bought this kettle last month. Very disappointed, stopped working.",negative
+347,home,"Bought this lamp last month. Refund, would not recommend and it is okay.",negative
+348,electronics,"Bought this charger last month. Very disappointed, customer service ignored me and expected more features.",negative
+349,electronics,"Bought this headphones last month. Customer service ignored me, arrived damaged and not bad not great.",negative
+350,electronics,"Bought this charger last month. Refund, arrived damaged.",negative
+351,home,"Bought this lamp last month. Customer service ignored me, broke after a week.",negative
+352,home,"Bought this vacuum last month. Terrible, would not recommend.",negative
+353,electronics,"Bought this headphones last month. Great value, five stars.",positive
+354,home,"Bought this blender last month. Customer service ignored me, stopped working.",negative
+355,home,"Bought this kettle last month. Fast shipping, excellent and it is okay.",positive
+356,home,"Bought this blender last month. Excellent, fast shipping.",positive
+357,home,"Bought this blender last month. Refund, arrived damaged.",negative
+358,outdoor,"Bought this water bottle last month. Decent but, average quality.",neutral
+359,electronics,"Bought this keyboard last month. Sturdy and well made, fast shipping.",positive
+360,outdoor,"Bought this tent last month. Broke after a week, refund.",negative
+361,home,"Bought this kettle last month. Refund, terrible.",negative
+362,outdoor,"Bought this tent last month. Great value, exceeded my expectations and nothing special.",positive
+363,home,"Bought this kettle last month. Works perfectly, excellent.",positive
+364,outdoor,"Bought this water bottle last month. Waste of money, stopped working.",negative
+365,outdoor,"Bought this water bottle last month. Terrible, very disappointed.",negative
+366,electronics,"Bought this charger last month. Excellent, fast shipping.",positive
+367,home,"Bought this kettle last month. Stopped working, would not recommend and nothing special.",negative
+368,electronics,"Bought this speaker last month. Great value, five stars.",positive
+369,outdoor,"Bought this camping chair last month. Poor quality, stopped working.",negative
+370,outdoor,"Bought this water bottle last month. Excellent, very happy with.",positive
+371,outdoor,"Bought this camping chair last month. Expected more features, fine for the price and great value.",neutral
+372,home,"Bought this lamp last month. Not bad not great, expected more features and five stars.",neutral
+373,home,"Bought this blender last month. Poor quality, very disappointed.",negative
+374,electronics,"Bought this keyboard last month. Stopped working, very disappointed.",negative
+375,home,"Bought this lamp last month. Mixed feelings, as described.",neutral
+376,home,"Bought this blender last month. As described, mixed feelings.",neutral
+377,home,"Bought this lamp last month. Terrible, would not recommend.",negative
+378,home,"Bought this lamp last month. Stopped working, very disappointed.",negative
+379,electronics,"Bought this keyboard last month. Nothing special, as described.",neutral
+380,electronics,"Bought this keyboard last month. Refund, very disappointed.",negative
+381,electronics,"Bought this headphones last month. Decent but, average quality and exceeded my expectations.",neutral
+382,outdoor,"Bought this camping chair last month. Very disappointed, terrible.",negative
+383,outdoor,"Bought this tent last month. Great value, highly recommend and decent but.",positive
+384,electronics,"Bought this headphones last month. Nothing special, mixed feelings and exceeded my expectations.",neutral
+385,electronics,"Bought this headphones last month. Terrible, very disappointed and not bad not great.",negative
+386,electronics,"Bought this keyboard last month. Fast shipping, great value and as described.",positive
+387,home,"Bought this lamp last month. Nothing special, decent but.",neutral
+388,electronics,"Bought this speaker last month. Would not recommend, customer service ignored me.",negative
+389,electronics,"Bought this headphones last month. Great value, five stars.",positive
+390,electronics,"Bought this keyboard last month. Sturdy and well made, great value.",positive
+391,electronics,"Bought this speaker last month. Highly recommend, five stars and mixed feelings.",positive
+392,electronics,"Bought this speaker last month. Great value, highly recommend and does the job.",positive
+393,electronics,"Bought this charger last month. Expected more features, mixed feelings.",neutral
+394,outdoor,"Bought this backpack last month. Highly recommend, sturdy and well made and nothing special.",positive
+395,home,"Bought this vacuum last month. Does the job, as described.",neutral
+396,home,"Bought this kettle last month. Would not recommend, refund.",negative
+397,outdoor,"Bought this backpack last month. Refund, stopped working.",negative
+398,home,"Bought this vacuum last month. Poor quality, arrived damaged and nothing special.",negative
+399,home,"Bought this blender last month. Nothing special, as described.",neutral
+400,outdoor,"Bought this water bottle last month. Very disappointed, broke after a week.",negative
+401,home,"Bought this blender last month. Nothing special, does the job.",neutral
+402,home,"Bought this blender last month. Nothing special, mixed feelings.",neutral
+403,outdoor,"Bought this backpack last month. Would not recommend, stopped working.",negative
+404,electronics,"Bought this charger last month. Five stars, fast shipping.",positive
+405,electronics,"Bought this charger last month. Works perfectly, exceeded my expectations.",positive
+406,electronics,"Bought this headphones last month. Works perfectly, highly recommend.",positive
+407,outdoor,"Bought this tent last month. Arrived damaged, refund.",negative
+408,outdoor,"Bought this water bottle last month. Exceeded my expectations, love and nothing special.",positive
+409,electronics,"Bought this speaker last month. It is okay, decent but.",neutral
+410,home,"Bought this blender last month. Love, fast shipping.",positive
+411,home,"Bought this vacuum last month. Poor quality, waste of money.",negative
+412,home,"Bought this vacuum last month. Works perfectly, love.",positive
+413,home,"Bought this vacuum last month. Works perfectly, very happy with and nothing special.",positive
+414,home,"Bought this vacuum last month. Poor quality, broke after a week.",negative
+415,electronics,"Bought this headphones last month. Refund, poor quality and nothing special.",negative
+416,home,"Bought this vacuum last month. Fast shipping, sturdy and well made and fine for the price.",positive
+417,outdoor,"Bought this water bottle last month. Very happy with, excellent.",positive
+418,outdoor,"Bought this camping chair last month. Decent but, mixed feelings and sturdy and well made.",neutral
+419,home,"Bought this vacuum last month. Excellent, works perfectly.",positive
+420,outdoor,"Bought this water bottle last month. Highly recommend, great value.",positive
+421,electronics,"Bought this headphones last month. Fast shipping, works perfectly.",positive
+422,electronics,"Bought this headphones last month. Fast shipping, love.",positive
+423,outdoor,"Bought this tent last month. Does the job, average quality.",neutral
+424,outdoor,"Bought this water bottle last month. Arrived damaged, stopped working.",negative
+425,home,"Bought this lamp last month. Works perfectly, sturdy and well made.",positive
+426,electronics,"Bought this headphones last month. Exceeded my expectations, five stars.",positive
+427,outdoor,"Bought this tent last month. Expected more features, not bad not great and highly recommend.",neutral
+428,outdoor,"Bought this tent last month. Would not recommend, customer service ignored me and decent but.",negative
+429,outdoor,"Bought this camping chair last month. Refund, poor quality and mixed feelings.",negative
+430,home,"Bought this vacuum last month. As described, not bad not great and fast shipping.",neutral
+431,home,"Bought this lamp last month. Mixed feelings, fine for the price.",neutral
+432,electronics,"Bought this keyboard last month. Terrible, would not recommend and expected more features.",negative
+433,home,"Bought this blender last month. Sturdy and well made, exceeded my expectations.",positive
+434,home,"Bought this kettle last month. Waste of money, refund.",negative
+435,electronics,"Bought this keyboard last month. Five stars, great value.",positive
+436,outdoor,"Bought this tent last month. Sturdy and well made, fast shipping.",positive
+437,home,"Bought this kettle last month. It is okay, nothing special.",neutral
+438,outdoor,"Bought this backpack last month. Fast shipping, highly recommend and nothing special.",positive
+439,electronics,"Bought this speaker last month. Sturdy and well made, works perfectly.",positive
+440,electronics,"Bought this speaker last month. Customer service ignored me, refund and expected more features.",negative
+441,electronics,"Bought this charger last month. Great value, very happy with.",positive
+442,home,"Bought this kettle last month. Very happy with, five stars.",positive
+443,home,"Bought this lamp last month. Highly recommend, exceeded my expectations.",positive
+444,outdoor,"Bought this water bottle last month. Exceeded my expectations, highly recommend.",positive
+445,home,"Bought this blender last month. Five stars, great value and fine for the price.",positive
+446,home,"Bought this blender last month. It is okay, decent but.",neutral
+447,outdoor,"Bought this backpack last month. Excellent, exceeded my expectations.",positive
+448,outdoor,"Bought this tent last month. Fine for the price, average quality.",neutral
+449,home,"Bought this blender last month. Average quality, nothing special.",neutral
+450,outdoor,"Bought this water bottle last month. Mixed feelings, not bad not great.",neutral
+451,electronics,"Bought this speaker last month. Five stars, sturdy and well made.",positive
+452,home,"Bought this blender last month. Mixed feelings, does the job.",neutral
+453,electronics,"Bought this speaker last month. Average quality, does the job.",neutral
+454,home,"Bought this lamp last month. Broke after a week, stopped working.",negative
+455,home,"Bought this kettle last month. Great value, very happy with.",positive
+456,electronics,"Bought this charger last month. Excellent, very happy with.",positive
+457,home,"Bought this blender last month. Works perfectly, five stars.",positive
+458,electronics,"Bought this charger last month. Very happy with, great value and average quality.",positive
+459,electronics,"Bought this charger last month. Works perfectly, highly recommend and decent but.",positive
+460,home,"Bought this blender last month. Mixed feelings, average quality.",neutral
+461,electronics,"Bought this headphones last month. Very happy with, sturdy and well made.",positive
+462,electronics,"Bought this charger last month. Customer service ignored me, very disappointed.",negative
+463,home,"Bought this kettle last month. Broke after a week, waste of money and it is okay.",negative
+464,electronics,"Bought this headphones last month. Would not recommend, very disappointed.",negative
+465,home,"Bought this blender last month. Very disappointed, customer service ignored me.",negative
+466,outdoor,"Bought this tent last month. Works perfectly, excellent.",positive
+467,home,"Bought this blender last month. Highly recommend, five stars.",positive
+468,home,"Bought this blender last month. Fast shipping, five stars.",positive
+469,electronics,"Bought this headphones last month. Decent but, mixed feelings.",neutral
+470,home,"Bought this blender last month. As described, decent but.",neutral
+471,outdoor,"Bought this water bottle last month. Excellent, sturdy and well made.",positive
+472,home,"Bought this lamp last month. Highly recommend, love.",positive
+473,electronics,"Bought this headphones last month. Exceeded my expectations, five stars.",positive
+474,outdoor,"Bought this camping chair last month. Five stars, great value and fine for the price.",positive
+475,electronics,"Bought this keyboard last month. Love, excellent.",positive
+476,outdoor,"Bought this camping chair last month. Poor quality, arrived damaged.",negative
+477,electronics,"Bought this keyboard last month. Fine for the price, not bad not great.",neutral
+478,home,"Bought this lamp last month. Waste of money, refund and expected more features.",negative
+479,outdoor,"Bought this water bottle last month. Five stars, highly recommend.",positive
+480,home,"Bought this vacuum last month. Broke after a week, would not recommend.",negative
+481,home,"Bought this vacuum last month. Terrible, arrived damaged and does the job.",negative
+482,outdoor,"Bought this backpack last month. Stopped working, very disappointed.",negative
+483,outdoor,"Bought this backpack last month. Poor quality, waste of money and as described.",negative
+484,home,"Bought this vacuum last month. Fine for the price, as described.",neutral
+485,outdoor,"Bought this camping chair last month. Five stars, excellent.",positive
+486,electronics,"Bought this headphones last month. Refund, stopped working.",negative
+487,outdoor,"Bought this backpack last month. Five stars, fast shipping.",positive
+488,outdoor,"Bought this camping chair last month. Nothing special, does the job.",neutral
+489,outdoor,"Bought this backpack last month. Sturdy and well made, great value.",positive
+490,home,"Bought this blender last month. Arrived damaged, stopped working.",negative
+491,home,"Bought this blender last month. Excellent, great value.",positive
+492,electronics,"Bought this headphones last month. Sturdy and well made, exceeded my expectations.",positive
+493,home,"Bought this vacuum last month. As described, fine for the price.",neutral
+494,electronics,"Bought this charger last month. Five stars, fast shipping.",positive
+495,home,"Bought this kettle last month. Great value, excellent and nothing special.",positive
+496,electronics,"Bought this keyboard last month. Customer service ignored me, waste of money.",negative
+497,home,"Bought this kettle last month. Five stars, highly recommend and decent but.",positive
+498,outdoor,"Bought this water bottle last month. Terrible, very disappointed and as described.",negative
+499,outdoor,"Bought this backpack last month. Terrible, arrived damaged and expected more features.",negative
+500,outdoor,"Bought this camping chair last month. Highly recommend, very happy with and fine for the price.",positive
+501,electronics,"Bought this keyboard last month. Very happy with, five stars.",positive
+502,home,"Bought this lamp last month. Highly recommend, fast shipping.",positive
+503,home,"Bought this vacuum last month. Highly recommend, very happy with.",positive
+504,electronics,"Bought this headphones last month. Customer service ignored me, waste of money.",negative
+505,outdoor,"Bought this water bottle last month. Highly recommend, works perfectly and does the job.",positive
+506,outdoor,"Bought this tent last month. Very happy with, excellent and average quality.",positive
+507,home,"Bought this lamp last month. Works perfectly, highly recommend.",positive
+508,electronics,"Bought this keyboard last month. Love, works perfectly.",positive
+509,home,"Bought this kettle last month. Poor quality, stopped working.",negative
+510,outdoor,"Bought this tent last month. Love, five stars.",positive
+511,home,"Bought this kettle last month. Average quality, nothing special and highly recommend.",neutral
+512,electronics,"Bought this speaker last month. Refund, stopped working and decent but.",negative
+513,electronics,"Bought this headphones last month. Five stars, sturdy and well made.",positive
+514,outdoor,"Bought this camping chair last month. Waste of money, stopped working and does the job.",negative
+515,outdoor,"Bought this camping chair last month. Customer service ignored me, would not recommend and not bad not great.",negative
+516,outdoor,"Bought this tent last month. Sturdy and well made, love.",positive
+517,home,"Bought this kettle last month. Exceeded my expectations, love.",positive
+518,electronics,"Bought this speaker last month. Love, five stars.",positive
+519,home,"Bought this blender last month. Would not recommend, poor quality and mixed feelings.",negative
+520,electronics,"Bought this keyboard last month. As described, mixed feelings.",neutral
+521,outdoor,"Bought this backpack last month. Terrible, broke after a week and average quality.",negative
+522,electronics,"Bought this charger last month. Five stars, highly recommend and expected more features.",positive
+523,home,"Bought this lamp last month. Fast shipping, great value.",positive
+524,outdoor,"Bought this camping chair last month. Average quality, it is okay and works perfectly.",neutral
+525,electronics,"Bought this charger last month. Highly recommend, works perfectly and nothing special.",positive
+526,home,"Bought this kettle last month. As described, fine for the price and excellent.",neutral
+527,outdoor,"Bought this tent last month. Arrived damaged, terrible.",negative
+528,electronics,"Bought this headphones last month. Works perfectly, exceeded my expectations.",positive
+529,home,"Bought this kettle last month. Excellent, great value.",positive
+530,electronics,"Bought this charger last month. Poor quality, stopped working.",negative
+531,home,"Bought this vacuum last month. Excellent, five stars.",positive
+532,outdoor,"Bought this tent last month. Stopped working, broke after a week.",negative
+533,home,"Bought this lamp last month. Exceeded my expectations, sturdy and well made.",positive
+534,home,"Bought this blender last month. Customer service ignored me, broke after a week.",negative
+535,home,"Bought this lamp last month. Terrible, very disappointed.",negative
+536,electronics,"Bought this keyboard last month. Customer service ignored me, poor quality.",negative
+537,outdoor,"Bought this water bottle last month. Refund, very disappointed.",negative
+538,home,"Bought this vacuum last month. Works perfectly, excellent.",positive
+539,home,"Bought this kettle last month. Works perfectly, excellent and nothing special.",positive
+540,home,"Bought this lamp last month. Works perfectly, great value.",positive
+541,home,"Bought this kettle last month. Fast shipping, great value.",positive
+542,outdoor,"Bought this water bottle last month. It is okay, nothing special and exceeded my expectations.",neutral
+543,outdoor,"Bought this water bottle last month. Waste of money, stopped working.",negative
+544,electronics,"Bought this speaker last month. Five stars, great value.",positive
+545,outdoor,"Bought this camping chair last month. Highly recommend, works perfectly.",positive
+546,home,"Bought this lamp last month. Highly recommend, very happy with.",positive
+547,outdoor,"Bought this camping chair last month. Decent but, does the job and works perfectly.",neutral
+548,electronics,"Bought this charger last month. Fine for the price, it is okay.",neutral
+549,home,"Bought this blender last month. As described, it is okay.",neutral
+550,outdoor,"Bought this tent last month. Highly recommend, great value.",positive
+551,electronics,"Bought this headphones last month. Very disappointed, refund and not bad not great.",negative
+552,home,"Bought this kettle last month. Poor quality, would not recommend.",negative
+553,home,"Bought this blender last month. Broke after a week, terrible.",negative
+554,outdoor,"Bought this tent last month. Highly recommend, fast shipping.",positive
+555,outdoor,"Bought this water bottle last month. Sturdy and well made, highly recommend.",positive
+556,home,"Bought this kettle last month. Very happy with, fast shipping.",positive
+557,outdoor,"Bought this camping chair last month. Would not recommend, refund.",negative
+558,outdoor,"Bought this water bottle last month. Not bad not great, fine for the price.",neutral
+559,electronics,"Bought this charger last month. Very happy with, works perfectly.",positive
+560,home,"Bought this blender last month. Not bad not great, average quality and great value.",neutral
+561,home,"Bought this vacuum last month. Decent but, average quality and five stars.",neutral
+562,electronics,"Bought this headphones last month. Works perfectly, highly recommend and does the job.",positive
+563,electronics,"Bought this keyboard last month. Not bad not great, nothing special and excellent.",neutral
+564,outdoor,"Bought this tent last month. Works perfectly, fast shipping.",positive
+565,outdoor,"Bought this camping chair last month. Highly recommend, great value.",positive
+566,outdoor,"Bought this camping chair last month. Five stars, excellent and average quality.",positive
+567,electronics,"Bought this headphones last month. Broke after a week, arrived damaged.",negative
+568,home,"Bought this kettle last month. It is okay, as described.",neutral
+569,outdoor,"Bought this camping chair last month. Love, very happy with.",positive
+570,outdoor,"Bought this camping chair last month. Sturdy and well made, great value.",positive
+571,outdoor,"Bought this backpack last month. Would not recommend, waste of money.",negative
+572,electronics,"Bought this speaker last month. Arrived damaged, terrible.",negative
+573,outdoor,"Bought this water bottle last month. Poor quality, customer service ignored me and average quality.",negative
+574,outdoor,"Bought this water bottle last month. Not bad not great, average quality.",neutral
+575,outdoor,"Bought this water bottle last month. Would not recommend, stopped working.",negative
+576,outdoor,"Bought this backpack last month. Arrived damaged, customer service ignored me and not bad not great.",negative
+577,electronics,"Bought this headphones last month. Works perfectly, very happy with.",positive
+578,electronics,"Bought this speaker last month. Five stars, highly recommend.",positive
+579,outdoor,"Bought this water bottle last month. Would not recommend, terrible.",negative
+580,electronics,"Bought this speaker last month. Stopped working, poor quality.",negative
+581,home,"Bought this blender last month. Waste of money, very disappointed.",negative
+582,electronics,"Bought this headphones last month. Great value, sturdy and well made and it is okay.",positive
+583,outdoor,"Bought this camping chair last month. Sturdy and well made, exceeded my expectations and does the job.",positive
+584,outdoor,"Bought this backpack last month. Exceeded my expectations, great value.",positive
+585,outdoor,"Bought this backpack last month. Love, excellent and does the job.",positive
+586,home,"Bought this kettle last month. Refund, would not recommend.",negative
+587,electronics,"Bought this headphones last month. Customer service ignored me, refund.",negative
+588,home,"Bought this blender last month. Nothing special, expected more features.",neutral
+589,outdoor,"Bought this tent last month. Very happy with, works perfectly and expected more features.",positive
+590,electronics,"Bought this headphones last month. Refund, stopped working.",negative
+591,home,"Bought this kettle last month. Five stars, very happy with.",positive
+592,electronics,"Bought this keyboard last month. Exceeded my expectations, great value and it is okay.",positive
+593,home,"Bought this blender last month. Nothing special, expected more features.",neutral
+594,outdoor,"Bought this water bottle last month. Sturdy and well made, great value.",positive
+595,electronics,"Bought this keyboard last month. Not bad not great, as described.",neutral
+596,home,"Bought this kettle last month. Nothing special, expected more features.",neutral
+597,outdoor,"Bought this camping chair last month. Refund, poor quality.",negative
+598,electronics,"Bought this speaker last month. Refund, waste of money.",negative
+599,home,"Bought this blender last month. Arrived damaged, stopped working.",negative
+600,electronics,"Bought this speaker last month. Arrived damaged, customer service ignored me.",negative
+601,outdoor,"Bought this camping chair last month. Does the job, mixed feelings.",neutral
+602,home,"Bought this lamp last month. Broke after a week, very disappointed.",negative
+603,electronics,"Bought this charger last month. Would not recommend, very disappointed and not bad not great.",negative
+604,home,"Bought this blender last month. Terrible, arrived damaged and decent but.",negative
+605,home,"Bought this blender last month. Terrible, poor quality.",negative
+606,electronics,"Bought this keyboard last month. Works perfectly, excellent.",positive
+607,electronics,"Bought this charger last month. Not bad not great, nothing special.",neutral
+608,electronics,"Bought this keyboard last month. Mixed feelings, decent but.",neutral
+609,home,"Bought this lamp last month. Sturdy and well made, five stars.",positive
+610,electronics,"Bought this keyboard last month. Fast shipping, works perfectly.",positive
+611,outdoor,"Bought this water bottle last month. Would not recommend, refund.",negative
+612,home,"Bought this kettle last month. Poor quality, customer service ignored me.",negative
+613,outdoor,"Bought this tent last month. Fast shipping, five stars.",positive
+614,outdoor,"Bought this water bottle last month. Customer service ignored me, refund.",negative
+615,home,"Bought this kettle last month. Average quality, nothing special and fast shipping.",neutral
+616,electronics,"Bought this headphones last month. Highly recommend, excellent.",positive
+617,electronics,"Bought this charger last month. Sturdy and well made, works perfectly and nothing special.",positive
+618,electronics,"Bought this keyboard last month. Exceeded my expectations, excellent and not bad not great.",positive
+619,electronics,"Bought this speaker last month. Expected more features, average quality.",neutral
+620,electronics,"Bought this charger last month. It is okay, expected more features.",neutral
+621,outdoor,"Bought this camping chair last month. Arrived damaged, would not recommend.",negative
+622,outdoor,"Bought this tent last month. Would not recommend, waste of money.",negative
+623,home,"Bought this kettle last month. Waste of money, stopped working.",negative
+624,home,"Bought this kettle last month. Stopped working, broke after a week.",negative
+625,electronics,"Bought this headphones last month. Terrible, arrived damaged.",negative
+626,electronics,"Bought this headphones last month. Would not recommend, poor quality.",negative
+627,home,"Bought this kettle last month. Stopped working, arrived damaged.",negative
+628,electronics,"Bought this speaker last month. Exceeded my expectations, love.",positive
+629,home,"Bought this vacuum last month. Average quality, mixed feelings.",neutral
+630,outdoor,"Bought this backpack last month. Would not recommend, very disappointed.",negative
+631,electronics,"Bought this speaker last month. Great value, very happy with.",positive
+632,electronics,"Bought this charger last month. Great value, works perfectly and as described.",positive
+633,home,"Bought this lamp last month. Exceeded my expectations, very happy with.",positive
+634,outdoor,"Bought this backpack last month. Love, exceeded my expectations.",positive
+635,home,"Bought this lamp last month. Great value, five stars.",positive
+636,electronics,"Bought this keyboard last month. Not bad not great, nothing special and exceeded my expectations.",neutral
+637,outdoor,"Bought this tent last month. Nothing special, average quality and five stars.",neutral
+638,electronics,"Bought this headphones last month. Exceeded my expectations, great value.",positive
+639,home,"Bought this lamp last month. Exceeded my expectations, very happy with.",positive
+640,home,"Bought this vacuum last month. Mixed feelings, fine for the price.",neutral
+641,outdoor,"Bought this tent last month. Average quality, fine for the price.",neutral
+642,home,"Bought this vacuum last month. Excellent, highly recommend.",positive
+643,electronics,"Bought this keyboard last month. Great value, exceeded my expectations.",positive
+644,outdoor,"Bought this tent last month. Sturdy and well made, love and expected more features.",positive
+645,outdoor,"Bought this tent last month. Mixed feelings, fine for the price and excellent.",neutral
+646,outdoor,"Bought this backpack last month. Five stars, highly recommend.",positive
+647,outdoor,"Bought this water bottle last month. Works perfectly, five stars.",positive
+648,electronics,"Bought this speaker last month. Poor quality, waste of money.",negative
+649,electronics,"Bought this headphones last month. Excellent, five stars.",positive
+650,home,"Bought this vacuum last month. Exceeded my expectations, highly recommend.",positive
+651,home,"Bought this lamp last month. Broke after a week, refund.",negative
+652,electronics,"Bought this headphones last month. Love, sturdy and well made.",positive
+653,outdoor,"Bought this backpack last month. Average quality, not bad not great.",neutral
+654,outdoor,"Bought this tent last month. Decent but, mixed feelings.",neutral
+655,outdoor,"Bought this camping chair last month. Stopped working, very disappointed.",negative
+656,home,"Bought this lamp last month. Five stars, exceeded my expectations and expected more features.",positive
+657,electronics,"Bought this speaker last month. Average quality, expected more features.",neutral
+658,outdoor,"Bought this water bottle last month. Highly recommend, very happy with and does the job.",positive
+659,electronics,"Bought this charger last month. Sturdy and well made, love.",positive
+660,electronics,"Bought this headphones last month. Customer service ignored me, very disappointed.",negative
+661,home,"Bought this vacuum last month. Very disappointed, customer service ignored me.",negative
+662,outdoor,"Bought this backpack last month. Love, great value and not bad not great.",positive
+663,outdoor,"Bought this tent last month. Fast shipping, very happy with.",positive
+664,home,"Bought this vacuum last month. Terrible, would not recommend.",negative
+665,electronics,"Bought this charger last month. Five stars, very happy with.",positive
+666,electronics,"Bought this charger last month. Exceeded my expectations, love and it is okay.",positive
+667,home,"Bought this lamp last month. Fine for the price, average quality and very happy with.",neutral
+668,home,"Bought this kettle last month. As described, mixed feelings and sturdy and well made.",neutral
+669,electronics,"Bought this speaker last month. Would not recommend, refund.",negative
+670,home,"Bought this kettle last month. Poor quality, waste of money and mixed feelings.",negative
+671,home,"Bought this vacuum last month. Five stars, highly recommend.",positive
+672,home,"Bought this blender last month. As described, nothing special.",neutral
+673,home,"Bought this kettle last month. Waste of money, refund.",negative
+674,outdoor,"Bought this water bottle last month. Poor quality, waste of money.",negative
+675,electronics,"Bought this speaker last month. Very disappointed, stopped working.",negative
+676,outdoor,"Bought this camping chair last month. Works perfectly, fast shipping.",positive
+677,outdoor,"Bought this water bottle last month. Sturdy and well made, great value.",positive
+678,outdoor,"Bought this tent last month. Fast shipping, exceeded my expectations.",positive
+679,home,"Bought this blender last month. Would not recommend, customer service ignored me.",negative
+680,electronics,"Bought this charger last month. Sturdy and well made, great value and as described.",positive
+681,home,"Bought this lamp last month. Fine for the price, decent but.",neutral
+682,electronics,"Bought this headphones last month. Would not recommend, customer service ignored me.",negative
+683,home,"Bought this kettle last month. Very happy with, sturdy and well made.",positive
+684,outdoor,"Bought this water bottle last month. Excellent, very happy with and as described.",positive
+685,electronics,"Bought this keyboard last month. Poor quality, terrible.",negative
+686,home,"Bought this vacuum last month. Great value, sturdy and well made and nothing special.",positive
+687,home,"Bought this lamp last month. Customer service ignored me, stopped working and as described.",negative
+688,electronics,"Bought this keyboard last month. Sturdy and well made, fast shipping.",positive
+689,home,"Bought this kettle last month. Fast shipping, excellent.",positive
+690,electronics,"Bought this headphones last month. Highly recommend, sturdy and well made and it is okay.",positive
+691,outdoor,"Bought this backpack last month. Refund, waste of money and nothing special.",negative
+692,electronics,"Bought this keyboard last month. Fast shipping, great value.",positive
+693,outdoor,"Bought this tent last month. Sturdy and well made, fast shipping and expected more features.",positive
+694,home,"Bought this lamp last month. As described, does the job.",neutral
+695,electronics,"Bought this headphones last month. Poor quality, waste of money.",negative
+696,outdoor,"Bought this tent last month. Fast shipping, great value.",positive
+697,outdoor,"Bought this backpack last month. Excellent, sturdy and well made and it is okay.",positive
+698,electronics,"Bought this speaker last month. Average quality, decent but.",neutral
+699,electronics,"Bought this charger last month. Five stars, very happy with.",positive
+700,outdoor,"Bought this tent last month. It is okay, as described and very happy with.",neutral
+701,outdoor,"Bought this tent last month. Fast shipping, very happy with and average quality.",positive
+702,home,"Bought this vacuum last month. Broke after a week, terrible and expected more features.",negative
+703,electronics,"Bought this headphones last month. Works perfectly, great value.",positive
+704,home,"Bought this vacuum last month. Sturdy and well made, works perfectly.",positive
+705,home,"Bought this lamp last month. It is okay, as described.",neutral
+706,outdoor,"Bought this camping chair last month. Works perfectly, five stars.",positive
+707,home,"Bought this kettle last month. Stopped working, refund.",negative
+708,home,"Bought this blender last month. Great value, exceeded my expectations.",positive
+709,outdoor,"Bought this tent last month. Not bad not great, expected more features.",neutral
+710,home,"Bought this vacuum last month. Refund, would not recommend.",negative
+711,outdoor,"Bought this backpack last month. Poor quality, waste of money.",negative
+712,electronics,"Bought this headphones last month. Would not recommend, broke after a week and does the job.",negative
+713,outdoor,"Bought this water bottle last month. Sturdy and well made, love.",positive
+714,outdoor,"Bought this water bottle last month. Highly recommend, works perfectly.",positive
+715,electronics,"Bought this headphones last month. Not bad not great, mixed feelings.",neutral
+716,outdoor,"Bought this backpack last month. Refund, would not recommend and mixed feelings.",negative
+717,electronics,"Bought this charger last month. Love, great value.",positive
+718,home,"Bought this kettle last month. As described, decent but.",neutral
+719,electronics,"Bought this headphones last month. Decent but, mixed feelings.",neutral
+720,outdoor,"Bought this camping chair last month. Highly recommend, excellent.",positive
+721,home,"Bought this vacuum last month. Customer service ignored me, very disappointed.",negative
+722,outdoor,"Bought this backpack last month. Five stars, exceeded my expectations.",positive
+723,electronics,"Bought this headphones last month. Average quality, nothing special and five stars.",neutral
+724,electronics,"Bought this charger last month. Customer service ignored me, waste of money.",negative
+725,home,"Bought this blender last month. Love, fast shipping.",positive
+726,outdoor,"Bought this tent last month. Fast shipping, five stars.",positive
+727,home,"Bought this lamp last month. Very happy with, exceeded my expectations and nothing special.",positive
+728,electronics,"Bought this charger last month. Arrived damaged, refund.",negative
+729,outdoor,"Bought this camping chair last month. Waste of money, customer service ignored me and mixed feelings.",negative
+730,electronics,"Bought this charger last month. Five stars, excellent and average quality.",positive
+731,home,"Bought this vacuum last month. Love, sturdy and well made.",positive
+732,outdoor,"Bought this water bottle last month. Very disappointed, arrived damaged.",negative
+733,electronics,"Bought this keyboard last month. Arrived damaged, refund and fine for the price.",negative
+734,electronics,"Bought this charger last month. Fast shipping, highly recommend.",positive
+735,electronics,"Bought this charger last month. As described, it is okay and very happy with.",neutral
+736,electronics,"Bought this speaker last month. Works perfectly, highly recommend.",positive
+737,outdoor,"Bought this tent last month. Would not recommend, very disappointed and mixed feelings.",negative
+738,home,"Bought this lamp last month. Works perfectly, five stars and does the job.",positive
+739,home,"Bought this kettle last month. Fine for the price, does the job.",neutral
+740,home,"Bought this lamp last month. Poor quality, broke after a week and nothing special.",negative
+741,outdoor,"Bought this backpack last month. Fast shipping, sturdy and well made.",positive
+742,home,"Bought this vacuum last month. Highly recommend, great value.",positive
+743,outdoor,"Bought this tent last month. Five stars, very happy with and as described.",positive
+744,home,"Bought this kettle last month. Mixed feelings, does the job.",neutral
+745,outdoor,"Bought this camping chair last month. Arrived damaged, terrible.",negative
+746,outdoor,"Bought this camping chair last month. Love, five stars.",positive
+747,electronics,"Bought this keyboard last month. Very happy with, highly recommend.",positive
+748,electronics,"Bought this keyboard last month. Stopped working, customer service ignored me and decent but.",negative
+749,home,"Bought this blender last month. Excellent, highly recommend and average quality.",positive
+750,home,"Bought this vacuum last month. Expected more features, mixed feelings.",neutral
+751,outdoor,"Bought this water bottle last month. Excellent, works perfectly.",positive
+752,outdoor,"Bought this tent last month. Great value, sturdy and well made and nothing special.",positive
+753,electronics,"Bought this charger last month. Highly recommend, five stars and decent but.",positive
+754,electronics,"Bought this headphones last month. Arrived damaged, stopped working and expected more features.",negative
+755,electronics,"Bought this keyboard last month. Nothing special, mixed feelings and works perfectly.",neutral
+756,electronics,"Bought this charger last month. Works perfectly, fast shipping.",positive
+757,electronics,"Bought this keyboard last month. Love, excellent and does the job.",positive
+758,home,"Bought this kettle last month. Not bad not great, expected more features.",neutral
+759,home,"Bought this vacuum last month. It is okay, mixed feelings.",neutral
+760,home,"Bought this blender last month. Very happy with, exceeded my expectations.",positive
+761,outdoor,"Bought this tent last month. Fine for the price, not bad not great.",neutral
+762,outdoor,"Bought this camping chair last month. As described, nothing special.",neutral
+763,home,"Bought this kettle last month. Love, exceeded my expectations and decent but.",positive
+764,outdoor,"Bought this tent last month. Customer service ignored me, waste of money.",negative
+765,outdoor,"Bought this tent last month. Does the job, nothing special.",neutral
+766,electronics,"Bought this keyboard last month. Love, highly recommend.",positive
+767,outdoor,"Bought this camping chair last month. Does the job, expected more features.",neutral
+768,electronics,"Bought this headphones last month. Arrived damaged, would not recommend.",negative
+769,electronics,"Bought this keyboard last month. Arrived damaged, customer service ignored me.",negative
+770,home,"Bought this vacuum last month. Exceeded my expectations, sturdy and well made.",positive
+771,home,"Bought this lamp last month. Broke after a week, refund.",negative
+772,home,"Bought this vacuum last month. Average quality, not bad not great.",neutral
+773,electronics,"Bought this charger last month. Fast shipping, excellent and not bad not great.",positive
+774,electronics,"Bought this keyboard last month. Great value, works perfectly and fine for the price.",positive
+775,electronics,"Bought this headphones last month. Very disappointed, terrible.",negative
+776,home,"Bought this blender last month. Broke after a week, stopped working.",negative
+777,home,"Bought this kettle last month. Terrible, poor quality.",negative
+778,home,"Bought this kettle last month. It is okay, not bad not great.",neutral
+779,outdoor,"Bought this camping chair last month. Stopped working, broke after a week.",negative
+780,outdoor,"Bought this water bottle last month. Love, sturdy and well made.",positive
+781,outdoor,"Bought this backpack last month. Nothing special, not bad not great.",neutral
+782,outdoor,"Bought this water bottle last month. Works perfectly, five stars.",positive
+783,home,"Bought this blender last month. Highly recommend, sturdy and well made.",positive
+784,outdoor,"Bought this tent last month. Sturdy and well made, exceeded my expectations.",positive
+785,home,"Bought this lamp last month. Five stars, fast shipping.",positive
+786,home,"Bought this lamp last month. Excellent, exceeded my expectations.",positive
+787,home,"Bought this kettle last month. Great value, exceeded my expectations and expected more features.",positive
+788,home,"Bought this blender last month. Arrived damaged, stopped working.",negative
+789,home,"Bought this vacuum last month. Expected more features, mixed feelings.",neutral
+790,electronics,"Bought this speaker last month. Poor quality, would not recommend and average quality.",negative
+791,electronics,"Bought this speaker last month. Very happy with, works perfectly and expected more features.",positive
+792,electronics,"Bought this speaker last month. Fast shipping, excellent.",positive
+793,electronics,"Bought this speaker last month. Poor quality, arrived damaged.",negative
+794,home,"Bought this kettle last month. Broke after a week, arrived damaged.",negative
+795,outdoor,"Bought this camping chair last month. Terrible, poor quality.",negative
+796,home,"Bought this vacuum last month. Broke after a week, waste of money.",negative
+797,electronics,"Bought this headphones last month. Very disappointed, waste of money.",negative
+798,electronics,"Bought this speaker last month. Very disappointed, customer service ignored me.",negative
+799,home,"Bought this blender last month. Exceeded my expectations, sturdy and well made and as described.",positive
+800,outdoor,"Bought this camping chair last month. Terrible, waste of money and expected more features.",negative
+801,outdoor,"Bought this tent last month. Excellent, fast shipping.",positive
+802,home,"Bought this lamp last month. Average quality, as described.",neutral
+803,home,"Bought this vacuum last month. Average quality, mixed feelings.",neutral
+804,home,"Bought this blender last month. It is okay, as described and great value.",neutral
+805,electronics,"Bought this keyboard last month. Expected more features, as described.",neutral
+806,electronics,"Bought this speaker last month. Terrible, arrived damaged.",negative
+807,electronics,"Bought this keyboard last month. Excellent, love.",positive
+808,home,"Bought this blender last month. Love, five stars and nothing special.",positive
+809,outdoor,"Bought this camping chair last month. Customer service ignored me, arrived damaged and expected more features.",negative
+810,electronics,"Bought this headphones last month. As described, it is okay.",neutral
+811,home,"Bought this blender last month. Highly recommend, excellent.",positive
+812,outdoor,"Bought this water bottle last month. Five stars, sturdy and well made.",positive
+813,electronics,"Bought this speaker last month. Very happy with, love.",positive
+814,home,"Bought this lamp last month. Does the job, it is okay.",neutral
+815,home,"Bought this lamp last month. Average quality, expected more features and very happy with.",neutral
+816,home,"Bought this vacuum last month. Stopped working, broke after a week.",negative
+817,outdoor,"Bought this backpack last month. Refund, waste of money and average quality.",negative
+818,electronics,"Bought this keyboard last month. Sturdy and well made, works perfectly.",positive
+819,outdoor,"Bought this backpack last month. Fast shipping, works perfectly.",positive
+820,outdoor,"Bought this camping chair last month. Does the job, fine for the price.",neutral
+821,home,"Bought this lamp last month. Broke after a week, customer service ignored me.",negative
+822,outdoor,"Bought this water bottle last month. Very happy with, exceeded my expectations.",positive
+823,home,"Bought this lamp last month. Very disappointed, terrible and does the job.",negative
+824,home,"Bought this kettle last month. Very happy with, excellent.",positive
+825,home,"Bought this vacuum last month. Poor quality, refund.",negative
+826,outdoor,"Bought this camping chair last month. Five stars, love.",positive
+827,outdoor,"Bought this tent last month. Five stars, exceeded my expectations.",positive
+828,electronics,"Bought this charger last month. Exceeded my expectations, works perfectly.",positive
+829,electronics,"Bought this charger last month. Very disappointed, broke after a week.",negative
+830,electronics,"Bought this charger last month. Exceeded my expectations, love.",positive
+831,outdoor,"Bought this water bottle last month. Does the job, nothing special and sturdy and well made.",neutral
+832,home,"Bought this blender last month. Love, fast shipping.",positive
+833,electronics,"Bought this speaker last month. Mixed feelings, expected more features.",neutral
+834,outdoor,"Bought this camping chair last month. Very disappointed, would not recommend.",negative
+835,outdoor,"Bought this backpack last month. Sturdy and well made, five stars.",positive
+836,outdoor,"Bought this water bottle last month. Customer service ignored me, poor quality.",negative
+837,outdoor,"Bought this backpack last month. Would not recommend, arrived damaged.",negative
+838,outdoor,"Bought this camping chair last month. Sturdy and well made, works perfectly.",positive
+839,home,"Bought this kettle last month. Five stars, works perfectly.",positive
+840,electronics,"Bought this headphones last month. Excellent, five stars.",positive
+841,outdoor,"Bought this tent last month. Not bad not great, as described.",neutral
+842,electronics,"Bought this speaker last month. Sturdy and well made, highly recommend.",positive
+843,home,"Bought this blender last month. Great value, exceeded my expectations.",positive
+844,outdoor,"Bought this backpack last month. Very happy with, great value.",positive
+845,electronics,"Bought this charger last month. As described, average quality.",neutral
+846,electronics,"Bought this keyboard last month. Terrible, customer service ignored me.",negative
+847,home,"Bought this blender last month. Highly recommend, sturdy and well made.",positive
+848,home,"Bought this blender last month. Arrived damaged, waste of money.",negative
+849,electronics,"Bought this keyboard last month. Stopped working, poor quality.",negative
+850,home,"Bought this kettle last month. Poor quality, very disappointed.",negative
+851,outdoor,"Bought this water bottle last month. Expected more features, as described and great value.",neutral
+852,electronics,"Bought this charger last month. Expected more features, fine for the price and sturdy and well made.",neutral
+853,outdoor,"Bought this camping chair last month. Five stars, very happy with.",positive
+854,electronics,"Bought this keyboard last month. Works perfectly, sturdy and well made and not bad not great.",positive
+855,home,"Bought this vacuum last month. Excellent, exceeded my expectations.",positive
+856,outdoor,"Bought this water bottle last month. Would not recommend, poor quality.",negative
+857,home,"Bought this lamp last month. Fine for the price, not bad not great.",neutral
+858,outdoor,"Bought this camping chair last month. Customer service ignored me, very disappointed.",negative
+859,electronics,"Bought this keyboard last month. Exceeded my expectations, fast shipping and not bad not great.",positive
+860,electronics,"Bought this charger last month. Arrived damaged, waste of money.",negative
+861,outdoor,"Bought this backpack last month. Love, highly recommend.",positive
+862,outdoor,"Bought this water bottle last month. Arrived damaged, terrible.",negative
+863,outdoor,"Bought this tent last month. Stopped working, waste of money and nothing special.",negative
+864,outdoor,"Bought this backpack last month. Arrived damaged, waste of money.",negative
+865,home,"Bought this lamp last month. Works perfectly, sturdy and well made and mixed feelings.",positive
+866,electronics,"Bought this keyboard last month. Waste of money, arrived damaged.",negative
+867,outdoor,"Bought this water bottle last month. Customer service ignored me, waste of money.",negative
+868,outdoor,"Bought this backpack last month. Broke after a week, would not recommend and decent but.",negative
+869,home,"Bought this lamp last month. Mixed feelings, does the job and great value.",neutral
+870,home,"Bought this blender last month. Waste of money, would not recommend and average quality.",negative
+871,outdoor,"Bought this water bottle last month. Very disappointed, refund and expected more features.",negative
+872,electronics,"Bought this headphones last month. Very happy with, great value.",positive
+873,electronics,"Bought this charger last month. Customer service ignored me, stopped working and as described.",negative
+874,home,"Bought this lamp last month. Exceeded my expectations, fast shipping.",positive
+875,electronics,"Bought this keyboard last month. Sturdy and well made, works perfectly.",positive
+876,home,"Bought this vacuum last month. Exceeded my expectations, sturdy and well made.",positive
+877,electronics,"Bought this keyboard last month. Love, very happy with and not bad not great.",positive
+878,home,"Bought this blender last month. Would not recommend, very disappointed.",negative
+879,electronics,"Bought this speaker last month. Would not recommend, broke after a week.",negative
+880,electronics,"Bought this keyboard last month. Not bad not great, as described.",neutral
+881,electronics,"Bought this speaker last month. Great value, fast shipping.",positive
+882,electronics,"Bought this speaker last month. Very happy with, exceeded my expectations and not bad not great.",positive
+883,home,"Bought this lamp last month. Poor quality, very disappointed.",negative
+884,electronics,"Bought this keyboard last month. Love, fast shipping.",positive
+885,electronics,"Bought this headphones last month. Sturdy and well made, love.",positive
+886,outdoor,"Bought this camping chair last month. Works perfectly, love.",positive
+887,electronics,"Bought this charger last month. Fine for the price, expected more features.",neutral
+888,home,"Bought this blender last month. Terrible, poor quality.",negative
+889,outdoor,"Bought this water bottle last month. Exceeded my expectations, great value and does the job.",positive
+890,home,"Bought this lamp last month. Poor quality, refund.",negative
+891,home,"Bought this blender last month. Sturdy and well made, exceeded my expectations and fine for the price.",positive
+892,electronics,"Bought this charger last month. Would not recommend, broke after a week.",negative
+893,electronics,"Bought this charger last month. Love, fast shipping.",positive
+894,home,"Bought this lamp last month. Customer service ignored me, would not recommend.",negative
+895,electronics,"Bought this charger last month. Excellent, very happy with.",positive
+896,outdoor,"Bought this backpack last month. Fast shipping, five stars.",positive
+897,outdoor,"Bought this backpack last month. Customer service ignored me, very disappointed.",negative
+898,outdoor,"Bought this water bottle last month. Excellent, sturdy and well made and expected more features.",positive
+899,home,"Bought this kettle last month. Excellent, love.",positive
+900,home,"Bought this lamp last month. Excellent, great value and not bad not great.",positive
+901,home,"Bought this vacuum last month. Refund, broke after a week.",negative
+902,home,"Bought this blender last month. Sturdy and well made, great value.",positive
+903,home,"Bought this vacuum last month. Very happy with, exceeded my expectations.",positive
+904,outdoor,"Bought this backpack last month. Very disappointed, stopped working.",negative
+905,outdoor,"Bought this water bottle last month. Mixed feelings, decent but.",neutral
+906,electronics,"Bought this headphones last month. Terrible, waste of money.",negative
+907,electronics,"Bought this speaker last month. Very happy with, sturdy and well made.",positive
+908,outdoor,"Bought this tent last month. Sturdy and well made, exceeded my expectations.",positive
+909,outdoor,"Bought this water bottle last month. Would not recommend, broke after a week.",negative
+910,home,"Bought this vacuum last month. Very disappointed, poor quality.",negative
+911,home,"Bought this kettle last month. Waste of money, customer service ignored me and expected more features.",negative
+912,home,"Bought this kettle last month. Exceeded my expectations, excellent and expected more features.",positive
+913,home,"Bought this blender last month. Poor quality, terrible.",negative
+914,outdoor,"Bought this water bottle last month. Would not recommend, stopped working.",negative
+915,home,"Bought this vacuum last month. Poor quality, terrible and as described.",negative
+916,home,"Bought this lamp last month. Broke after a week, waste of money and does the job.",negative
+917,electronics,"Bought this speaker last month. Love, sturdy and well made.",positive
+918,home,"Bought this lamp last month. Great value, fast shipping.",positive
+919,outdoor,"Bought this camping chair last month. Fast shipping, exceeded my expectations.",positive
+920,home,"Bought this vacuum last month. Broke after a week, poor quality.",negative
+921,home,"Bought this vacuum last month. Five stars, excellent.",positive
+922,home,"Bought this vacuum last month. Poor quality, arrived damaged.",negative
+923,outdoor,"Bought this tent last month. Terrible, broke after a week.",negative
+924,electronics,"Bought this speaker last month. Love, five stars and not bad not great.",positive
+925,electronics,"Bought this speaker last month. Not bad not great, it is okay and excellent.",neutral
+926,home,"Bought this vacuum last month. Does the job, nothing special.",neutral
+927,outdoor,"Bought this backpack last month. Very disappointed, would not recommend.",negative
+928,electronics,"Bought this keyboard last month. Five stars, great value and as described.",positive
+929,electronics,"Bought this keyboard last month. Customer service ignored me, stopped working.",negative
+930,electronics,"Bought this headphones last month. Love, five stars.",positive
+931,electronics,"Bought this keyboard last month. It is okay, decent but.",neutral
+932,outdoor,"Bought this camping chair last month. Terrible, would not recommend.",negative
+933,outdoor,"Bought this backpack last month. Sturdy and well made, exceeded my expectations.",positive
+934,outdoor,"Bought this water bottle last month. Excellent, highly recommend.",positive
+935,outdoor,"Bought this tent last month. Broke after a week, stopped working and not bad not great.",negative
+936,electronics,"Bought this keyboard last month. Broke after a week, arrived damaged.",negative
+937,electronics,"Bought this charger last month. Fast shipping, very happy with.",positive
+938,electronics,"Bought this charger last month. Waste of money, broke after a week and not bad not great.",negative
+939,electronics,"Bought this speaker last month. Arrived damaged, terrible and mixed feelings.",negative
+940,outdoor,"Bought this water bottle last month. Five stars, works perfectly.",positive
+941,electronics,"Bought this keyboard last month. Would not recommend, very disappointed and it is okay.",negative
+942,electronics,"Bought this keyboard last month. Great value, works perfectly.",positive
+943,home,"Bought this blender last month. Mixed feelings, as described.",neutral
+944,outdoor,"Bought this camping chair last month. Exceeded my expectations, fast shipping.",positive
+945,outdoor,"Bought this backpack last month. Excellent, exceeded my expectations.",positive
+946,electronics,"Bought this charger last month. Waste of money, arrived damaged.",negative
+947,outdoor,"Bought this camping chair last month. Mixed feelings, nothing special.",neutral
+948,outdoor,"Bought this tent last month. Fast shipping, exceeded my expectations.",positive
+949,home,"Bought this kettle last month. Refund, would not recommend.",negative
+950,outdoor,"Bought this camping chair last month. Mixed feelings, average quality.",neutral
+951,electronics,"Bought this headphones last month. As described, does the job.",neutral
+952,outdoor,"Bought this camping chair last month. It is okay, does the job.",neutral
+953,electronics,"Bought this charger last month. Five stars, fast shipping and not bad not great.",positive
+954,electronics,"Bought this headphones last month. Works perfectly, five stars.",positive
+955,electronics,"Bought this charger last month. Expected more features, as described.",neutral
+956,home,"Bought this lamp last month. Fast shipping, sturdy and well made.",positive
+957,outdoor,"Bought this tent last month. Average quality, does the job and highly recommend.",neutral
+958,home,"Bought this kettle last month. Would not recommend, broke after a week.",negative
+959,outdoor,"Bought this camping chair last month. Sturdy and well made, excellent.",positive
+960,electronics,"Bought this charger last month. Broke after a week, would not recommend.",negative
+961,electronics,"Bought this speaker last month. Average quality, mixed feelings and great value.",neutral
+962,electronics,"Bought this speaker last month. Waste of money, stopped working.",negative
+963,home,"Bought this blender last month. Very happy with, great value.",positive
+964,home,"Bought this blender last month. Refund, very disappointed.",negative
+965,outdoor,"Bought this backpack last month. Arrived damaged, stopped working.",negative
+966,electronics,"Bought this speaker last month. Highly recommend, exceeded my expectations.",positive
+967,outdoor,"Bought this camping chair last month. Expected more features, it is okay.",neutral
+968,home,"Bought this vacuum last month. Great value, love.",positive
+969,electronics,"Bought this charger last month. Customer service ignored me, refund and does the job.",negative
+970,home,"Bought this lamp last month. Works perfectly, very happy with and not bad not great.",positive
+971,home,"Bought this lamp last month. Customer service ignored me, very disappointed.",negative
+972,outdoor,"Bought this camping chair last month. Average quality, it is okay and works perfectly.",neutral
+973,outdoor,"Bought this backpack last month. Fast shipping, great value.",positive
+974,home,"Bought this vacuum last month. Excellent, five stars.",positive
+975,outdoor,"Bought this tent last month. Highly recommend, love and fine for the price.",positive
+976,outdoor,"Bought this backpack last month. Terrible, poor quality and it is okay.",negative
+977,electronics,"Bought this headphones last month. Stopped working, very disappointed.",negative
+978,home,"Bought this lamp last month. Highly recommend, works perfectly.",positive
+979,home,"Bought this vacuum last month. Excellent, five stars.",positive
+980,home,"Bought this vacuum last month. Decent but, mixed feelings.",neutral
+981,electronics,"Bought this keyboard last month. Does the job, nothing special.",neutral
+982,electronics,"Bought this headphones last month. Decent but, fine for the price.",neutral
+983,home,"Bought this kettle last month. Customer service ignored me, arrived damaged.",negative
+984,outdoor,"Bought this water bottle last month. Five stars, sturdy and well made.",positive
+985,home,"Bought this vacuum last month. Waste of money, broke after a week.",negative
+986,home,"Bought this kettle last month. It is okay, mixed feelings.",neutral
+987,home,"Bought this lamp last month. Sturdy and well made, love.",positive
+988,home,"Bought this lamp last month. Exceeded my expectations, sturdy and well made.",positive
+989,home,"Bought this blender last month. Does the job, it is okay.",neutral
+990,outdoor,"Bought this water bottle last month. Mixed feelings, as described.",neutral
+991,home,"Bought this kettle last month. Five stars, excellent.",positive
+992,electronics,"Bought this keyboard last month. Broke after a week, waste of money.",negative
+993,home,"Bought this blender last month. Exceeded my expectations, love.",positive
+994,home,"Bought this kettle last month. Very disappointed, terrible.",negative
+995,electronics,"Bought this keyboard last month. Not bad not great, mixed feelings and love.",neutral
+996,home,"Bought this blender last month. Poor quality, arrived damaged.",negative
+997,home,"Bought this kettle last month. Works perfectly, five stars.",positive
+998,outdoor,"Bought this tent last month. Five stars, exceeded my expectations.",positive
+999,outdoor,"Bought this water bottle last month. Fast shipping, five stars.",positive
+1000,outdoor,"Bought this tent last month. Customer service ignored me, refund.",negative
+1001,electronics,"Bought this speaker last month. Fine for the price, it is okay.",neutral
+1002,electronics,"Bought this charger last month. Excellent, fast shipping.",positive
+1003,electronics,"Bought this charger last month. Works perfectly, five stars.",positive
+1004,outdoor,"Bought this water bottle last month. Fine for the price, as described.",neutral
+1005,outdoor,"Bought this backpack last month. It is okay, mixed feelings.",neutral
+1006,home,"Bought this vacuum last month. Terrible, refund.",negative
+1007,home,"Bought this kettle last month. Very happy with, excellent.",positive
+1008,home,"Bought this lamp last month. Decent but, expected more features.",neutral
+1009,electronics,"Bought this keyboard last month. As described, fine for the price.",neutral
+1010,outdoor,"Bought this water bottle last month. Refund, terrible.",negative
+1011,outdoor,"Bought this camping chair last month. Exceeded my expectations, five stars and mixed feelings.",positive
+1012,outdoor,"Bought this tent last month. Poor quality, would not recommend.",negative
+1013,outdoor,"Bought this backpack last month. Expected more features, as described.",neutral
+1014,outdoor,"Bought this camping chair last month. Five stars, very happy with and mixed feelings.",positive
+1015,outdoor,"Bought this water bottle last month. Broke after a week, refund and average quality.",negative
+1016,electronics,"Bought this headphones last month. Customer service ignored me, very disappointed.",negative
+1017,electronics,"Bought this charger last month. Love, fast shipping.",positive
+1018,outdoor,"Bought this tent last month. Highly recommend, love.",positive
+1019,home,"Bought this blender last month. Fast shipping, exceeded my expectations.",positive
+1020,electronics,"Bought this charger last month. Very happy with, exceeded my expectations.",positive
+1021,home,"Bought this blender last month. Would not recommend, arrived damaged.",negative
+1022,outdoor,"Bought this camping chair last month. Would not recommend, terrible.",negative
+1023,home,"Bought this lamp last month. Does the job, expected more features.",neutral
+1024,outdoor,"Bought this tent last month. Customer service ignored me, terrible.",negative
+1025,outdoor,"Bought this water bottle last month. Customer service ignored me, refund.",negative
+1026,outdoor,"Bought this camping chair last month. Love, highly recommend.",positive
+1027,outdoor,"Bought this backpack last month. Love, works perfectly.",positive
+1028,electronics,"Bought this headphones last month. As described, fine for the price.",neutral
+1029,outdoor,"Bought this camping chair last month. Would not recommend, poor quality.",negative
+1030,electronics,"Bought this keyboard last month. Customer service ignored me, stopped working.",negative
+1031,electronics,"Bought this headphones last month. Excellent, great value and fine for the price.",positive
+1032,electronics,"Bought this charger last month. Terrible, would not recommend.",negative
+1033,home,"Bought this kettle last month. Terrible, stopped working.",negative
+1034,electronics,"Bought this headphones last month. Does the job, not bad not great.",neutral
+1035,outdoor,"Bought this backpack last month. Expected more features, not bad not great.",neutral
+1036,outdoor,"Bought this backpack last month. Works perfectly, highly recommend.",positive
+1037,home,"Bought this kettle last month. Waste of money, stopped working.",negative
+1038,outdoor,"Bought this camping chair last month. Great value, very happy with.",positive
+1039,electronics,"Bought this keyboard last month. Fast shipping, very happy with.",positive
+1040,home,"Bought this vacuum last month. Mixed feelings, fine for the price and excellent.",neutral
+1041,electronics,"Bought this speaker last month. Very disappointed, stopped working and fine for the price.",negative
+1042,electronics,"Bought this headphones last month. Nothing special, mixed feelings.",neutral
+1043,electronics,"Bought this keyboard last month. Refund, arrived damaged.",negative
+1044,home,"Bought this lamp last month. Very happy with, sturdy and well made and mixed feelings.",positive
+1045,electronics,"Bought this keyboard last month. Expected more features, fine for the price.",neutral
+1046,outdoor,"Bought this water bottle last month. Arrived damaged, poor quality and does the job.",negative
+1047,electronics,"Bought this speaker last month. Waste of money, broke after a week.",negative
+1048,home,"Bought this vacuum last month. Expected more features, decent but and exceeded my expectations.",neutral
+1049,outdoor,"Bought this tent last month. Exceeded my expectations, five stars.",positive
+1050,home,"Bought this lamp last month. As described, average quality.",neutral
+1051,electronics,"Bought this speaker last month. Nothing special, mixed feelings.",neutral
+1052,electronics,"Bought this charger last month. Refund, poor quality.",negative
+1053,electronics,"Bought this speaker last month. Not bad not great, it is okay.",neutral
+1054,outdoor,"Bought this camping chair last month. Mixed feelings, expected more features.",neutral
+1055,home,"Bought this lamp last month. Works perfectly, very happy with and decent but.",positive
+1056,outdoor,"Bought this tent last month. Refund, waste of money.",negative
+1057,outdoor,"Bought this camping chair last month. Sturdy and well made, highly recommend.",positive
+1058,home,"Bought this vacuum last month. Broke after a week, arrived damaged.",negative
+1059,electronics,"Bought this charger last month. Very disappointed, poor quality.",negative
+1060,electronics,"Bought this keyboard last month. Excellent, five stars.",positive
+1061,home,"Bought this vacuum last month. Great value, very happy with.",positive
+1062,electronics,"Bought this headphones last month. Customer service ignored me, very disappointed.",negative
+1063,electronics,"Bought this headphones last month. Sturdy and well made, love.",positive
+1064,outdoor,"Bought this backpack last month. Fast shipping, highly recommend.",positive
+1065,outdoor,"Bought this backpack last month. Arrived damaged, poor quality and fine for the price.",negative
+1066,home,"Bought this lamp last month. Highly recommend, sturdy and well made.",positive
+1067,electronics,"Bought this speaker last month. Broke after a week, arrived damaged.",negative
+1068,home,"Bought this lamp last month. Very happy with, love.",positive
+1069,outdoor,"Bought this camping chair last month. Poor quality, broke after a week.",negative
+1070,electronics,"Bought this charger last month. Works perfectly, very happy with and average quality.",positive
+1071,home,"Bought this vacuum last month. Highly recommend, five stars.",positive
+1072,electronics,"Bought this speaker last month. Fast shipping, five stars.",positive
+1073,outdoor,"Bought this camping chair last month. Great value, exceeded my expectations.",positive
+1074,electronics,"Bought this charger last month. Works perfectly, very happy with.",positive
+1075,electronics,"Bought this speaker last month. As described, not bad not great.",neutral
+1076,outdoor,"Bought this backpack last month. Great value, excellent.",positive
+1077,electronics,"Bought this headphones last month. Does the job, average quality.",neutral
+1078,outdoor,"Bought this tent last month. Highly recommend, five stars.",positive
+1079,electronics,"Bought this speaker last month. Average quality, fine for the price.",neutral
+1080,outdoor,"Bought this water bottle last month. Love, sturdy and well made.",positive
+1081,outdoor,"Bought this tent last month. Love, highly recommend.",positive
+1082,outdoor,"Bought this camping chair last month. Works perfectly, very happy with.",positive
+1083,electronics,"Bought this speaker last month. Very happy with, works perfectly and does the job.",positive
+1084,electronics,"Bought this speaker last month. Great value, love.",positive
+1085,outdoor,"Bought this tent last month. Customer service ignored me, arrived damaged.",negative
+1086,outdoor,"Bought this water bottle last month. Love, excellent.",positive
+1087,home,"Bought this kettle last month. Very happy with, exceeded my expectations and fine for the price.",positive
+1088,electronics,"Bought this charger last month. Great value, works perfectly.",positive
+1089,home,"Bought this vacuum last month. Excellent, love.",positive
+1090,outdoor,"Bought this camping chair last month. Very disappointed, stopped working.",negative
+1091,home,"Bought this blender last month. Broke after a week, refund.",negative
+1092,outdoor,"Bought this water bottle last month. Sturdy and well made, exceeded my expectations and not bad not great.",positive
+1093,outdoor,"Bought this water bottle last month. Excellent, fast shipping and as described.",positive
+1094,outdoor,"Bought this tent last month. Does the job, average quality.",neutral
+1095,electronics,"Bought this keyboard last month. Does the job, average quality.",neutral
+1096,electronics,"Bought this charger last month. Not bad not great, average quality.",neutral
+1097,outdoor,"Bought this backpack last month. Waste of money, terrible.",negative
+1098,outdoor,"Bought this backpack last month. It is okay, nothing special.",neutral
+1099,home,"Bought this vacuum last month. Love, fast shipping.",positive
+1100,outdoor,"Bought this water bottle last month. Would not recommend, customer service ignored me.",negative
+1101,electronics,"Bought this speaker last month. Very happy with, fast shipping.",positive
+1102,home,"Bought this blender last month. Five stars, highly recommend.",positive
+1103,home,"Bought this lamp last month. Sturdy and well made, works perfectly.",positive
+1104,outdoor,"Bought this tent last month. Stopped working, broke after a week and does the job.",negative
+1105,outdoor,"Bought this backpack last month. Decent but, fine for the price.",neutral
+1106,home,"Bought this vacuum last month. Five stars, sturdy and well made.",positive
+1107,outdoor,"Bought this water bottle last month. Great value, excellent and as described.",positive
+1108,home,"Bought this lamp last month. Fast shipping, very happy with.",positive
+1109,home,"Bought this vacuum last month. Sturdy and well made, very happy with.",positive
+1110,electronics,"Bought this keyboard last month. Broke after a week, arrived damaged.",negative
+1111,home,"Bought this blender last month. Five stars, exceeded my expectations.",positive
+1112,home,"Bought this blender last month. Fast shipping, love.",positive
+1113,home,"Bought this vacuum last month. Refund, customer service ignored me.",negative
+1114,electronics,"Bought this charger last month. Exceeded my expectations, fast shipping.",positive
+1115,outdoor,"Bought this backpack last month. Very disappointed, waste of money and nothing special.",negative
+1116,home,"Bought this blender last month. Sturdy and well made, highly recommend.",positive
+1117,electronics,"Bought this keyboard last month. Five stars, very happy with.",positive
+1118,home,"Bought this vacuum last month. Average quality, decent but and five stars.",neutral
+1119,electronics,"Bought this speaker last month. Expected more features, fine for the price.",neutral
+1120,outdoor,"Bought this tent last month. Fine for the price, decent but and love.",neutral
+1121,home,"Bought this vacuum last month. Nothing special, does the job.",neutral
+1122,electronics,"Bought this keyboard last month. Great value, very happy with.",positive
+1123,home,"Bought this kettle last month. Average quality, nothing special.",neutral
+1124,outdoor,"Bought this water bottle last month. Love, highly recommend.",positive
+1125,outdoor,"Bought this camping chair last month. Terrible, stopped working and nothing special.",negative
+1126,home,"Bought this kettle last month. Mixed feelings, does the job and exceeded my expectations.",neutral
+1127,home,"Bought this lamp last month. Customer service ignored me, broke after a week and decent but.",negative
+1128,outdoor,"Bought this tent last month. Great value, exceeded my expectations.",positive
+1129,outdoor,"Bought this camping chair last month. Works perfectly, highly recommend and expected more features.",positive
+1130,electronics,"Bought this charger last month. Very disappointed, refund.",negative
+1131,home,"Bought this vacuum last month. Sturdy and well made, works perfectly.",positive
+1132,electronics,"Bought this headphones last month. Does the job, expected more features.",neutral
+1133,home,"Bought this lamp last month. Refund, customer service ignored me and average quality.",negative
+1134,home,"Bought this blender last month. Five stars, works perfectly.",positive
+1135,home,"Bought this vacuum last month. Fast shipping, works perfectly.",positive
+1136,electronics,"Bought this keyboard last month. Fast shipping, excellent.",positive
+1137,outdoor,"Bought this camping chair last month. Not bad not great, it is okay.",neutral
+1138,outdoor,"Bought this backpack last month. Would not recommend, poor quality.",negative
+1139,electronics,"Bought this keyboard last month. It is okay, does the job.",neutral
+1140,outdoor,"Bought this water bottle last month. Exceeded my expectations, excellent.",positive
+1141,home,"Bought this vacuum last month. Sturdy and well made, highly recommend.",positive
+1142,home,"Bought this blender last month. Exceeded my expectations, love.",positive
+1143,outdoor,"Bought this tent last month. Very disappointed, would not recommend.",negative
+1144,outdoor,"Bought this backpack last month. Sturdy and well made, very happy with and average quality.",positive
+1145,outdoor,"Bought this camping chair last month. Broke after a week, very disappointed and not bad not great.",negative
+1146,home,"Bought this blender last month. Would not recommend, waste of money.",negative
+1147,outdoor,"Bought this tent last month. Customer service ignored me, waste of money.",negative
+1148,outdoor,"Bought this backpack last month. Great value, love.",positive
+1149,home,"Bought this vacuum last month. Very happy with, exceeded my expectations and decent but.",positive
+1150,electronics,"Bought this headphones last month. Great value, excellent.",positive
+1151,electronics,"Bought this headphones last month. Broke after a week, terrible and expected more features.",negative
+1152,home,"Bought this kettle last month. Not bad not great, decent but.",neutral
+1153,electronics,"Bought this headphones last month. Great value, sturdy and well made.",positive
+1154,home,"Bought this lamp last month. Arrived damaged, refund.",negative
+1155,home,"Bought this kettle last month. Very disappointed, poor quality.",negative
+1156,outdoor,"Bought this water bottle last month. Sturdy and well made, exceeded my expectations.",positive
+1157,outdoor,"Bought this tent last month. Would not recommend, waste of money and as described.",negative
+1158,electronics,"Bought this keyboard last month. Fine for the price, decent but.",neutral
+1159,home,"Bought this lamp last month. Waste of money, customer service ignored me.",negative
+1160,outdoor,"Bought this camping chair last month. Not bad not great, does the job.",neutral
+1161,electronics,"Bought this charger last month. Great value, exceeded my expectations.",positive
+1162,electronics,"Bought this speaker last month. Five stars, highly recommend.",positive
+1163,outdoor,"Bought this tent last month. Very disappointed, would not recommend.",negative
+1164,electronics,"Bought this keyboard last month. Would not recommend, refund and expected more features.",negative
+1165,home,"Bought this vacuum last month. Terrible, would not recommend and nothing special.",negative
+1166,home,"Bought this lamp last month. Love, exceeded my expectations.",positive
+1167,electronics,"Bought this keyboard last month. It is okay, fine for the price.",neutral
+1168,outdoor,"Bought this camping chair last month. Highly recommend, sturdy and well made and it is okay.",positive
+1169,home,"Bought this blender last month. Not bad not great, mixed feelings and excellent.",neutral
+1170,outdoor,"Bought this tent last month. Average quality, decent but.",neutral
+1171,home,"Bought this lamp last month. Broke after a week, refund and it is okay.",negative
+1172,home,"Bought this blender last month. Highly recommend, sturdy and well made.",positive
+1173,electronics,"Bought this keyboard last month. Expected more features, not bad not great.",neutral
+1174,outdoor,"Bought this water bottle last month. Terrible, very disappointed.",negative
+1175,electronics,"Bought this headphones last month. Terrible, waste of money.",negative
+1176,electronics,"Bought this speaker last month. Not bad not great, expected more features.",neutral
+1177,home,"Bought this vacuum last month. Fast shipping, very happy with.",positive
+1178,outdoor,"Bought this water bottle last month. Five stars, highly recommend.",positive
+1179,home,"Bought this vacuum last month. As described, does the job.",neutral
+1180,home,"Bought this lamp last month. Terrible, refund.",negative
+1181,electronics,"Bought this keyboard last month. Love, works perfectly.",positive
+1182,electronics,"Bought this headphones last month. Would not recommend, waste of money.",negative
+1183,outdoor,"Bought this backpack last month. Average quality, fine for the price and very happy with.",neutral
+1184,outdoor,"Bought this tent last month. Customer service ignored me, terrible and mixed feelings.",negative
+1185,electronics,"Bought this speaker last month. Stopped working, broke after a week.",negative
+1186,electronics,"Bought this keyboard last month. Fast shipping, excellent.",positive
+1187,outdoor,"Bought this camping chair last month. Excellent, five stars.",positive
+1188,electronics,"Bought this keyboard last month. Would not recommend, very disappointed.",negative
+1189,outdoor,"Bought this tent last month. Expected more features, decent but.",neutral
+1190,electronics,"Bought this speaker last month. Works perfectly, very happy with.",positive
+1191,electronics,"Bought this speaker last month. Very disappointed, broke after a week and does the job.",negative
+1192,outdoor,"Bought this water bottle last month. Refund, stopped working.",negative
+1193,home,"Bought this kettle last month. Very happy with, fast shipping.",positive
+1194,home,"Bought this lamp last month. Customer service ignored me, broke after a week.",negative
+1195,home,"Bought this kettle last month. Would not recommend, waste of money.",negative
+1196,outdoor,"Bought this backpack last month. Very disappointed, waste of money.",negative
+1197,home,"Bought this vacuum last month. Excellent, sturdy and well made and does the job.",positive
+1198,electronics,"Bought this speaker last month. Would not recommend, broke after a week.",negative
+1199,outdoor,"Bought this water bottle last month. Does the job, decent but.",neutral
+1200,home,"Bought this lamp last month. Expected more features, average quality.",neutral
+1201,electronics,"Bought this keyboard last month. Works perfectly, very happy with.",positive
+1202,outdoor,"Bought this backpack last month. Stopped working, arrived damaged.",negative
+1203,home,"Bought this vacuum last month. Love, works perfectly.",positive
+1204,outdoor,"Bought this backpack last month. Not bad not great, average quality and great value.",neutral
+1205,home,"Bought this vacuum last month. Fast shipping, sturdy and well made.",positive
+1206,outdoor,"Bought this camping chair last month. Does the job, not bad not great.",neutral
+1207,electronics,"Bought this keyboard last month. Stopped working, arrived damaged.",negative
+1208,electronics,"Bought this speaker last month. Customer service ignored me, stopped working.",negative
+1209,home,"Bought this blender last month. Terrible, arrived damaged.",negative
+1210,outdoor,"Bought this water bottle last month. Broke after a week, stopped working.",negative
+1211,home,"Bought this blender last month. Terrible, very disappointed.",negative
+1212,electronics,"Bought this headphones last month. Exceeded my expectations, sturdy and well made.",positive
+1213,home,"Bought this vacuum last month. Refund, poor quality.",negative
+1214,electronics,"Bought this speaker last month. Works perfectly, excellent.",positive
+1215,outdoor,"Bought this tent last month. Exceeded my expectations, sturdy and well made and average quality.",positive
+1216,outdoor,"Bought this camping chair last month. Does the job, it is okay.",neutral
+1217,outdoor,"Bought this tent last month. Fast shipping, excellent.",positive
+1218,outdoor,"Bought this camping chair last month. Five stars, love.",positive
+1219,outdoor,"Bought this water bottle last month. Average quality, mixed feelings.",neutral
+1220,home,"Bought this vacuum last month. Very happy with, works perfectly.",positive
+1221,home,"Bought this blender last month. Average quality, not bad not great.",neutral
+1222,electronics,"Bought this speaker last month. Excellent, exceeded my expectations.",positive
+1223,outdoor,"Bought this water bottle last month. Sturdy and well made, very happy with.",positive
+1224,electronics,"Bought this charger last month. Five stars, excellent.",positive
+1225,outdoor,"Bought this backpack last month. Poor quality, refund.",negative
+1226,outdoor,"Bought this water bottle last month. Very disappointed, arrived damaged and mixed feelings.",negative
+1227,electronics,"Bought this charger last month. Very disappointed, waste of money.",negative
+1228,outdoor,"Bought this tent last month. Expected more features, average quality.",neutral
+1229,electronics,"Bought this headphones last month. Customer service ignored me, terrible.",negative
+1230,outdoor,"Bought this tent last month. Great value, fast shipping and nothing special.",positive
+1231,outdoor,"Bought this tent last month. Sturdy and well made, very happy with and as described.",positive
+1232,electronics,"Bought this charger last month. Very happy with, great value.",positive
+1233,electronics,"Bought this charger last month. Great value, excellent.",positive
+1234,electronics,"Bought this speaker last month. Sturdy and well made, great value.",positive
+1235,electronics,"Bought this headphones last month. Mixed feelings, not bad not great.",neutral
+1236,electronics,"Bought this headphones last month. It is okay, fine for the price.",neutral
+1237,electronics,"Bought this speaker last month. Exceeded my expectations, works perfectly.",positive
+1238,electronics,"Bought this charger last month. Highly recommend, fast shipping and mixed feelings.",positive
+1239,electronics,"Bought this charger last month. Works perfectly, exceeded my expectations and it is okay.",positive
+1240,home,"Bought this lamp last month. Fine for the price, expected more features.",neutral
+1241,outdoor,"Bought this backpack last month. Exceeded my expectations, works perfectly.",positive
+1242,electronics,"Bought this headphones last month. Love, exceeded my expectations and fine for the price.",positive
+1243,electronics,"Bought this charger last month. Waste of money, very disappointed.",negative
+1244,outdoor,"Bought this camping chair last month. Fast shipping, works perfectly.",positive
+1245,electronics,"Bought this speaker last month. Poor quality, waste of money.",negative
+1246,electronics,"Bought this keyboard last month. Excellent, love and mixed feelings.",positive
+1247,outdoor,"Bought this water bottle last month. Fast shipping, five stars.",positive
+1248,outdoor,"Bought this camping chair last month. Does the job, not bad not great and very happy with.",neutral
+1249,outdoor,"Bought this camping chair last month. Excellent, five stars and nothing special.",positive
+1250,outdoor,"Bought this camping chair last month. Works perfectly, sturdy and well made.",positive
+1251,outdoor,"Bought this backpack last month. Fast shipping, love.",positive
+1252,outdoor,"Bought this tent last month. Fine for the price, expected more features and great value.",neutral
+1253,home,"Bought this vacuum last month. Waste of money, poor quality.",negative
+1254,electronics,"Bought this speaker last month. Excellent, fast shipping and not bad not great.",positive
+1255,home,"Bought this blender last month. Would not recommend, terrible.",negative
+1256,home,"Bought this lamp last month. Very disappointed, terrible and fine for the price.",negative
+1257,electronics,"Bought this keyboard last month. Nothing special, fine for the price.",neutral
+1258,home,"Bought this kettle last month. Mixed feelings, nothing special.",neutral
+1259,outdoor,"Bought this camping chair last month. Very happy with, works perfectly.",positive
+1260,outdoor,"Bought this backpack last month. Terrible, would not recommend and decent but.",negative
+1261,outdoor,"Bought this tent last month. Does the job, as described.",neutral
+1262,home,"Bought this lamp last month. Broke after a week, terrible.",negative
+1263,outdoor,"Bought this backpack last month. Stopped working, refund.",negative
+1264,electronics,"Bought this charger last month. Works perfectly, highly recommend.",positive
+1265,home,"Bought this kettle last month. Waste of money, terrible.",negative
+1266,electronics,"Bought this headphones last month. Sturdy and well made, fast shipping.",positive
+1267,electronics,"Bought this headphones last month. Customer service ignored me, broke after a week.",negative
+1268,home,"Bought this kettle last month. As described, it is okay and love.",neutral
+1269,outdoor,"Bought this water bottle last month. Not bad not great, as described.",neutral
+1270,electronics,"Bought this headphones last month. Fast shipping, sturdy and well made and decent but.",positive
+1271,outdoor,"Bought this tent last month. Sturdy and well made, five stars.",positive
+1272,outdoor,"Bought this water bottle last month. Waste of money, stopped working.",negative
+1273,outdoor,"Bought this camping chair last month. Very happy with, sturdy and well made and not bad not great.",positive
+1274,home,"Bought this vacuum last month. Exceeded my expectations, very happy with.",positive
+1275,home,"Bought this blender last month. Would not recommend, broke after a week and not bad not great.",negative
+1276,home,"Bought this lamp last month. Love, great value.",positive
+1277,outdoor,"Bought this tent last month. Decent but, average quality.",neutral
+1278,outdoor,"Bought this water bottle last month. Sturdy and well made, excellent.",positive
+1279,electronics,"Bought this charger last month. Would not recommend, terrible.",negative
+1280,outdoor,"Bought this camping chair last month. Fast shipping, sturdy and well made.",positive
+1281,outdoor,"Bought this tent last month. Mixed feelings, decent but.",neutral
+1282,outdoor,"Bought this backpack last month. Customer service ignored me, broke after a week and not bad not great.",negative
+1283,home,"Bought this kettle last month. Sturdy and well made, fast shipping.",positive
+1284,electronics,"Bought this speaker last month. Nothing special, average quality.",neutral
+1285,home,"Bought this vacuum last month. Fine for the price, as described and highly recommend.",neutral
+1286,electronics,"Bought this speaker last month. Refund, waste of money.",negative
+1287,electronics,"Bought this charger last month. Expected more features, fine for the price.",neutral
+1288,outdoor,"Bought this tent last month. Excellent, works perfectly and average quality.",positive
+1289,electronics,"Bought this speaker last month. Very happy with, exceeded my expectations.",positive
+1290,electronics,"Bought this charger last month. Great value, sturdy and well made and does the job.",positive
+1291,outdoor,"Bought this camping chair last month. Customer service ignored me, poor quality.",negative
+1292,outdoor,"Bought this tent last month. Stopped working, broke after a week and fine for the price.",negative
+1293,outdoor,"Bought this backpack last month. Very happy with, fast shipping.",positive
+1294,outdoor,"Bought this camping chair last month. Poor quality, broke after a week.",negative
+1295,outdoor,"Bought this water bottle last month. Love, works perfectly.",positive
+1296,outdoor,"Bought this backpack last month. Highly recommend, works perfectly.",positive
+1297,electronics,"Bought this speaker last month. Sturdy and well made, works perfectly.",positive
+1298,electronics,"Bought this keyboard last month. Terrible, waste of money.",negative
+1299,outdoor,"Bought this backpack last month. Stopped working, refund and decent but.",negative
+1300,electronics,"Bought this keyboard last month. Works perfectly, fast shipping.",positive
+1301,outdoor,"Bought this water bottle last month. Refund, waste of money.",negative
+1302,outdoor,"Bought this water bottle last month. Highly recommend, great value.",positive
+1303,outdoor,"Bought this water bottle last month. Waste of money, refund.",negative
+1304,electronics,"Bought this speaker last month. Works perfectly, five stars.",positive
+1305,outdoor,"Bought this backpack last month. Refund, broke after a week and not bad not great.",negative
+1306,home,"Bought this kettle last month. Highly recommend, very happy with and as described.",positive
+1307,home,"Bought this blender last month. Love, fast shipping.",positive
+1308,home,"Bought this blender last month. Fast shipping, five stars and average quality.",positive
+1309,outdoor,"Bought this backpack last month. Very disappointed, waste of money and does the job.",negative
+1310,home,"Bought this vacuum last month. Excellent, five stars and average quality.",positive
+1311,electronics,"Bought this headphones last month. Refund, would not recommend and fine for the price.",negative
+1312,home,"Bought this vacuum last month. Very disappointed, terrible and it is okay.",negative
+1313,electronics,"Bought this speaker last month. Expected more features, fine for the price.",neutral
+1314,electronics,"Bought this keyboard last month. Customer service ignored me, stopped working.",negative
+1315,outdoor,"Bought this tent last month. Would not recommend, waste of money.",negative
+1316,outdoor,"Bought this camping chair last month. Great value, excellent.",positive
+1317,electronics,"Bought this keyboard last month. Fast shipping, very happy with.",positive
+1318,electronics,"Bought this speaker last month. Fast shipping, highly recommend and expected more features.",positive
+1319,home,"Bought this blender last month. Customer service ignored me, waste of money.",negative
+1320,outdoor,"Bought this water bottle last month. It is okay, not bad not great.",neutral
+1321,home,"Bought this lamp last month. Waste of money, very disappointed.",negative
+1322,outdoor,"Bought this backpack last month. Very disappointed, stopped working.",negative
+1323,home,"Bought this blender last month. Very happy with, five stars.",positive
+1324,outdoor,"Bought this tent last month. Five stars, highly recommend.",positive
+1325,home,"Bought this vacuum last month. Great value, works perfectly and does the job.",positive
+1326,outdoor,"Bought this tent last month. Nothing special, it is okay and sturdy and well made.",neutral
+1327,electronics,"Bought this charger last month. Not bad not great, fine for the price.",neutral
+1328,home,"Bought this blender last month. Refund, arrived damaged.",negative
+1329,outdoor,"Bought this tent last month. Exceeded my expectations, love.",positive
+1330,home,"Bought this blender last month. Five stars, excellent and it is okay.",positive
+1331,outdoor,"Bought this water bottle last month. Fine for the price, nothing special.",neutral
+1332,outdoor,"Bought this water bottle last month. Terrible, would not recommend and not bad not great.",negative
+1333,outdoor,"Bought this water bottle last month. Broke after a week, customer service ignored me.",negative
+1334,electronics,"Bought this keyboard last month. Great value, sturdy and well made.",positive
+1335,home,"Bought this blender last month. Would not recommend, arrived damaged.",negative
+1336,outdoor,"Bought this water bottle last month. Excellent, sturdy and well made.",positive
+1337,outdoor,"Bought this camping chair last month. Expected more features, it is okay.",neutral
+1338,home,"Bought this vacuum last month. Excellent, highly recommend and mixed feelings.",positive
+1339,home,"Bought this kettle last month. Very happy with, great value.",positive
+1340,home,"Bought this blender last month. Love, five stars.",positive
+1341,home,"Bought this kettle last month. Would not recommend, terrible.",negative
+1342,electronics,"Bought this keyboard last month. Stopped working, refund.",negative
+1343,outdoor,"Bought this water bottle last month. Very disappointed, waste of money.",negative
+1344,outdoor,"Bought this camping chair last month. Would not recommend, refund.",negative
+1345,electronics,"Bought this headphones last month. Very happy with, love.",positive
+1346,home,"Bought this vacuum last month. Terrible, refund.",negative
+1347,home,"Bought this vacuum last month. Highly recommend, very happy with.",positive
+1348,home,"Bought this blender last month. Refund, arrived damaged.",negative
+1349,outdoor,"Bought this camping chair last month. Excellent, great value.",positive
+1350,electronics,"Bought this charger last month. Great value, exceeded my expectations.",positive
+1351,electronics,"Bought this charger last month. Sturdy and well made, exceeded my expectations.",positive
+1352,outdoor,"Bought this water bottle last month. Arrived damaged, very disappointed.",negative
+1353,home,"Bought this blender last month. Expected more features, decent but.",neutral
+1354,outdoor,"Bought this backpack last month. Not bad not great, nothing special.",neutral
+1355,electronics,"Bought this headphones last month. Would not recommend, waste of money.",negative
+1356,outdoor,"Bought this water bottle last month. Terrible, waste of money.",negative
+1357,electronics,"Bought this keyboard last month. Fast shipping, highly recommend.",positive
+1358,outdoor,"Bought this tent last month. Expected more features, it is okay.",neutral
+1359,home,"Bought this vacuum last month. Excellent, very happy with.",positive
+1360,outdoor,"Bought this water bottle last month. Would not recommend, customer service ignored me and not bad not great.",negative
+1361,outdoor,"Bought this camping chair last month. Sturdy and well made, exceeded my expectations and not bad not great.",positive
+1362,home,"Bought this blender last month. Poor quality, terrible and as described.",negative
+1363,electronics,"Bought this speaker last month. Five stars, fast shipping and it is okay.",positive
+1364,home,"Bought this blender last month. Expected more features, it is okay.",neutral
+1365,home,"Bought this blender last month. Arrived damaged, would not recommend.",negative
+1366,home,"Bought this kettle last month. Stopped working, terrible and fine for the price.",negative
+1367,electronics,"Bought this speaker last month. Customer service ignored me, waste of money.",negative
+1368,home,"Bought this vacuum last month. Works perfectly, excellent.",positive
+1369,electronics,"Bought this keyboard last month. Works perfectly, exceeded my expectations.",positive
+1370,electronics,"Bought this headphones last month. As described, not bad not great.",neutral
+1371,outdoor,"Bought this camping chair last month. As described, does the job.",neutral
+1372,electronics,"Bought this keyboard last month. Fast shipping, love and fine for the price.",positive
+1373,electronics,"Bought this headphones last month. Very disappointed, refund.",negative
+1374,home,"Bought this blender last month. Refund, would not recommend.",negative
+1375,home,"Bought this lamp last month. Refund, waste of money.",negative
+1376,outdoor,"Bought this backpack last month. Love, sturdy and well made and it is okay.",positive
+1377,home,"Bought this blender last month. Works perfectly, highly recommend.",positive
+1378,electronics,"Bought this speaker last month. Works perfectly, excellent.",positive
+1379,home,"Bought this kettle last month. Fast shipping, exceeded my expectations.",positive
+1380,home,"Bought this vacuum last month. Great value, love.",positive
+1381,home,"Bought this vacuum last month. It is okay, expected more features.",neutral
+1382,outdoor,"Bought this tent last month. Very happy with, five stars and not bad not great.",positive
+1383,electronics,"Bought this charger last month. Decent but, as described and exceeded my expectations.",neutral
+1384,electronics,"Bought this charger last month. Excellent, five stars and nothing special.",positive
+1385,outdoor,"Bought this tent last month. Very disappointed, refund.",negative
+1386,outdoor,"Bought this water bottle last month. Waste of money, broke after a week.",negative
+1387,outdoor,"Bought this tent last month. Fast shipping, sturdy and well made.",positive
+1388,home,"Bought this vacuum last month. Fast shipping, works perfectly.",positive
+1389,outdoor,"Bought this backpack last month. Customer service ignored me, stopped working.",negative
+1390,home,"Bought this vacuum last month. Fast shipping, works perfectly.",positive
+1391,electronics,"Bought this headphones last month. Exceeded my expectations, sturdy and well made and as described.",positive
+1392,home,"Bought this lamp last month. Great value, fast shipping and expected more features.",positive
+1393,outdoor,"Bought this tent last month. Broke after a week, stopped working and nothing special.",negative
+1394,electronics,"Bought this charger last month. Would not recommend, refund.",negative
+1395,outdoor,"Bought this backpack last month. Highly recommend, five stars.",positive
+1396,electronics,"Bought this headphones last month. Expected more features, average quality.",neutral
+1397,home,"Bought this blender last month. Sturdy and well made, love.",positive
+1398,home,"Bought this blender last month. Does the job, expected more features.",neutral
+1399,home,"Bought this kettle last month. Very happy with, five stars.",positive
+1400,home,"Bought this lamp last month. Very happy with, fast shipping.",positive
+1401,outdoor,"Bought this water bottle last month. Highly recommend, excellent.",positive
+1402,outdoor,"Bought this water bottle last month. Great value, five stars and expected more features.",positive
+1403,outdoor,"Bought this camping chair last month. Arrived damaged, poor quality.",negative
+1404,electronics,"Bought this headphones last month. Great value, love.",positive
+1405,home,"Bought this blender last month. Customer service ignored me, poor quality and does the job.",negative
+1406,electronics,"Bought this speaker last month. Works perfectly, highly recommend.",positive
+1407,home,"Bought this lamp last month. Terrible, customer service ignored me and nothing special.",negative
+1408,home,"Bought this blender last month. It is okay, fine for the price.",neutral
+1409,home,"Bought this blender last month. It is okay, does the job.",neutral
+1410,electronics,"Bought this charger last month. Very disappointed, stopped working.",negative
+1411,home,"Bought this kettle last month. Nothing special, average quality and fast shipping.",neutral
+1412,outdoor,"Bought this tent last month. Broke after a week, very disappointed.",negative
+1413,outdoor,"Bought this camping chair last month. Decent but, nothing special.",neutral
+1414,electronics,"Bought this headphones last month. Broke after a week, would not recommend.",negative
+1415,outdoor,"Bought this water bottle last month. Great value, excellent.",positive
+1416,outdoor,"Bought this camping chair last month. Very disappointed, customer service ignored me.",negative
+1417,outdoor,"Bought this water bottle last month. Arrived damaged, very disappointed.",negative
+1418,electronics,"Bought this charger last month. Very happy with, highly recommend.",positive
+1419,electronics,"Bought this speaker last month. Nothing special, as described.",neutral
+1420,outdoor,"Bought this backpack last month. It is okay, mixed feelings.",neutral
+1421,outdoor,"Bought this camping chair last month. Excellent, highly recommend and it is okay.",positive
+1422,outdoor,"Bought this water bottle last month. Fine for the price, as described.",neutral
+1423,outdoor,"Bought this tent last month. It is okay, decent but.",neutral
+1424,home,"Bought this vacuum last month. Highly recommend, works perfectly.",positive
+1425,home,"Bought this kettle last month. Excellent, fast shipping.",positive
+1426,outdoor,"Bought this tent last month. Arrived damaged, stopped working.",negative
+1427,home,"Bought this vacuum last month. Refund, customer service ignored me.",negative
+1428,electronics,"Bought this charger last month. Mixed feelings, fine for the price.",neutral
+1429,home,"Bought this blender last month. Not bad not great, fine for the price and works perfectly.",neutral
+1430,electronics,"Bought this charger last month. Would not recommend, waste of money and does the job.",negative
+1431,outdoor,"Bought this backpack last month. Love, very happy with and average quality.",positive
+1432,electronics,"Bought this charger last month. Does the job, average quality and works perfectly.",neutral
+1433,electronics,"Bought this keyboard last month. Highly recommend, fast shipping and mixed feelings.",positive
+1434,outdoor,"Bought this backpack last month. Average quality, as described.",neutral
+1435,electronics,"Bought this charger last month. Great value, five stars.",positive
+1436,home,"Bought this blender last month. Waste of money, poor quality.",negative
+1437,outdoor,"Bought this backpack last month. Refund, stopped working.",negative
+1438,outdoor,"Bought this tent last month. Terrible, arrived damaged.",negative
+1439,electronics,"Bought this speaker last month. Highly recommend, works perfectly.",positive
+1440,home,"Bought this blender last month. Decent but, average quality and exceeded my expectations.",neutral
+1441,outdoor,"Bought this backpack last month. As described, average quality.",neutral
+1442,outdoor,"Bought this backpack last month. Five stars, sturdy and well made.",positive
+1443,electronics,"Bought this charger last month. Excellent, fast shipping.",positive
+1444,home,"Bought this kettle last month. Exceeded my expectations, highly recommend.",positive
+1445,electronics,"Bought this speaker last month. Terrible, arrived damaged.",negative
+1446,outdoor,"Bought this water bottle last month. It is okay, as described.",neutral
+1447,outdoor,"Bought this backpack last month. Great value, love and mixed feelings.",positive
+1448,home,"Bought this lamp last month. Fast shipping, excellent and as described.",positive
+1449,electronics,"Bought this charger last month. Refund, broke after a week.",negative
+1450,electronics,"Bought this headphones last month. Customer service ignored me, waste of money and fine for the price.",negative
+1451,electronics,"Bought this charger last month. Refund, customer service ignored me.",negative
+1452,home,"Bought this blender last month. Sturdy and well made, great value.",positive
+1453,outdoor,"Bought this tent last month. Sturdy and well made, five stars.",positive
+1454,outdoor,"Bought this backpack last month. Stopped working, very disappointed and fine for the price.",negative
+1455,outdoor,"Bought this camping chair last month. As described, average quality.",neutral
+1456,home,"Bought this lamp last month. Poor quality, broke after a week.",negative
+1457,home,"Bought this vacuum last month. Not bad not great, nothing special.",neutral
+1458,outdoor,"Bought this water bottle last month. Fast shipping, very happy with and as described.",positive
+1459,outdoor,"Bought this camping chair last month. Excellent, love and nothing special.",positive
+1460,outdoor,"Bought this camping chair last month. Highly recommend, great value and decent but.",positive
+1461,electronics,"Bought this speaker last month. Terrible, waste of money.",negative
+1462,electronics,"Bought this headphones last month. Sturdy and well made, excellent.",positive
+1463,home,"Bought this vacuum last month. Works perfectly, great value.",positive
+1464,electronics,"Bought this keyboard last month. Five stars, sturdy and well made.",positive
+1465,outdoor,"Bought this tent last month. Excellent, very happy with.",positive
+1466,home,"Bought this kettle last month. Excellent, sturdy and well made.",positive
+1467,electronics,"Bought this headphones last month. Five stars, exceeded my expectations.",positive
+1468,outdoor,"Bought this tent last month. Five stars, very happy with and not bad not great.",positive
+1469,outdoor,"Bought this camping chair last month. Fine for the price, not bad not great.",neutral
+1470,home,"Bought this vacuum last month. Highly recommend, sturdy and well made.",positive
+1471,electronics,"Bought this speaker last month. Broke after a week, customer service ignored me and expected more features.",negative
+1472,outdoor,"Bought this water bottle last month. Very disappointed, poor quality.",negative
+1473,electronics,"Bought this headphones last month. Very disappointed, poor quality.",negative
+1474,electronics,"Bought this headphones last month. Arrived damaged, stopped working.",negative
+1475,electronics,"Bought this keyboard last month. Mixed feelings, average quality and five stars.",neutral
+1476,outdoor,"Bought this camping chair last month. Nothing special, average quality.",neutral
+1477,outdoor,"Bought this camping chair last month. Average quality, expected more features.",neutral
+1478,electronics,"Bought this headphones last month. Sturdy and well made, very happy with.",positive
+1479,outdoor,"Bought this water bottle last month. Stopped working, arrived damaged.",negative
+1480,outdoor,"Bought this camping chair last month. Works perfectly, love.",positive
+1481,electronics,"Bought this charger last month. Very happy with, love.",positive
+1482,electronics,"Bought this charger last month. Very happy with, exceeded my expectations.",positive
+1483,home,"Bought this kettle last month. Fine for the price, expected more features and excellent.",neutral
+1484,home,"Bought this blender last month. Exceeded my expectations, very happy with.",positive
+1485,electronics,"Bought this speaker last month. Works perfectly, love.",positive
+1486,home,"Bought this kettle last month. Not bad not great, decent but.",neutral
+1487,electronics,"Bought this speaker last month. Works perfectly, very happy with.",positive
+1488,electronics,"Bought this keyboard last month. Arrived damaged, stopped working.",negative
+1489,home,"Bought this blender last month. Works perfectly, excellent and nothing special.",positive
+1490,outdoor,"Bought this camping chair last month. Does the job, decent but.",neutral
+1491,electronics,"Bought this headphones last month. Broke after a week, customer service ignored me.",negative
+1492,outdoor,"Bought this camping chair last month. Very happy with, great value.",positive
+1493,outdoor,"Bought this water bottle last month. Mixed feelings, expected more features and highly recommend.",neutral
+1494,home,"Bought this lamp last month. Poor quality, waste of money and nothing special.",negative
+1495,outdoor,"Bought this water bottle last month. Exceeded my expectations, highly recommend.",positive
+1496,home,"Bought this lamp last month. Very happy with, great value.",positive
+1497,electronics,"Bought this speaker last month. Does the job, fine for the price and highly recommend.",neutral
+1498,outdoor,"Bought this tent last month. Fine for the price, as described.",neutral
+1499,home,"Bought this kettle last month. Very disappointed, terrible and mixed feelings.",negative
+1500,outdoor,"Bought this backpack last month. Sturdy and well made, exceeded my expectations and mixed feelings.",positive

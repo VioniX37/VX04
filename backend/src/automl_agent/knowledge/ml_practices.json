@@ -1,0 +1,72 @@
+[
+  {
+    "id": "tab-gbdt",
+    "task_types": ["tabular_classification", "tabular_regression"],
+    "title": "Gradient-boosted trees are the default for tabular data",
+    "content": "On medium-sized tabular datasets, gradient-boosted decision trees (HistGradientBoosting, XGBoost, LightGBM) usually outperform deep networks and linear models. HistGradientBoosting handles missing values natively and scales to 100k+ rows. Tune learning_rate (0.03-0.1), max_iter (200-1000) and max_leaf_nodes (15-63).",
+    "tags": ["tabular", "boosting", "baseline", "large"]
+  },
+  {
+    "id": "tab-rf",
+    "task_types": ["tabular_classification", "tabular_regression"],
+    "title": "Random forests are robust low-tuning baselines",
+    "content": "Random forests and extra-trees need little tuning, resist overfitting on small data, and give feature importances. 300-500 trees with max_features='sqrt' (classification) is a strong default. They are slower than histogram boosting on large data.",
+    "tags": ["tabular", "small", "robust", "baseline"]
+  },
+  {
+    "id": "tab-linear",
+    "task_types": ["tabular_classification", "tabular_regression"],
+    "title": "Linear models need scaling and encoding",
+    "content": "Logistic regression, ridge and lasso are fast, interpretable baselines. They require standardized numeric features and one-hot encoded categoricals, and benefit from regularization tuning (C or alpha on a log grid). Good when n_samples is small relative to n_features.",
+    "tags": ["tabular", "linear", "interpretable", "small"]
+  },
+  {
+    "id": "tab-imbalance",
+    "task_types": ["tabular_classification", "text_classification"],
+    "title": "Handling class imbalance",
+    "content": "With imbalanced labels, prefer f1_macro, balanced_accuracy or roc_auc over accuracy. Use stratified splits and class_weight='balanced' (logistic regression, SVM, random forest) instead of naive oversampling.",
+    "tags": ["imbalance", "metric", "classification", "stratified"]
+  },
+  {
+    "id": "tab-missing",
+    "task_types": ["tabular_classification", "tabular_regression"],
+    "title": "Missing values and categorical encoding",
+    "content": "Impute numeric columns with the median and categoricals with the most frequent value (or a 'missing' category). One-hot encode low-cardinality categoricals; cap or group rare levels for high-cardinality ones. Drop identifier columns: they leak nothing useful and cause overfitting.",
+    "tags": ["missing", "imputation", "categorical", "encoding", "identifier"]
+  },
+  {
+    "id": "tab-svm-knn",
+    "task_types": ["tabular_classification", "tabular_regression"],
+    "title": "SVM and kNN scale poorly",
+    "content": "RBF-kernel SVMs and k-nearest neighbours can do well on small (<10k rows), well-scaled numeric data but become slow and memory-hungry on larger datasets. Always standardize features first.",
+    "tags": ["svm", "knn", "small", "scaling"]
+  },
+  {
+    "id": "reg-target",
+    "task_types": ["tabular_regression"],
+    "title": "Regression targets and metrics",
+    "content": "For skewed positive targets (prices, counts) consider a log transform of the target. RMSE penalizes large errors, MAE is robust to outliers, R2 is scale-free. Report more than one.",
+    "tags": ["regression", "metric", "rmse", "price", "skew"]
+  },
+  {
+    "id": "txt-tfidf",
+    "task_types": ["text_classification"],
+    "title": "TF-IDF + linear models are strong text baselines",
+    "content": "For text classification with limited compute, TF-IDF over word 1-2 grams (sublinear_tf=True, min_df=2) followed by a linear SVM or logistic regression is fast and competitive. Complement Naive Bayes works well on short texts and small data. SGD scales to very large corpora.",
+    "tags": ["text", "tfidf", "linear", "svm", "baseline", "sentiment"]
+  },
+  {
+    "id": "txt-transformers",
+    "task_types": ["text_classification"],
+    "title": "Fine-tuned transformers for higher accuracy",
+    "content": "When a GPU is available and the dataset has thousands of labeled examples, fine-tuning a small pretrained transformer (DistilBERT, MiniLM) typically beats TF-IDF baselines by several points. On CPU-only setups prefer TF-IDF models.",
+    "tags": ["text", "transformer", "bert", "gpu"]
+  },
+  {
+    "id": "val-holdout",
+    "task_types": ["tabular_classification", "tabular_regression", "text_classification"],
+    "title": "Validation strategy",
+    "content": "Use a stratified 80/20 hold-out for quick evaluation and 5-fold cross-validation when data is small (<2k rows). Fix random seeds for reproducibility and never fit preprocessing on the test split (wrap everything in a Pipeline).",
+    "tags": ["validation", "cross-validation", "leakage", "pipeline"]
+  }
+]
