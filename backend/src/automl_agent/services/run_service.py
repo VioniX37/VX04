@@ -22,7 +22,14 @@ from automl_agent.llm import LLMRouter, create_llm
 from automl_agent.schemas.dataset import DatasetProfile
 from automl_agent.schemas.events import Stage
 from automl_agent.schemas.run import RunStatus
-from automl_agent.storage.db import DatasetRecord, RunRecord, get_engine, init_db, utcnow
+from automl_agent.storage.db import (
+    DatasetRecord,
+    PlanObservation,
+    RunRecord,
+    get_engine,
+    init_db,
+    utcnow,
+)
 
 from .event_bus import EventBus, bus
 
@@ -59,6 +66,18 @@ def run_config(settings: Settings, llm: LLMRouter) -> dict[str, Any]:
         "codegen_mode": settings.codegen_mode,
         "n_plans": settings.n_plans,
         "max_revisions": settings.max_revisions,
+        "verification_mode": settings.verification_mode,
+        "grounding": {
+            "min_rows": settings.grounding_min_rows,
+            "growth": settings.grounding_growth,
+            "eta": settings.grounding_eta,
+            "valid_rows": settings.grounding_valid_rows,
+        },
+        "budget": {
+            "wall_s": settings.budget_wall_s or None,
+            "llm_calls": settings.budget_llm_calls or None,
+            "tokens": settings.budget_tokens or None,
+        },
     }
 
 
@@ -79,6 +98,18 @@ def create_run(session: Session, dataset: DatasetRecord, prompt: str) -> RunReco
     _tasks.add(task)
     task.add_done_callback(_tasks.discard)
     return run
+
+
+def save_observations(settings: Settings, run_id: str, dataset_id: str, rows: list[dict[str, Any]]) -> None:
+    """Persist the predicted-vs-observed rows of a run."""
+    if not rows:
+        return
+    allowed = set(PlanObservation.model_fields)
+    with Session(get_engine(settings.db_url)) as session:
+        for row in rows:
+            data = {k: v for k, v in row.items() if k in allowed}
+            session.add(PlanObservation(run_id=run_id, dataset_id=dataset_id, **data))
+        session.commit()
 
 
 def _update(settings: Settings, run_id: str, **fields: Any) -> None:
@@ -136,11 +167,18 @@ async def execute_run(
             finished_at=utcnow(),
             task_spec=result.task_spec.model_dump(mode="json") if result.task_spec else None,
             plan=result.plan.model_dump(mode="json") if result.plan else None,
-            metrics={**(result.metrics or {}), "target_met": result.target_met, "attempts": result.attempts},
+            metrics={
+                **(result.metrics or {}),
+                "target_met": result.target_met,
+                "attempts": result.attempts,
+                "stop_reason": result.stop_reason,
+                "budget": result.budget,
+            },
             code=result.code,
             error=result.error,
             llm_usage=llm.usage.to_dict(),
         )
+        save_observations(settings, run_id, dataset.id, result.observations)
         await ctx.emit(
             Stage.done,
             "system",

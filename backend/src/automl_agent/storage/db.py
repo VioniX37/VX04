@@ -54,6 +54,37 @@ class RunRecord(SQLModel, table=True):
     config: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
 
 
+class PlanObservation(SQLModel, table=True):
+    """Predicted vs observed performance of one plan at one fidelity (RQ1 calibration data).
+
+    Grounding rows have ``split="valid"``; the final full-data run of the selected
+    plan has ``final=True`` and ``split="test"``. Pseudo-mode plans that were never
+    run have no observed score.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    run_id: str = Field(index=True)
+    dataset_id: str = Field(default="", index=True)
+    revision: int = 1
+    plan_id: str
+    model_family: str
+    metric: str
+    higher_is_better: bool = True
+    verification_mode: str = "grounded"
+    predicted_score: float | None = None
+    predicted_train_time_s: float | None = None
+    rank: int | None = None
+    split: str | None = None
+    final: bool = False
+    fidelity_rows: int | None = None
+    observed_score: float | None = None
+    observed_valid_score: float | None = None
+    ok: bool | None = None
+    duration_s: float | None = None
+    train_time_s: float | None = None
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 @cache
 def get_engine(url: str | None = None) -> Engine:
     """Return a cached engine for `url` (defaults to the configured database)."""

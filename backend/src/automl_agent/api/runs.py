@@ -9,7 +9,7 @@ from automl_agent.schemas.events import AgentEvent
 from automl_agent.schemas.run import RunCreate, RunOut
 from automl_agent.services.event_bus import bus
 from automl_agent.services.run_service import create_run, events_log_path
-from automl_agent.storage.db import DatasetRecord, RunRecord, get_session
+from automl_agent.storage.db import DatasetRecord, PlanObservation, RunRecord, get_session
 
 router = APIRouter(prefix="/runs", tags=["runs"])
 
@@ -61,3 +61,13 @@ async def stream_events(
         yield {"event": "end", "data": "{}"}
 
     return EventSourceResponse(gen())
+
+
+@router.get("/{run_id}/observations")
+def run_observations(run_id: str, session: Session = Depends(get_session)) -> list[dict]:
+    """Predicted vs observed scores of every plan and fidelity in this run."""
+    get_run(run_id, session)
+    rows = session.exec(
+        select(PlanObservation).where(PlanObservation.run_id == run_id).order_by(PlanObservation.id)
+    ).all()
+    return [r.model_dump(mode="json") for r in rows]

@@ -11,6 +11,8 @@ from automl_agent.schemas.events import EventKind, Stage
 from automl_agent.services.event_bus import EventBus
 from automl_agent.tools.splits import SplitInfo
 
+from .budget import BudgetTracker, RunBudget
+
 
 @dataclass
 class RunContext:
@@ -26,7 +28,12 @@ class RunContext:
     bus: EventBus
     dataset_id: str = ""
     split: SplitInfo | None = None  # set by the Manager's prepare stage
+    budget: BudgetTracker | None = None
     state: dict[str, Any] = field(default_factory=dict)  # scratch space for extensions
+
+    def __post_init__(self) -> None:
+        if self.budget is None:
+            self.budget = BudgetTracker(RunBudget.from_settings(self.settings), self.llm.usage)
 
     @property
     def train_rows(self) -> int:

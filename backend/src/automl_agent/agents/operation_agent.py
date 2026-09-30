@@ -65,9 +65,12 @@ class OperationAgent(BaseAgent):
 
         async def on_progress(item: dict[str, Any]) -> None:
             await ctx.emit(
-                Stage.implement, self.name, f"Training: {item.get('stage', 'progress')}",
-                kind="info", payload={"attempt": attempt, "progress": item},
-            )  # fmt: skip
+                Stage.implement,
+                self.name,
+                f"Training: {item.get('stage', 'progress')}",
+                kind="info",
+                payload={"attempt": attempt, "progress": item},
+            )
 
         return await run_script(
             code,
@@ -119,9 +122,12 @@ class OperationAgent(BaseAgent):
         for attempt in range(1, settings.max_debug_attempts + 1):
             outcome.attempts = attempt
             await self.ctx.emit(
-                Stage.implement, self.name, f"Running training script (attempt {attempt})",
-                kind="status", payload={"attempt": attempt, "code": code},
-            )  # fmt: skip
+                Stage.implement,
+                self.name,
+                f"Running training script (attempt {attempt})",
+                kind="status",
+                payload={"attempt": attempt, "code": code},
+            )
             result = await self._run(code, workdir, attempt)
             outcome.code, outcome.result = code, result
             await self.ctx.emit(
@@ -143,9 +149,11 @@ class OperationAgent(BaseAgent):
             if hints:
                 fix_context["past_fixes"] = hints[:3]
             draft = await self.ask_json(
-                Stage.implement, "The script failed. Fix it and return the full corrected script.",
-                fix_context, CodeDraft,
-            )  # fmt: skip
+                Stage.implement,
+                "The script failed. Fix it and return the full corrected script.",
+                fix_context,
+                CodeDraft,
+            )
             last_fix = {"error": signature, "fix": draft.explanation or "rewrote the failing section"}
             code = draft.code
 

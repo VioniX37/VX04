@@ -16,6 +16,7 @@ class Stage(StrEnum):
     retrieve = "retrieve"  # knowledge retrieval
     plan = "plan"  # retrieval-augmented planning (N plans)
     execute_plans = "execute_plans"  # decomposition + Data/Model agents in parallel
+    ground = "ground"  # multi-fidelity real runs on data subsamples (grounded verification)
     select = "select"  # execution verification, pick best plan
     implement = "implement"  # Operation Agent: code + run + debug
     verify_impl = "verify_impl"  # implementation verification

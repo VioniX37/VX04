@@ -53,8 +53,10 @@ def registered_hooks() -> list[PipelineHooks]:
     return list(_registry)
 
 
-async def run_hook(name: str, ctx: RunContext, value: Any, *args: Any) -> Any:
-    """Thread `value` through every registered hook's `name` method."""
-    for hooks in _registry:
-        value = await getattr(hooks, name)(ctx, value, *args)
+async def run_hook(
+    name: str, ctx: RunContext, value: Any, *args: Any, hooks: list[PipelineHooks] | None = None
+) -> Any:
+    """Thread `value` through each hook's `name` method (default: all registered hooks)."""
+    for h in _registry if hooks is None else hooks:
+        value = await getattr(h, name)(ctx, value, *args)
     return value

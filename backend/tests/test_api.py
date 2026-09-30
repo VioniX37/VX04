@@ -50,3 +50,21 @@ def test_register_by_path_and_errors(sample_csvs):
         assert missing.status_code == 400
         both = client.post("/api/datasets/register", json={"path": "a.csv", "url": "http://x/a.csv"})
         assert both.status_code == 422
+
+
+def test_observations_endpoint(sample_csvs):
+    with TestClient(create_app()) as client:
+        with sample_csvs["reviews"].open("rb") as f:
+            dataset = client.post("/api/datasets", files={"file": ("r.csv", f, "text/csv")}).json()
+        run = client.post(
+            "/api/runs", json={"dataset_id": dataset["id"], "prompt": "Classify sentiment"}
+        ).json()
+        deadline = time.time() + 120
+        while time.time() < deadline and client.get(f"/api/runs/{run['id']}").json()["status"] not in (
+            "succeeded",
+            "failed",
+        ):
+            time.sleep(0.5)
+        rows = client.get(f"/api/runs/{run['id']}/observations").json()
+        assert any(r["final"] for r in rows) and any(not r["final"] for r in rows)
+        assert client.get(f"/api/runs/{run['id']}").json()["config"]["verification_mode"] == "grounded"

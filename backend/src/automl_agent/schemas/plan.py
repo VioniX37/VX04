@@ -52,11 +52,29 @@ class PlanAnalysis(BaseModel):
     model: ModelAgentResult
 
 
+class Observation(BaseModel):
+    """A real training run of a plan at one fidelity (grounded verification)."""
+
+    fidelity_rows: int = Field(description="Training rows actually used")
+    score: float | None = Field(description="Validation score (None if the run failed)")
+    ok: bool
+    duration_s: float
+    error: str | None = None
+
+
 class PlanEvaluation(BaseModel):
+    """A plan with its agents' pseudo-execution results and, if grounded, real observations."""
+
     plan: Plan
     data: DataAgentResult
     model: ModelAgentResult
     rank: int | None = None
+    observations: list[Observation] = Field(default_factory=list)
+
+    @property
+    def last_observation(self) -> Observation | None:
+        """Observation at the highest fidelity this plan reached."""
+        return self.observations[-1] if self.observations else None
 
 
 class CodeDraft(BaseModel):

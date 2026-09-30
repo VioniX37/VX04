@@ -74,6 +74,18 @@ class Settings(BaseSettings):
         "llm", description="`llm`: Operation Agent edits the template; `template`: run the template as-is."
     )
 
+    verification_mode: Literal["pseudo", "grounded"] = Field(
+        "grounded",
+        description="`pseudo`: rank plans on LLM-predicted scores (paper-faithful); "
+        "`grounded`: successive halving with real runs on growing data subsamples.",
+    )
+    grounding_min_rows: int = Field(20_000, description="Training rows used at the first grounding rung.")
+    grounding_growth: int = Field(4, description="Factor by which training rows grow between rungs.")
+    grounding_eta: int = Field(2, description="Keep the best 1/eta of plans after each rung.")
+    grounding_valid_rows: int = Field(100_000, description="Validation rows used to score grounding runs.")
+    budget_wall_s: int = Field(0, description="Wall-clock budget per run in seconds (0 = unlimited).")
+    budget_llm_calls: int = Field(0, description="LLM call budget per run (0 = unlimited).")
+    budget_tokens: int = Field(0, description="LLM token budget per run (0 = unlimited).")
     exec_max_mem_mb: int = Field(
         0, description="Kill a training script above this resident memory (MB); 0 = 80% of system RAM."
     )
