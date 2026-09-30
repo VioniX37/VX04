@@ -1,0 +1,10 @@
+\section{Experimental Setup}
+\label{sec:setup}
+
+\paragraph{Datasets.} The tabular and text datasets of \citet{trirat2025automlagent} (Banana Quality, Software Defects, Crab Age, Ecommerce Text), each with a constraint-free and a constraint-aware instruction, and large-scale datasets: a synthetic 5M-row conversion task, HIGGS (11M), NYC Taxi fares and Amazon Polarity. \todo{Table of dataset statistics.}
+
+\paragraph{Metrics.} Success rate (SR, graded 0/0.5/1), normalized performance score (NPS; RMSLE for regression) and comprehensive score $\text{CS} = 0.5\,\text{SR} + 0.5\,\text{NPS}$, as in the original paper; calibration by Spearman $\rho$, top-1 hit rate and MAE between predicted and observed scores; cost as wall time, LLM calls and tokens.
+
+\paragraph{Variants and baselines.} \texttt{paper} (pseudo verification, no memory), \texttt{grounded}, \texttt{memory}, \texttt{full} (both), and \texttt{full\_fused} (single analysis call per plan). Baselines: Gemini zero-shot single script, and Optuna + LightGBM with the same wall-clock budget.
+
+\paragraph{Protocol.} Fixed seeded 70/15/15 splits; three seeds; leave-one-dataset-out memory; equal budgets per comparison. Backbone: \todo{Gemini model ids per role}. Hardware: \todo{CPU, RAM}.

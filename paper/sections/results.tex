@@ -1,0 +1,59 @@
+\section{Results}
+\label{sec:results}
+
+\paragraph{RQ1: Calibration of pseudo-execution.} \todo{Report $\rho$, top-1 hit rate and MAE (Table~\ref{tab:calibration}); discuss Figure~\ref{fig:calibration}.}
+
+\begin{figure}[t]
+  \centering
+  \resultfigure{fig_calibration}{0.45\linewidth}
+  \caption{Predicted vs.\ observed validation scores at the first grounding rung.}
+  \label{fig:calibration}
+\end{figure}
+
+\begin{table}[t]
+  \centering
+  \caption{Calibration of pseudo-execution predictions. \todo{fill from \texttt{table\_calibration.md}.}}
+  \label{tab:calibration}
+  \begin{tabular}{lrrrr}
+    \toprule
+    Variant & Groups & Spearman $\rho$ & Top-1 hit & MAE \\
+    \midrule
+    \todo{grounded} & & & & \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{RQ2 and RQ4: Grounding and backbone.} \todo{Main table: SR/NPS/CS/time/calls per variant and baseline (Table~\ref{tab:main}); Figure~\ref{fig:cs}.}
+
+\begin{table}[t]
+  \centering
+  \caption{Main results (mean over datasets, prompts and seeds). \todo{fill from \texttt{table\_main.md}.}}
+  \label{tab:main}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    Variant & SR & NPS & CS & Wall (s) & LLM calls \\
+    \midrule
+    paper & & & & & \\
+    grounded & & & & & \\
+    full & & & & & \\
+    zero-shot & & & & & \\
+    Optuna+LightGBM & & & & & \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \resultfigure{fig_cs_by_variant}{0.6\linewidth}
+  \caption{Comprehensive score by variant; dots are individual tasks.}
+  \label{fig:cs}
+\end{figure}
+
+\paragraph{RQ3: Experience memory.} \todo{LLM calls and CS over the task sequence (Figure~\ref{fig:memory}).}
+
+\begin{figure}[t]
+  \centering
+  \resultfigure{fig_memory_curve}{0.55\linewidth}
+  \caption{LLM calls per run over the task sequence, without (dashed) and with (solid) memory.}
+  \label{fig:memory}
+\end{figure}

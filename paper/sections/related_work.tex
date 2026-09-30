@@ -1,0 +1,8 @@
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{AutoML systems.} Auto-sklearn \citep{feurer2015autosklearn} and AutoGluon \citep{erickson2020autogluon} search over pipelines and ensembles with fixed search spaces. Multi-fidelity methods such as successive halving and Hyperband \citep{jamieson2016successive,li2018hyperband} allocate compute to promising configurations using cheap low-fidelity evaluations.
+
+\paragraph{LLM agents for data science.} DS-Agent \citep{guo2024dsagent} uses case-based reasoning over Kaggle solutions; SELA \citep{chi2024sela} combines LLM agents with Monte Carlo tree search over executed experiments. AutoML-Agent \citep{trirat2025automlagent} covers the full pipeline with retrieval-augmented planning and pseudo-execution.
+
+\paragraph{Our position.} We keep AutoML-Agent's agentic planning, replace its unverified pseudo-execution with multi-fidelity \emph{grounding} borrowed from classical AutoML, and add a memory of \emph{measured} outcomes. \todo{Expand with memory/experience-replay agents and LLM calibration literature.}

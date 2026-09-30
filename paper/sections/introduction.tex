@@ -1,0 +1,14 @@
+\section{Introduction}
+\label{sec:intro}
+
+Automated machine learning (AutoML) promises models without expert effort, yet classical systems still require users to specify the task, the data pipeline and the search space \citep{feurer2015autosklearn,erickson2020autogluon}. Large language model (LLM) agents lower this barrier further: AutoML-Agent \citep{trirat2025automlagent} turns a natural-language request into a trained model through a team of specialised agents, retrieval-augmented planning and multi-stage verification.
+
+A key design choice of AutoML-Agent is \emph{pseudo-execution}. Data and Model agents reason about each candidate plan and predict its performance, and the Manager implements the plan that looks best, which avoids training every candidate. This saves compute, but the predictions are never checked against reality. The authors also report that quality collapses with smaller backbone models, precisely where predictions should be least reliable.
+
+\paragraph{Contributions.}
+\begin{itemize}
+  \item We measure, for the first time, the calibration of LLM pseudo-execution in agentic AutoML (RQ1).
+  \item We introduce \emph{grounded verification}: budget-aware successive halving over nested data subsamples, which selects plans on observed rather than predicted performance (RQ2).
+  \item We add an \emph{experience memory} that recalls measured outcomes and bug fixes from similar past runs (RQ3).
+  \item We show that the combined system runs on large datasets with a free-tier model on commodity hardware, and we compare it with published results (RQ4). Code, UI and evaluation harness are open source.
+\end{itemize}

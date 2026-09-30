@@ -1,0 +1,31 @@
+\section{Method}
+\label{sec:method}
+
+\subsection{Pipeline overview}
+The pipeline follows AutoML-Agent: a Prompt Agent parses the request into a task specification, which is verified against a statistical profile of the data. The Manager retrieves knowledge and proposes $P$ candidate plans; Data and Model agents analyse each plan and predict its score $\hat{s}_p$. An Operation Agent implements the selected plan, and implementation verification checks the requirements on a held-out test split, triggering revisions if needed. \todo{Pipeline figure.}
+
+\subsection{Grounded verification}
+Let $\mathcal{D}_\text{train}$ have $n$ rows, each with an independent draw $u_i \sim \mathcal{U}[0,1)$. The subsample at fidelity $r$ is $S_r = \{i : u_i < r/n\}$, so $S_r \subseteq S_{r'}$ for $r \le r'$. Rung $k$ trains every surviving plan on $S_{r_k}$ with $r_k = \min(r_0 g^k, n)$ and scores it on a fixed validation slice, keeping the best $\lceil P_k/\eta \rceil$ plans.
+
+\begin{algorithm}[t]
+\caption{Budget-aware grounded verification}
+\label{alg:grounding}
+\begin{algorithmic}[1]
+\Require plans $\mathcal{P}$, rows $n$, $r_0$, growth $g$, keep ratio $\eta$, remaining time $T$
+\State $\mathcal{S} \gets \mathcal{P}$;\; $k \gets 0$
+\While{$|\mathcal{S}| > 1$ \textbf{or} $k = 0$}
+  \State $r_k \gets \min(r_0 g^k, n)$
+  \If{$k > 0$ \textbf{and} $\bar t_{k-1}\, (r_k/r_{k-1})\, |\mathcal{S}| > T$} \textbf{break} \EndIf
+  \For{$p \in \mathcal{S}$} \State $s_p \gets \textsc{TrainAndScore}(p, S_{r_k})$ \EndFor
+  \State $\mathcal{S} \gets$ top-$\lceil |\mathcal{S}|/\eta \rceil$ of $\mathcal{S}$ by $s_p$;\; $k \gets k+1$
+  \If{$r_k = n$} \textbf{break} \EndIf
+\EndWhile
+\State \Return plans ranked by (last rung reached, observed score)
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Experience memory}
+Each run stores dataset meta-features $m \in \mathbb{R}^d$ (size, column-type mix, missingness, class count and imbalance), all candidate plans with predicted and observed scores, the selected plan's test score, and error$\to$fix pairs. For a new task, the $k$ nearest runs of the same task type under a weighted Euclidean distance are rendered as planning knowledge; matching error signatures surface past fixes to the Operation Agent.
+
+\subsection{Scalable execution substrate}
+Datasets are converted once to Parquet; profiling uses a lazy engine with approximate distinct counts; a fixed stratified train/valid/test split per target is shared by all plans, fidelities and baselines. Training templates use gradient-boosted trees with native categoricals and early stopping, and out-of-core hashing models for large text corpora. Scripts run under time and memory limits.
