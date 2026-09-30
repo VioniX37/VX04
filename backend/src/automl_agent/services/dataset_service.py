@@ -79,9 +79,15 @@ def register_path(session: Session, settings: Settings, path: str, name: str | N
         raise DatasetError(f"Unsupported file type: {src.name}")
     dataset_id, dataset_dir = new_dataset_dir(settings)
     return register_file(
-        session, settings, dataset_id=dataset_id, dataset_dir=dataset_dir, src=src,
-        filename=name or src.name, source="path", delete_source=False,
-    )  # fmt: skip
+        session,
+        settings,
+        dataset_id=dataset_id,
+        dataset_dir=dataset_dir,
+        src=src,
+        filename=name or src.name,
+        source="path",
+        delete_source=False,
+    )
 
 
 def register_url(session: Session, settings: Settings, url: str, name: str | None = None) -> DatasetRecord:
@@ -109,6 +115,12 @@ def register_url(session: Session, settings: Settings, url: str, name: str | Non
         shutil.rmtree(dataset_dir, ignore_errors=True)
         raise DatasetError(f"Download failed: {e}") from e
     return register_file(
-        session, settings, dataset_id=dataset_id, dataset_dir=dataset_dir, src=raw,
-        filename=filename, source="url", delete_source=True,
-    )  # fmt: skip
+        session,
+        settings,
+        dataset_id=dataset_id,
+        dataset_dir=dataset_dir,
+        src=raw,
+        filename=filename,
+        source="url",
+        delete_source=True,
+    )

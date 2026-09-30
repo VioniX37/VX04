@@ -42,8 +42,9 @@ def upload_dataset(file: UploadFile, session: Session = Depends(get_session)) ->
     settings = get_settings()
     name = Path(file.filename or "data.csv").name
     if not is_supported(Path(name)):
-        raise HTTPException(400, f"Unsupported file type '{source_suffix(Path(name))}'. "
-                                 "Upload CSV, TSV, Parquet or JSONL.")  # fmt: skip
+        raise HTTPException(
+            400, f"Unsupported file type '{source_suffix(Path(name))}'. Upload CSV, TSV, Parquet or JSONL."
+        )
     dataset_id, dataset_dir = new_dataset_dir(settings)
     raw = dataset_dir / f"raw-{name}"
     limit = settings.max_upload_mb * 1024 * 1024
@@ -54,14 +55,23 @@ def upload_dataset(file: UploadFile, session: Session = Depends(get_session)) ->
             if written > limit:
                 out.close()
                 shutil.rmtree(dataset_dir, ignore_errors=True)
-                raise HTTPException(413, f"File too large (max {settings.max_upload_mb} MB). "
-                                         "Register large files by path instead.")  # fmt: skip
+                raise HTTPException(
+                    413,
+                    f"File too large (max {settings.max_upload_mb} MB). "
+                    "Register large files by path instead.",
+                )
             out.write(chunk)
     try:
         rec = register_file(
-            session, settings, dataset_id=dataset_id, dataset_dir=dataset_dir, src=raw,
-            filename=name, source="upload", delete_source=True,
-        )  # fmt: skip
+            session,
+            settings,
+            dataset_id=dataset_id,
+            dataset_dir=dataset_dir,
+            src=raw,
+            filename=name,
+            source="upload",
+            delete_source=True,
+        )
     except DatasetError as e:
         raise HTTPException(400, str(e)) from e
     return to_out(rec)
