@@ -8,6 +8,7 @@ import { formatMetric } from "@/lib/stages";
 import type { Run } from "@/lib/types";
 import { Card, ErrorNote, Spinner, StatusBadge } from "./ui";
 
+/** Table of past runs with status and final score. */
 export function RunList() {
   const [runs, setRuns] = useState<Run[] | null>(null);
   const [error, setError] = useState<string | null>(null);

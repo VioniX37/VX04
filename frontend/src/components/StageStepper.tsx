@@ -2,6 +2,7 @@ import { STAGES } from "@/lib/stages";
 import type { Stage } from "@/lib/types";
 import { Spinner, cn } from "./ui";
 
+/** Progress through the pipeline stages; the active stage spins, a failed one turns red. */
 export function StageStepper({
   reached,
   current,

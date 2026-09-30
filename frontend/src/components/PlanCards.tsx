@@ -2,6 +2,7 @@ import { formatMetric, formatRows } from "@/lib/stages";
 import type { PlanEvaluation } from "@/lib/types";
 import { Badge, cn } from "./ui";
 
+/** Candidate plans with rationale, predicted and observed scores, and data steps/risks. */
 export function PlanCards({
   ranked,
   selectedId,

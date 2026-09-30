@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Button } from "./ui";
 
+/** Read-only view of a generated script with a copy button. */
 export function CodeViewer({ code, filename = "train.py" }: { code: string; filename?: string }) {
   const [copied, setCopied] = useState(false);
 

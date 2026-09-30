@@ -13,6 +13,7 @@ const NAV = [
   { href: "/runs", label: "Runs" },
 ];
 
+/** Top navigation with the backend connection status and the Gemini models in use. */
 export function Header() {
   const pathname = usePathname();
   const [health, setHealth] = useState<Health | null>(null);
