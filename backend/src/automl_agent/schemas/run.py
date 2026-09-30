@@ -1,3 +1,5 @@
+"""API schemas for pipeline runs."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -8,6 +10,8 @@ from pydantic import BaseModel, Field
 
 
 class RunStatus(StrEnum):
+    """Lifecycle of a run."""
+
     pending = "pending"
     running = "running"
     succeeded = "succeeded"
@@ -15,11 +19,15 @@ class RunStatus(StrEnum):
 
 
 class RunCreate(BaseModel):
+    """Request body to start a run."""
+
     dataset_id: str
     prompt: str = Field(min_length=3)
 
 
 class RunOut(BaseModel):
+    """API representation of a run and its outcome."""
+
     id: str
     dataset_id: str
     prompt: str

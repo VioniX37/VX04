@@ -24,6 +24,8 @@ _WORD = re.compile(r"[a-z0-9]+")
 
 
 class KnowledgeItem(BaseModel):
+    """A piece of planning knowledge and where it came from."""
+
     id: str
     task_types: list[str]
     title: str
@@ -35,9 +37,13 @@ class KnowledgeItem(BaseModel):
 
 
 class Retriever(Protocol):
+    """Anything that can return knowledge for a task (local KB, web search, memory, ...)."""
+
     async def retrieve(
         self, spec: TaskSpec, profile: DatasetProfile, prompt: str, k: int
-    ) -> list[KnowledgeItem]: ...
+    ) -> list[KnowledgeItem]:
+        """Return up to `k` knowledge items relevant to the task."""
+        ...
 
 
 @cache
@@ -53,9 +59,12 @@ def _tokens(text: str) -> set[str]:
 
 
 class LocalKnowledgeRetriever:
+    """Ranks the curated local knowledge base by lexical overlap with the task."""
+
     async def retrieve(
         self, spec: TaskSpec, profile: DatasetProfile, prompt: str, k: int = 5
     ) -> list[KnowledgeItem]:
+        """Return the `k` best-matching entries of the curated knowledge base."""
         size = "small" if profile.n_rows < 5000 else "large"
         query = _tokens(
             f"{prompt} {spec.metric} {spec.notes} {size} {spec.task_type.value.replace('_', ' ')}"
@@ -75,6 +84,7 @@ class LocalKnowledgeRetriever:
 async def retrieve_all(
     retrievers: list[Retriever], spec: TaskSpec, profile: DatasetProfile, prompt: str, k: int = 5
 ) -> list[KnowledgeItem]:
+    """Query every retriever and merge the results (first occurrence of an id wins)."""
     seen: dict[str, KnowledgeItem] = {}
     for r in retrievers:
         for item in await r.retrieve(spec, profile, prompt, k):

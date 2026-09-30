@@ -1,3 +1,5 @@
+"""Per-run context shared by all agents (data, settings, LLM router, event bus, budget)."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -49,6 +51,7 @@ class RunContext:
         kind: EventKind = "info",
         payload: dict[str, Any] | None = None,
     ) -> None:
+        """Publish an event for this run to the event bus."""
         await self.bus.publish(
             self.run_id, stage=stage, agent=agent, message=message, kind=kind, payload=payload
         )

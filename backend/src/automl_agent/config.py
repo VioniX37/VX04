@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     llm_cache: bool = Field(True, description="Cache LLM responses on disk (reproducible, saves quota).")
     llm_cache_root: Path | None = Field(
         None,
-        description="Cache location (default <workspace>/llm_cache); share it across experiment workspaces.",
+        description="Cache location (default: the workspace llm_cache folder); shareable across workspaces.",
     )
     llm_cache_namespace: str = Field(
         "default", description="Cache partition; change it (e.g. per seed) to force fresh responses."

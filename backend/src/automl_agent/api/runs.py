@@ -1,3 +1,5 @@
+"""Run endpoints: start, inspect, stream events (SSE) and read observations."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -16,6 +18,7 @@ router = APIRouter(prefix="/runs", tags=["runs"])
 
 @router.post("", response_model=RunOut, status_code=201)
 async def start_run(body: RunCreate, session: Session = Depends(get_session)) -> RunRecord:
+    """Create a run and start the pipeline in the background."""
     dataset = session.get(DatasetRecord, body.dataset_id)
     if dataset is None:
         raise HTTPException(404, "Dataset not found")
@@ -24,11 +27,13 @@ async def start_run(body: RunCreate, session: Session = Depends(get_session)) ->
 
 @router.get("", response_model=list[RunOut])
 def list_runs(session: Session = Depends(get_session)) -> list[RunRecord]:
+    """List runs, newest first."""
     return list(session.exec(select(RunRecord).order_by(RunRecord.created_at.desc())).all())
 
 
 @router.get("/{run_id}", response_model=RunOut)
 def get_run(run_id: str, session: Session = Depends(get_session)) -> RunRecord:
+    """Return one run with its outcome."""
     run = session.get(RunRecord, run_id)
     if run is None:
         raise HTTPException(404, "Run not found")
@@ -42,6 +47,7 @@ def _ensure_history(run: RunRecord) -> None:
 
 @router.get("/{run_id}/events/history", response_model=list[AgentEvent])
 def run_events(run_id: str, session: Session = Depends(get_session)) -> list[AgentEvent]:
+    """Return every event of a run recorded so far."""
     run = get_run(run_id, session)
     _ensure_history(run)
     return bus.history(run_id)

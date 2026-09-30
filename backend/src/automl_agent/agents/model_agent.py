@@ -1,3 +1,5 @@
+"""Model Agent: pseudo-executes model selection and training-free HPO for a plan (paper section 3.3)."""
+
 from __future__ import annotations
 
 from automl_agent.execution.model_registry import normalize_model, supported_models
@@ -15,6 +17,7 @@ class ModelAgent(BaseAgent):
     prompt_name = "model_agent"
 
     async def execute(self, spec: TaskSpec, plan: Plan, subtasks: list[SubTask]) -> ModelAgentResult:
+        """Return the model choice, hyperparameters and predicted score for `plan`."""
         result = await self.ask_json(
             Stage.execute_plans,
             f"Carry out the model sub-tasks for plan {plan.id}.",

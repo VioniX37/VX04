@@ -36,6 +36,7 @@ def _mentioned_columns(prompt: str, profile: DatasetProfile) -> list[str]:
 
 
 def guess_task_spec(prompt: str, profile: DatasetProfile) -> TaskSpec:
+    """Rule-based TaskSpec (used by the offline FakeLLM and as a sanity reference)."""
     p = prompt.lower()
     mentioned = _mentioned_columns(prompt, profile)
 

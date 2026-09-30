@@ -1,3 +1,5 @@
+"""Pipeline stages and the AgentEvent stream consumed by the UI."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -27,6 +29,8 @@ EventKind = Literal["status", "info", "llm", "artifact", "warning", "error"]
 
 
 class AgentEvent(BaseModel):
+    """One entry of a run's event stream (numbered by `seq`)."""
+
     seq: int
     run_id: str
     ts: datetime = Field(default_factory=lambda: datetime.now(UTC))

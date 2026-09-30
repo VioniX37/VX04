@@ -14,6 +14,8 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class TaskType(StrEnum):
+    """Supported machine-learning task types."""
+
     tabular_classification = "tabular_classification"
     tabular_regression = "tabular_regression"
     text_classification = "text_classification"
@@ -31,10 +33,13 @@ DEFAULT_METRIC = {
 
 
 def allowed_metrics(task_type: TaskType) -> set[str]:
+    """Metrics valid for a task type."""
     return REGRESSION_METRICS if task_type == TaskType.tabular_regression else CLASSIFICATION_METRICS
 
 
 class TaskSpec(BaseModel):
+    """Machine-readable task produced by the Prompt Agent and checked by request verification."""
+
     task_type: TaskType
     target_column: str = Field(description="Column to predict")
     text_column: str | None = Field(default=None, description="Free-text input column (text tasks only)")
@@ -57,6 +62,7 @@ class TaskSpec(BaseModel):
 
     @property
     def higher_is_better(self) -> bool:
+        """Whether larger values of the metric are better."""
         return self.metric not in LOWER_IS_BETTER
 
     @model_validator(mode="after")
@@ -67,6 +73,7 @@ class TaskSpec(BaseModel):
         return self
 
     def meets_target(self, value: float) -> bool:
+        """Whether `value` satisfies the user's metric target (always true without one)."""
         if self.metric_target is None:
             return True
         return value >= self.metric_target if self.higher_is_better else value <= self.metric_target

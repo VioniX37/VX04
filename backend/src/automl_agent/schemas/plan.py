@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 
 
 class Plan(BaseModel):
+    """An end-to-end candidate pipeline proposed by the Manager."""
+
     id: str = Field(description="Short unique id, e.g. 'p1'")
     title: str
     rationale: str = Field(description="Why this plan should work, citing retrieved knowledge")
@@ -18,10 +20,14 @@ class Plan(BaseModel):
 
 
 class PlanSet(BaseModel):
+    """The planner's structured output: several candidate plans."""
+
     plans: list[Plan]
 
 
 class SubTask(BaseModel):
+    """A data- or model-specific step decomposed from a plan."""
+
     id: str
     agent: Literal["data", "model"]
     instruction: str
@@ -78,11 +84,15 @@ class PlanEvaluation(BaseModel):
 
 
 class CodeDraft(BaseModel):
+    """A complete training script written by the Operation Agent."""
+
     code: str = Field(description="Complete runnable Python script")
     explanation: str = ""
 
 
 class ExecutionResult(BaseModel):
+    """Outcome of running a script in the sandbox."""
+
     ok: bool
     returncode: int | None
     duration_s: float
