@@ -72,3 +72,5 @@ class ExecutionResult(BaseModel):
     stderr: str = ""
     metrics: dict[str, Any] | None = None
     timed_out: bool = False
+    memory_exceeded: bool = False
+    peak_memory_mb: float | None = None

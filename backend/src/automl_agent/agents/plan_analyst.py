@@ -36,9 +36,11 @@ class PlanAnalyst(BaseAgent):
                 "plan": plan.model_dump(mode="json"),
                 "data_subtasks": [s.instruction for s in data_tasks],
                 "model_subtasks": [s.instruction for s in model_tasks],
-                "allowed_models": supported_models(spec.task_type),
+                "allowed_models": supported_models(spec.task_type, self.ctx.train_rows),
             },
             PlanAnalysis,
         )
-        result.model.model_family = normalize_model(spec.task_type, result.model.model_family)
+        result.model.model_family = normalize_model(
+            spec.task_type, result.model.model_family, self.ctx.train_rows
+        )
         return result

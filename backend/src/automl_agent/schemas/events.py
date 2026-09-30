@@ -12,6 +12,7 @@ class Stage(StrEnum):
 
     parse = "parse"  # Prompt Agent: request -> TaskSpec
     verify_request = "verify_request"  # request verification
+    prepare = "prepare"  # Parquet conversion + fixed train/valid/test split
     retrieve = "retrieve"  # knowledge retrieval
     plan = "plan"  # retrieval-augmented planning (N plans)
     execute_plans = "execute_plans"  # decomposition + Data/Model agents in parallel

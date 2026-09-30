@@ -23,9 +23,9 @@ class ModelAgent(BaseAgent):
                 "dataset_profile": self.ctx.profile.compact(),
                 "plan": plan.model_dump(mode="json"),
                 "subtasks": [s.instruction for s in subtasks],
-                "allowed_models": supported_models(spec.task_type),
+                "allowed_models": supported_models(spec.task_type, self.ctx.train_rows),
             },
             ModelAgentResult,
         )
-        result.model_family = normalize_model(spec.task_type, result.model_family)
+        result.model_family = normalize_model(spec.task_type, result.model_family, self.ctx.train_rows)
         return result

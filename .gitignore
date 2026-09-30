@@ -37,3 +37,5 @@ CLAUDE.md
 CLAUDE.local.md
 .mcp.json
 AGENTS.md
+# Generated large datasets
+data/samples/large_*.parquet

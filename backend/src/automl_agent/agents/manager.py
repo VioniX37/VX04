@@ -13,7 +13,9 @@ from automl_agent.planning.gemini_search import GeminiSearchRetriever
 from automl_agent.planning.retrieval import KnowledgeItem, LocalKnowledgeRetriever, Retriever, retrieve_all
 from automl_agent.schemas.events import Stage
 from automl_agent.schemas.plan import Plan, PlanEvaluation, PlanSet
-from automl_agent.schemas.task_spec import TaskSpec
+from automl_agent.schemas.task_spec import TaskSpec, TaskType
+from automl_agent.tools.ingest import ingest_to_parquet
+from automl_agent.tools.splits import ensure_split
 from automl_agent.verification import rank_plans, verify_implementation, verify_request
 
 from .base import BaseAgent
@@ -94,6 +96,33 @@ class AgentManager(BaseAgent):
         )
         return spec
 
+    async def prepare_data(self, spec: TaskSpec) -> None:
+        """Make sure the data is Parquet and create the fixed train/valid/test split for the target."""
+        ctx = self.ctx
+        await ctx.emit(Stage.prepare, self.name, "Preparing data splits", kind="status")
+        if ctx.dataset_path.suffix.lower() not in {".parquet", ".pq"}:
+            ctx.dataset_path = await asyncio.to_thread(
+                ingest_to_parquet, ctx.dataset_path, ctx.workdir / "data" / "data.parquet"
+            )
+        ctx.split = await asyncio.to_thread(
+            ensure_split,
+            ctx.dataset_path,
+            spec.target_column,
+            stratify=spec.task_type != TaskType.tabular_regression,
+            valid_fraction=ctx.settings.split_valid_fraction,
+            test_fraction=ctx.settings.split_test_fraction,
+            seed=ctx.settings.split_seed,
+        )
+        split = ctx.split
+        await ctx.emit(
+            Stage.prepare,
+            self.name,
+            f"Split {split.n_train:,} train / {split.n_valid:,} valid / {split.n_test:,} test rows "
+            "(test rows are held out until the final evaluation)",
+            kind="artifact",
+            payload={"split": {"train": split.n_train, "valid": split.n_valid, "test": split.n_test}},
+        )
+
     async def retrieve_knowledge(self, spec: TaskSpec) -> list[KnowledgeItem]:
         ctx = self.ctx
         await ctx.emit(Stage.retrieve, self.name, "Retrieving relevant ML knowledge", kind="status")
@@ -124,7 +153,7 @@ class AgentManager(BaseAgent):
             "task_spec": spec.model_dump(mode="json"),
             "dataset_profile": ctx.profile.compact(),
             "knowledge": [{"title": k.title, "content": k.content} for k in knowledge],
-            "allowed_models": supported_models(spec.task_type),
+            "allowed_models": supported_models(spec.task_type, ctx.train_rows),
             "n_plans": n,
             "revision": revision,
         }
@@ -135,7 +164,7 @@ class AgentManager(BaseAgent):
             p.model_copy(
                 update={
                     "id": f"r{revision + 1}p{i + 1}",
-                    "model_family": normalize_model(spec.task_type, p.model_family),
+                    "model_family": normalize_model(spec.task_type, p.model_family, ctx.train_rows),
                 }
             )
             for i, p in enumerate(plan_set.plans[:n])
@@ -160,6 +189,7 @@ class AgentManager(BaseAgent):
         spec = await self.parse_and_verify()
         if spec is None:
             return PipelineResult(success=False, error="request verification failed")
+        await self.prepare_data(spec)
         knowledge = await self.retrieve_knowledge(spec)
 
         result = PipelineResult(success=False, task_spec=spec)
@@ -189,9 +219,10 @@ class AgentManager(BaseAgent):
             await ctx.emit(
                 Stage.implement, self.name, "Operation agent implementing the selected plan", kind="status"
             )
-            code, exec_result = await self.operation_agent.implement(
+            outcome = await self.operation_agent.implement(
                 spec, chosen, ctx.workdir / f"attempt_{revision + 1}"
             )
+            code, exec_result = outcome.code, outcome.result
 
             verdict = verify_implementation(spec, exec_result)
             score = (exec_result.metrics or {}).get("score") if exec_result.ok else None

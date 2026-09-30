@@ -32,3 +32,4 @@ class RunOut(BaseModel):
     code: str | None = None
     error: str | None = None
     llm_usage: dict[str, Any] | None = None
+    config: dict[str, Any] | None = None

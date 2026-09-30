@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "automl-agent"
 version = "0.1.0"
 description = "Multi-agent LLM framework for full-pipeline AutoML (re-implementation of arXiv:2410.02958 + extensions)"
-readme = "../README.md"
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115",
@@ -21,12 +21,21 @@ dependencies = [
   "numpy>=1.26",
   "scikit-learn>=1.5",
   "joblib>=1.4",
+  # Large-data pipeline
+  "polars>=1.20",
+  "pyarrow>=16",
+  "lightgbm>=4.3",
+  "xgboost>=2.1",
+  "psutil>=5.9",
   # LLM: Gemini via the official Google GenAI SDK
   "google-genai>=1.30",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+automl-agent = "automl_agent.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

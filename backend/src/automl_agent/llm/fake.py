@@ -22,6 +22,9 @@ _CONTEXT = re.compile(r"<context>\s*(.*?)\s*</context>", re.DOTALL)
 
 # Rough prior for how well each family does, used to fake the Model Agent's prediction.
 _PRIOR = {
+    "lightgbm": 0.89,
+    "xgboost": 0.885,
+    "sgd_hashing": 0.82,
     "hist_gradient_boosting": 0.88,
     "gradient_boosting": 0.87,
     "random_forest": 0.86,

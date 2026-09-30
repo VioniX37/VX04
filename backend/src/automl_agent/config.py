@@ -74,6 +74,21 @@ class Settings(BaseSettings):
         "llm", description="`llm`: Operation Agent edits the template; `template`: run the template as-is."
     )
 
+    exec_max_mem_mb: int = Field(
+        0, description="Kill a training script above this resident memory (MB); 0 = 80% of system RAM."
+    )
+    exec_n_jobs: int = Field(-1, description="CPU threads for model training (-1 = all cores).")
+
+    # ------------------------------------------------------------------ data
+    max_upload_mb: int = Field(5120, description="Largest accepted browser upload (MB).")
+    allow_path_registration: bool = Field(
+        True, description="Allow registering datasets by server-side file path (disable on shared servers)."
+    )
+    split_valid_fraction: float = Field(0.15, description="Share of rows in the validation split.")
+    split_test_fraction: float = Field(0.15, description="Share of rows in the held-out test split.")
+    split_seed: int = Field(42, description="Seed for the train/valid/test assignment.")
+    profile_sample_rows: int = Field(100_000, description="Rows sampled for text/identifier detection.")
+
     # ------------------------------------------------------------------ storage / server
     workspace_dir: Path = Field(BACKEND_ROOT / "workspace", description="Datasets, runs, database, cache.")
     cors_origins: list[str] = Field(["http://localhost:3000"], description="Origins allowed to call the API.")
