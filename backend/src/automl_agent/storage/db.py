@@ -85,6 +85,31 @@ class PlanObservation(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
 
 
+class ExperienceRecord(SQLModel, table=True):
+    """What one finished run taught us, stored for experience memory (Contribution B).
+
+    ``meta`` holds the dataset meta-features used for similarity search; ``plans``
+    the candidate plans with predicted and observed scores; ``fixes`` the
+    error->fix pairs from the Operation Agent's debug loop.
+    """
+
+    run_id: str = Field(primary_key=True)
+    dataset_fingerprint: str = Field(index=True)
+    dataset_name: str = ""
+    task_type: str = Field(index=True)
+    metric: str
+    higher_is_better: bool = True
+    n_rows: int = 0
+    success: bool = False
+    target_met: bool = False
+    best_score: float | None = None
+    meta: dict[str, Any] = Field(sa_column=Column(JSON, nullable=False))
+    best_plan: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
+    plans: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+    fixes: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 @cache
 def get_engine(url: str | None = None) -> Engine:
     """Return a cached engine for `url` (defaults to the configured database)."""

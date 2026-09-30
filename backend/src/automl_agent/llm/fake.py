@@ -82,6 +82,14 @@ class FakeLLM(LLMClient):
     def _answer_PlanSet(self, ctx: dict) -> dict:
         task_type = TaskType(ctx["task_spec"]["task_type"])
         families = list(ctx.get("allowed_models") or supported_models(task_type))
+        # Like a sensible planner, try families that worked on similar past datasets first.
+        remembered = [
+            k["data"]["best_model_family"]
+            for k in ctx.get("knowledge", [])
+            if str(k.get("source", "")).startswith("memory:")
+            and (k.get("data") or {}).get("best_model_family")
+        ]
+        families = list(dict.fromkeys([f for f in remembered if f in families] + families))
         n = int(ctx.get("n_plans", 3))
         offset = int(ctx.get("revision", 0)) * n  # revisions explore different families
         plans = []

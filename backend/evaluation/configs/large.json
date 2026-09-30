@@ -2,7 +2,7 @@
   "name": "large",
   "description": "Scale study (RQ2): million-row datasets under a fixed wall-clock budget. Fetch data first: python -m evaluation.datasets.fetch --group large",
   "seeds": [0, 1, 2],
-  "settings": {"N_PLANS": 3, "MAX_REVISIONS": 1, "BUDGET_WALL_S": 1800, "AGENT_FUSION": true},
+  "settings": {"MEMORY_EXCLUDE_SAME_DATASET": true, "N_PLANS": 3, "MAX_REVISIONS": 1, "BUDGET_WALL_S": 1800, "AGENT_FUSION": true},
   "baseline_budget_s": 1800,
   "variants": [
     {"name": "paper", "settings": {"VERIFICATION_MODE": "pseudo", "MEMORY_ENABLED": false}},

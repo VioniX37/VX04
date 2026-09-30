@@ -2,7 +2,7 @@
   "name": "smoke",
   "description": "Tiny end-to-end check of the harness on the bundled synthetic samples (works with LLM_PROVIDER=fake).",
   "seeds": [0],
-  "settings": {"N_PLANS": 3, "MAX_REVISIONS": 1, "SEARCH_GROUNDING": false},
+  "settings": {"MEMORY_EXCLUDE_SAME_DATASET": true, "N_PLANS": 3, "MAX_REVISIONS": 1, "SEARCH_GROUNDING": false},
   "baseline_budget_s": 30,
   "variants": [
     {"name": "paper", "settings": {"VERIFICATION_MODE": "pseudo", "MEMORY_ENABLED": false}},

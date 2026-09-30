@@ -2,7 +2,7 @@
   "name": "paper_tabular",
   "description": "The paper's tabular and text datasets (constraint-free and constraint-aware prompts). Fetch data first: python -m evaluation.datasets.fetch --group paper",
   "seeds": [0, 1, 2],
-  "settings": {"N_PLANS": 3, "MAX_REVISIONS": 2, "BUDGET_WALL_S": 900},
+  "settings": {"MEMORY_EXCLUDE_SAME_DATASET": true, "N_PLANS": 3, "MAX_REVISIONS": 2, "BUDGET_WALL_S": 900},
   "baseline_budget_s": 300,
   "variants": [
     {"name": "paper", "settings": {"VERIFICATION_MODE": "pseudo", "MEMORY_ENABLED": false}},

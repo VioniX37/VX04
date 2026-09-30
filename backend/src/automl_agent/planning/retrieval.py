@@ -12,7 +12,7 @@ import json
 import re
 from functools import cache
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from pydantic import BaseModel
 
@@ -31,6 +31,7 @@ class KnowledgeItem(BaseModel):
     tags: list[str] = []
     source: str = "local-kb"
     urls: list[str] = []
+    data: dict[str, Any] | None = None  # structured payload (e.g. from experience memory)
 
 
 class Retriever(Protocol):

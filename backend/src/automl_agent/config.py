@@ -87,6 +87,14 @@ class Settings(BaseSettings):
     grounding_growth: int = Field(4, description="Factor by which training rows grow between rungs.")
     grounding_eta: int = Field(2, description="Keep the best 1/eta of plans after each rung.")
     grounding_valid_rows: int = Field(100_000, description="Validation rows used to score grounding runs.")
+    memory_enabled: bool = Field(
+        True, description="Experience memory: reuse plans, scores and fixes from past runs on similar data."
+    )
+    memory_k: int = Field(3, description="Number of similar past runs recalled as planning knowledge.")
+    memory_exclude_same_dataset: bool = Field(
+        False,
+        description="Never recall runs on the same dataset (set true for leave-one-dataset-out evaluation).",
+    )
     budget_wall_s: int = Field(0, description="Wall-clock budget per run in seconds (0 = unlimited).")
     budget_llm_calls: int = Field(0, description="LLM call budget per run (0 = unlimited).")
     budget_tokens: int = Field(0, description="LLM token budget per run (0 = unlimited).")

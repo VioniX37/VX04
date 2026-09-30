@@ -20,6 +20,7 @@ from automl_agent.execution.model_registry import normalize_model, supported_mod
 from automl_agent.execution.renderer import render_template
 from automl_agent.execution.sandbox import run_script
 from automl_agent.extensions import PipelineHooks, registered_hooks, run_hook
+from automl_agent.memory import MemoryHooks, MemoryRetriever
 from automl_agent.planning.decomposition import decompose
 from automl_agent.planning.gemini_search import GeminiSearchRetriever
 from automl_agent.planning.retrieval import KnowledgeItem, LocalKnowledgeRetriever, Retriever, retrieve_all
@@ -96,13 +97,16 @@ class AgentManager(BaseAgent):
 
     @staticmethod
     def default_hooks(ctx: RunContext) -> list[PipelineHooks]:
-        """Extension hooks active for this run (user-registered ones)."""
-        return registered_hooks()
+        """Extension hooks for this run: experience memory (when enabled) plus user-registered hooks."""
+        builtin: list[PipelineHooks] = [MemoryHooks()] if ctx.settings.memory_enabled else []
+        return [*builtin, *registered_hooks()]
 
     @staticmethod
     def default_retrievers(ctx: RunContext) -> list[Retriever]:
-        """Local knowledge base, plus Google Search grounding when enabled and supported."""
+        """Local knowledge base, experience memory and Google Search grounding (when enabled)."""
         retrievers: list[Retriever] = [LocalKnowledgeRetriever()]
+        if ctx.settings.memory_enabled:
+            retrievers.append(MemoryRetriever(ctx.settings))
         if ctx.settings.search_grounding and ctx.llm.supports_search():
             retrievers.append(GeminiSearchRetriever(ctx.llm))
         return retrievers
@@ -201,7 +205,15 @@ class AgentManager(BaseAgent):
         context: dict[str, Any] = {
             "task_spec": spec.model_dump(mode="json"),
             "dataset_profile": ctx.profile.compact(),
-            "knowledge": [{"title": k.title, "content": k.content, "source": k.source} for k in knowledge],
+            "knowledge": [
+                {
+                    "title": k.title,
+                    "content": k.content,
+                    "source": k.source,
+                    **({"data": k.data} if k.data else {}),
+                }
+                for k in knowledge
+            ],
             "allowed_models": supported_models(spec.task_type, ctx.train_rows),
             "n_plans": n,
             "revision": revision,
