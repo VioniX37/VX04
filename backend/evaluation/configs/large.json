@@ -1,0 +1,41 @@
+{
+  "name": "large",
+  "description": "Scale study (RQ2): million-row datasets under a fixed wall-clock budget. Fetch data first: python -m evaluation.datasets.fetch --group large",
+  "seeds": [0, 1, 2],
+  "settings": {"N_PLANS": 3, "MAX_REVISIONS": 1, "BUDGET_WALL_S": 1800, "AGENT_FUSION": true},
+  "baseline_budget_s": 1800,
+  "variants": [
+    {"name": "paper", "settings": {"VERIFICATION_MODE": "pseudo", "MEMORY_ENABLED": false}},
+    {"name": "grounded", "settings": {"VERIFICATION_MODE": "grounded", "MEMORY_ENABLED": false}},
+    {"name": "full", "settings": {"VERIFICATION_MODE": "grounded", "MEMORY_ENABLED": true}}
+  ],
+  "baselines": ["zero_shot", "optuna_lgbm"],
+  "datasets": [
+    {
+      "name": "synthetic_conversion_5m",
+      "path": "../../../data/samples/large_conversion.parquet",
+      "truth": {"task_type": "tabular_classification", "target_column": "converted", "metric": "roc_auc",
+                "drop_columns": ["row_id"]},
+      "prompts": {"free": "Predict whether a customer converts. Optimise ROC AUC."}
+    },
+    {
+      "name": "higgs",
+      "path": "../data/higgs/data.parquet",
+      "truth": {"task_type": "tabular_classification", "target_column": "label", "metric": "roc_auc"},
+      "prompts": {"free": "Classify collision events as signal or background. Optimise ROC AUC."}
+    },
+    {
+      "name": "nyc_taxi_fare",
+      "path": "../data/nyc_taxi/data.parquet",
+      "truth": {"task_type": "tabular_regression", "target_column": "fare_amount", "metric": "rmse"},
+      "prompts": {"free": "Predict the taxi fare amount of a trip. Report RMSE."}
+    },
+    {
+      "name": "amazon_polarity",
+      "path": "../data/amazon_polarity/data.parquet",
+      "truth": {"task_type": "text_classification", "target_column": "label", "text_column": "content",
+                "metric": "accuracy"},
+      "prompts": {"free": "Classify Amazon reviews as positive or negative. Report accuracy."}
+    }
+  ]
+}

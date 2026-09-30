@@ -39,3 +39,4 @@ CLAUDE.local.md
 AGENTS.md
 # Generated large datasets
 data/samples/large_*.parquet
+backend/evaluation/data/

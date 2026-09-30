@@ -1,0 +1,38 @@
+{
+  "name": "smoke",
+  "description": "Tiny end-to-end check of the harness on the bundled synthetic samples (works with LLM_PROVIDER=fake).",
+  "seeds": [0],
+  "settings": {"N_PLANS": 3, "MAX_REVISIONS": 1, "SEARCH_GROUNDING": false},
+  "baseline_budget_s": 30,
+  "variants": [
+    {"name": "paper", "settings": {"VERIFICATION_MODE": "pseudo", "MEMORY_ENABLED": false}},
+    {"name": "grounded", "settings": {"VERIFICATION_MODE": "grounded", "MEMORY_ENABLED": false}},
+    {"name": "full", "settings": {"VERIFICATION_MODE": "grounded", "MEMORY_ENABLED": true}}
+  ],
+  "baselines": ["zero_shot", "optuna_lgbm"],
+  "datasets": [
+    {
+      "name": "churn",
+      "path": "../../../data/samples/customer_churn.csv",
+      "truth": {"task_type": "tabular_classification", "target_column": "churn", "metric": "f1_macro",
+                "drop_columns": ["customer_id"]},
+      "prompts": {
+        "free": "Predict which customers will churn. The classes are imbalanced, so optimise macro F1.",
+        "constrained": {"text": "Predict customer churn with a macro F1 of at least 0.70.", "metric_target": 0.7}
+      }
+    },
+    {
+      "name": "houses",
+      "path": "../../../data/samples/house_prices.csv",
+      "truth": {"task_type": "tabular_regression", "target_column": "price", "metric": "rmse"},
+      "prompts": {"free": "Predict the house price from its features and report RMSE."}
+    },
+    {
+      "name": "reviews",
+      "path": "../../../data/samples/product_reviews.csv",
+      "truth": {"task_type": "text_classification", "target_column": "sentiment", "text_column": "review_text",
+                "metric": "accuracy", "drop_columns": ["review_id"]},
+      "prompts": {"free": "Classify the sentiment of product reviews and report accuracy."}
+    }
+  ]
+}

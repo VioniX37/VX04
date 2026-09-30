@@ -33,6 +33,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+eval = ["optuna>=3.6", "matplotlib>=3.8", "scipy>=1.11"]
 
 [project.scripts]
 automl-agent = "automl_agent.cli:main"
@@ -45,14 +46,18 @@ automl_agent = ["prompts/*.md", "knowledge/*.json", "execution/templates/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q"
 
 [tool.ruff]
 line-length = 110
 target-version = "py311"
 src = ["src", "tests"]
-extend-exclude = ["src/automl_agent/execution/templates"]
+extend-exclude = ["src/automl_agent/execution/templates", "evaluation/baselines/optuna_lgbm_script.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 ignore = ["B008"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["automl_agent", "evaluation"]

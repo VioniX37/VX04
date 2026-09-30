@@ -1,0 +1,55 @@
+{
+  "name": "paper_tabular",
+  "description": "The paper's tabular and text datasets (constraint-free and constraint-aware prompts). Fetch data first: python -m evaluation.datasets.fetch --group paper",
+  "seeds": [0, 1, 2],
+  "settings": {"N_PLANS": 3, "MAX_REVISIONS": 2, "BUDGET_WALL_S": 900},
+  "baseline_budget_s": 300,
+  "variants": [
+    {"name": "paper", "settings": {"VERIFICATION_MODE": "pseudo", "MEMORY_ENABLED": false}},
+    {"name": "grounded", "settings": {"VERIFICATION_MODE": "grounded", "MEMORY_ENABLED": false}},
+    {"name": "memory", "settings": {"VERIFICATION_MODE": "pseudo", "MEMORY_ENABLED": true}},
+    {"name": "full", "settings": {"VERIFICATION_MODE": "grounded", "MEMORY_ENABLED": true}},
+    {"name": "full_fused", "settings": {"VERIFICATION_MODE": "grounded", "MEMORY_ENABLED": true, "AGENT_FUSION": true}}
+  ],
+  "baselines": ["zero_shot", "optuna_lgbm"],
+  "datasets": [
+    {
+      "name": "banana_quality",
+      "path": "../data/banana_quality/data.csv",
+      "truth": {"task_type": "tabular_classification", "target_column": "Quality", "metric": "f1_macro"},
+      "prompts": {
+        "free": "Build a model to classify banana quality as good or bad from the measured attributes.",
+        "constrained": {"text": "Classify banana quality with an F1 score of at least 0.98.", "metric_target": 0.98}
+      }
+    },
+    {
+      "name": "software_defects",
+      "path": "../data/software_defects/data.csv",
+      "truth": {"task_type": "tabular_classification", "target_column": "defects", "metric": "f1_macro",
+                "drop_columns": ["id"]},
+      "prompts": {
+        "free": "Predict whether a software module has defects from its code metrics.",
+        "constrained": {"text": "Predict software defects; the macro F1 must be at least 0.70.", "metric_target": 0.7}
+      }
+    },
+    {
+      "name": "crab_age",
+      "path": "../data/crab_age/data.csv",
+      "truth": {"task_type": "tabular_regression", "target_column": "Age", "metric": "rmse", "drop_columns": ["id"]},
+      "prompts": {
+        "free": "Predict the age of a crab from its physical measurements.",
+        "constrained": {"text": "Predict crab age with an RMSE below 2.2.", "metric_target": 2.2}
+      }
+    },
+    {
+      "name": "ecommerce_text",
+      "path": "../data/ecommerce_text/data.csv",
+      "truth": {"task_type": "text_classification", "target_column": "label", "text_column": "text", "metric": "accuracy"},
+      "prompts": {
+        "free": "Classify e-commerce product descriptions into their product category.",
+        "constrained": {"text": "Classify product descriptions into categories with at least 95% accuracy.",
+                        "metric_target": 0.95}
+      }
+    }
+  ]
+}

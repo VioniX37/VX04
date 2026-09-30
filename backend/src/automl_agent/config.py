@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     gemini_max_retries: int = Field(6, description="Retries on 429/5xx with exponential backoff.")
     llm_temperature: float = Field(0.2, description="Sampling temperature for all agents.")
     llm_cache: bool = Field(True, description="Cache LLM responses on disk (reproducible, saves quota).")
+    llm_cache_root: Path | None = Field(
+        None,
+        description="Cache location (default <workspace>/llm_cache); share it across experiment workspaces.",
+    )
     llm_cache_namespace: str = Field(
         "default", description="Cache partition; change it (e.g. per seed) to force fresh responses."
     )
@@ -118,7 +122,7 @@ class Settings(BaseSettings):
     @property
     def llm_cache_dir(self) -> Path:
         """Directory of the on-disk LLM response cache."""
-        return self.workspace_dir / "llm_cache" / self.llm_cache_namespace
+        return (self.llm_cache_root or self.workspace_dir / "llm_cache") / self.llm_cache_namespace
 
     @property
     def db_url(self) -> str:
