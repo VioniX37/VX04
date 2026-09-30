@@ -67,3 +67,12 @@ def test_unreachable_target_triggers_revisions(settings, sample_csvs):
     assert not result.target_met
     assert len(result.attempts) == 2
     assert any("Revising" in e.message for e in events)
+
+
+def test_agent_fusion_halves_analysis_calls(settings, sample_csvs):
+    _, _, separate = _run(settings, sample_csvs["churn"], "Predict churn")
+    settings.agent_fusion = True
+    result, events, fused = _run(settings, sample_csvs["churn"], "Predict churn")
+    assert result.success
+    assert separate.llm.usage.calls - fused.llm.usage.calls == settings.n_plans
+    assert any(e.agent == "plan_analyst" for e in events)

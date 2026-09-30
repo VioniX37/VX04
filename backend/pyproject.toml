@@ -21,10 +21,8 @@ dependencies = [
   "numpy>=1.26",
   "scikit-learn>=1.5",
   "joblib>=1.4",
-  # LLM provider SDKs (imported lazily, only the configured one is used)
-  "openai>=1.40",
-  "anthropic>=0.40",
-  "google-genai>=1.0",
+  # LLM: Gemini via the official Google GenAI SDK
+  "google-genai>=1.30",
 ]
 
 [project.optional-dependencies]

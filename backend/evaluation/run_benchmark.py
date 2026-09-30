@@ -77,7 +77,7 @@ async def main() -> None:
     if args.provider:
         settings.llm_provider = args.provider
     if args.model:
-        settings.llm_model = args.model
+        settings.gemini_model_smart = settings.gemini_model_fast = args.model
     settings.ensure_dirs()
 
     tasks = json.loads(args.tasks.read_text(encoding="utf-8"))

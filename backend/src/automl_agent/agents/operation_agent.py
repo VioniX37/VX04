@@ -16,6 +16,7 @@ class OperationAgent(BaseAgent):
 
     name = "operation_agent"
     prompt_name = "operation_agent"
+    model_role = "smart"
 
     async def implement(
         self, spec: TaskSpec, ev: PlanEvaluation, workdir: Path

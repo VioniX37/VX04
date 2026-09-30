@@ -8,6 +8,7 @@ drive our pipeline and validate them with Pydantic.
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -46,6 +47,13 @@ class TaskSpec(BaseModel):
     max_train_time_s: int | None = Field(default=None, description="Training time budget, if stated")
     domain: str | None = Field(default=None, description="Application domain, if mentioned")
     notes: str = Field(default="", description="Any other user constraints or preferences")
+    user_expertise: Literal["beginner", "intermediate", "expert"] = Field(
+        default="intermediate", description="User's apparent ML expertise, inferred from the request"
+    )
+    assumptions: list[str] = Field(
+        default_factory=list,
+        description="Assumptions made where the request was ambiguous (shown to the user)",
+    )
 
     @property
     def higher_is_better(self) -> bool:

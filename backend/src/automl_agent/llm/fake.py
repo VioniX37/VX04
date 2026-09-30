@@ -45,12 +45,22 @@ def _context(messages: list[Message]) -> dict:
 
 
 class FakeLLM(LLMClient):
+    """Heuristic stand-in for Gemini that needs no network or API key."""
+
     provider = "fake"
 
     def __init__(self, model: str = "fake-heuristic", temperature: float = 0.0) -> None:
         super().__init__(model, temperature)
 
-    async def _complete(self, messages: list[Message], *, temperature: float, json_mode: bool) -> LLMResponse:
+    async def _complete(
+        self,
+        messages: list[Message],
+        *,
+        temperature: float,
+        json_mode: bool,
+        schema: dict | None = None,
+    ) -> LLMResponse:
+        """Answer from the `<context>` block using the handler for the expected schema."""
         ctx = _context(messages)
         handler = getattr(self, f"_answer_{ctx.get('expected', '')}", None)
         payload = handler(ctx) if handler else {"text": "ok"}
@@ -117,6 +127,9 @@ class FakeLLM(LLMClient):
             "predicted_score": prior if higher else round(1 - prior, 3),
             "predicted_train_time_s": 30.0,
         }
+
+    def _answer_PlanAnalysis(self, ctx: dict) -> dict:
+        return {"data": self._answer_DataAgentResult(ctx), "model": self._answer_ModelAgentResult(ctx)}
 
     def _answer_CodeDraft(self, ctx: dict) -> dict:
         return {"code": ctx["base_code"], "explanation": "Using the rendered template unchanged."}

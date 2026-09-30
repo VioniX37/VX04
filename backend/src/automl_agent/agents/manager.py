@@ -9,6 +9,7 @@ from typing import Any
 from automl_agent.execution.model_registry import normalize_model, supported_models
 from automl_agent.extensions import registered_hooks, run_hook
 from automl_agent.planning.decomposition import decompose
+from automl_agent.planning.gemini_search import GeminiSearchRetriever
 from automl_agent.planning.retrieval import KnowledgeItem, LocalKnowledgeRetriever, Retriever, retrieve_all
 from automl_agent.schemas.events import Stage
 from automl_agent.schemas.plan import Plan, PlanEvaluation, PlanSet
@@ -20,6 +21,7 @@ from .context import RunContext
 from .data_agent import DataAgent
 from .model_agent import ModelAgent
 from .operation_agent import OperationAgent
+from .plan_analyst import PlanAnalyst
 from .prompt_agent import PromptAgent
 
 
@@ -38,14 +40,24 @@ class PipelineResult:
 class AgentManager(BaseAgent):
     name = "manager"
     prompt_name = "manager"
+    model_role = "smart"
 
     def __init__(self, ctx: RunContext, retrievers: list[Retriever] | None = None) -> None:
         super().__init__(ctx)
-        self.retrievers = retrievers or [LocalKnowledgeRetriever()]
+        self.retrievers = retrievers if retrievers is not None else self.default_retrievers(ctx)
         self.prompt_agent = PromptAgent(ctx)
         self.data_agent = DataAgent(ctx)
         self.model_agent = ModelAgent(ctx)
         self.operation_agent = OperationAgent(ctx)
+        self.plan_analyst = PlanAnalyst(ctx)
+
+    @staticmethod
+    def default_retrievers(ctx: RunContext) -> list[Retriever]:
+        """Local knowledge base, plus Google Search grounding when enabled and supported."""
+        retrievers: list[Retriever] = [LocalKnowledgeRetriever()]
+        if ctx.settings.search_grounding and ctx.llm.supports_search():
+            retrievers.append(GeminiSearchRetriever(ctx.llm))
+        return retrievers
 
     # ------------------------------------------------------------------ stages
 
@@ -71,6 +83,8 @@ class AgentManager(BaseAgent):
                 )
                 return None
         spec = await run_hook("on_task_parsed", ctx, spec)
+        for assumption in spec.assumptions:
+            await ctx.emit(Stage.verify_request, self.name, f"Assumption: {assumption}", kind="info")
         await ctx.emit(
             Stage.verify_request,
             self.name,
@@ -90,7 +104,11 @@ class AgentManager(BaseAgent):
             self.name,
             f"Retrieved {len(items)} knowledge items",
             kind="artifact",
-            payload={"knowledge": [{"id": k.id, "title": k.title, "source": k.source} for k in items]},
+            payload={
+                "knowledge": [
+                    {"id": k.id, "title": k.title, "source": k.source, "urls": k.urls} for k in items
+                ]
+            },
         )
         return items
 
@@ -126,6 +144,9 @@ class AgentManager(BaseAgent):
 
     async def evaluate_plan(self, spec: TaskSpec, plan: Plan) -> PlanEvaluation:
         data_tasks, model_tasks = decompose(plan)
+        if self.ctx.settings.agent_fusion:
+            fused = await self.plan_analyst.execute(spec, plan, data_tasks, model_tasks)
+            return PlanEvaluation(plan=plan, data=fused.data, model=fused.model)
         data, model = await asyncio.gather(
             self.data_agent.execute(spec, plan, data_tasks),
             self.model_agent.execute(spec, plan, model_tasks),

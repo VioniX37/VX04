@@ -30,6 +30,7 @@ class KnowledgeItem(BaseModel):
     content: str
     tags: list[str] = []
     source: str = "local-kb"
+    urls: list[str] = []
 
 
 class Retriever(Protocol):

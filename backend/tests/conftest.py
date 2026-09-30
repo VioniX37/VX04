@@ -9,7 +9,6 @@ import pytest
 _TMP = Path(tempfile.mkdtemp(prefix="automl-agent-tests-"))
 os.environ["WORKSPACE_DIR"] = str(_TMP / "workspace")
 os.environ["LLM_PROVIDER"] = "fake"
-os.environ["LLM_MODEL"] = ""
 os.environ["MAX_REVISIONS"] = "0"
 os.environ["EXEC_TIMEOUT_S"] = "120"
 

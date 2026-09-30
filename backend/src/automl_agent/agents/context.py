@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from automl_agent.config import Settings
-from automl_agent.llm.base import LLMClient
+from automl_agent.llm.router import LLMRouter
 from automl_agent.schemas.dataset import DatasetProfile
 from automl_agent.schemas.events import EventKind, Stage
 from automl_agent.services.event_bus import EventBus
@@ -21,7 +21,7 @@ class RunContext:
     profile: DatasetProfile
     workdir: Path
     settings: Settings
-    llm: LLMClient
+    llm: LLMRouter
     bus: EventBus
     state: dict[str, Any] = field(default_factory=dict)  # scratch space for extensions
 

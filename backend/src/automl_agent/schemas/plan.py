@@ -45,6 +45,13 @@ class ModelAgentResult(BaseModel):
     predicted_train_time_s: float = Field(default=60.0)
 
 
+class PlanAnalysis(BaseModel):
+    """Data and Model agent results produced in a single fused call (``AGENT_FUSION=true``)."""
+
+    data: DataAgentResult
+    model: ModelAgentResult
+
+
 class PlanEvaluation(BaseModel):
     plan: Plan
     data: DataAgentResult
