@@ -1,40 +1,64 @@
-# Backend API
+# REST API
 
-Base URL: `http://localhost:8000/api`. Interactive docs are at `http://localhost:8000/docs`.
+Base URL: `http://localhost:8000/api`. The live OpenAPI schema and a try-it-out console are served at `http://localhost:8000/docs`.
+
+## Health
+
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/health` | `{status, version, llm_provider, llm_model, models: {smart, fast}, models_available, codegen_mode}` |
+
+`models_available` maps each configured Gemini model id to whether the key can use it (checked at startup).
+
+## Datasets
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| POST | `/datasets` | multipart `file` (CSV/TSV/Parquet/JSONL, optionally `.gz`; ≤ `MAX_UPLOAD_MB`) | `Dataset` (201) |
+| POST | `/datasets/register` | `{"path": "..."}` **or** `{"url": "https://..."}`, optional `"name"` | `Dataset` (201) |
+| GET | `/datasets` | | `Dataset[]`, newest first |
+| GET | `/datasets/{id}` | | `Dataset` |
+
+```json
+{
+  "id": "3f2a9c1b7e44",
+  "filename": "customer_churn.csv",
+  "source": "upload",
+  "created_at": "2026-10-01T10:00:00Z",
+  "profile": {
+    "n_rows": 1500, "n_cols": 9, "scale_tier": "small", "size_bytes": 81234,
+    "memory_estimate_mb": 0.2, "approximate_counts": false,
+    "guessed_target": "churn", "text_columns": [],
+    "columns": [{"name": "churn", "dtype": "String", "kind": "categorical", "n_unique": 2,
+                 "n_missing": 0, "sample_values": ["no", "yes"], "top_values": {"no": 0.61, "yes": 0.39}}]
+  }
+}
+```
+
+Errors: `400` for unreadable or unsupported files and bad paths/URLs, `413` for uploads that are too large, `422` when both or neither of `path`/`url` are given.
+
+## Runs
 
 | Method | Path | Body / query | Returns |
 |---|---|---|---|
-| GET | `/health` | | `{status, version, llm_provider, llm_model, codegen_mode}` |
-| POST | `/datasets` | multipart `file` (.csv / .tsv, ≤200 MB) | `Dataset {id, filename, created_at, profile}` (201) |
-| GET | `/datasets` | | `Dataset[]` |
-| GET | `/datasets/{id}` | | `Dataset` |
-| POST | `/runs` | `{dataset_id, prompt}` | `Run` (201); the pipeline starts in the background |
-| GET | `/runs` | | `Run[]` |
-| GET | `/runs/{id}` | | `Run {status, task_spec, plan, metrics, code, error, llm_usage, ...}` |
+| POST | `/runs` | `{"dataset_id": "...", "prompt": "..."}` | `Run` (201); the pipeline starts in the background |
+| GET | `/runs` | | `Run[]`, newest first |
+| GET | `/runs/{id}` | | `Run` |
+| GET | `/runs/{id}/events` | `?after=<seq>` | **Server-Sent Events** stream (below) |
 | GET | `/runs/{id}/events/history` | | `AgentEvent[]` |
-| GET | `/runs/{id}/events` | `?after=<seq>` | **SSE** stream |
+| GET | `/runs/{id}/observations` | | Predicted-vs-observed rows (`PlanObservation[]`) |
 
-## SSE stream
+`Run` fields: `id`, `dataset_id`, `prompt`, `status` (`pending`/`running`/`succeeded`/`failed`), timestamps, `task_spec`, `plan` (selected, with final hyperparameters), `metrics` (final `metrics.json` plus `target_met`, `attempts`, `stop_reason`, `budget`, `artifact_dir`), `code`, `error`, `llm_usage` (`calls`, `cache_hits`, token counts) and `config` (the experimental condition: models, verification mode, memory, grounding, budgets).
 
-Each event looks like this:
+## Event stream
 
-```
+```text
 event: agent_event
 id: 12
-data: {"seq":12,"run_id":"…","ts":"…","stage":"select","agent":"manager","kind":"artifact","message":"Selected plan r1p1: …","payload":{…}}
+data: {"seq":12,"run_id":"…","ts":"…","stage":"ground","agent":"manager","kind":"artifact",
+       "message":"Rung at 20,000 rows: r1p1=0.7283, r1p2=0.7163, r1p3=0.7496","payload":{"rung":{…}}}
 ```
 
-When the run finishes, the stream sends `event: end` and closes. Events already sent are replayed, so a reconnect can pass `?after=<last seq>`.
+Events are replayed from the start (or from `after`), then streamed live. When the run ends, the server sends `event: end` and closes the stream. Payload shapes per stage are listed in the [event schema](event-schema.md).
 
-Payloads the UI relies on:
-
-| stage | payload key | content |
-|---|---|---|
-| `verify_request` | `task_spec` | the verified `TaskSpec` |
-| `retrieve` | `knowledge` | `[{id, title, source}]` |
-| `select` | `ranked`, `selected` | `PlanEvaluation[]`, selected plan id |
-| `implement` | `code`, `result` | script being run / `ExecutionResult` |
-| `verify_impl` | `metrics`, `issues` | `metrics.json` content, unmet requirements |
-| `done` | `success`, `metrics`, `target_met` | final outcome |
-
-TypeScript mirrors of every schema are in `frontend/src/lib/types.ts`. Keep them in sync with `backend/src/automl_agent/schemas/`.
+TypeScript mirrors of all schemas are in `frontend/src/lib/types.ts`.

@@ -1,70 +1,116 @@
 # Architecture
 
-## Pipeline (maps to Fig. 2 of the paper)
+The system has three deployable parts: a **FastAPI backend** that hosts the agent pipeline, a **Next.js web UI**, and the **`automl-agent` CLI** for headless use. They share one workspace directory, which holds a SQLite database plus data and run artifacts.
 
-| # | Stage (`schemas/events.py::Stage`) | Paper concept | Code |
-|---|---|---|---|
-| 1 | `parse` | Prompt Agent parses the instruction into JSON | `agents/prompt_agent.py`, `schemas/task_spec.py` |
-| 2 | `verify_request` | Request verification | `verification/request.py` (one self-repair round via the Prompt Agent) |
-| 3 | `retrieve` | Retrieval-augmented planning: knowledge retrieval | `planning/retrieval.py`, `knowledge/*.json` |
-| 4 | `plan` | RAP: generate *N* diverse plans | `AgentManager.generate_plans` + `prompts/manager.md` |
-| 5 | `execute_plans` | Plan decomposition + parallel pseudo-execution by the Data and Model agents | `planning/decomposition.py`, `agents/data_agent.py`, `agents/model_agent.py` |
-| 6 | `select` | Execution verification: pick the best plan | `verification/execution.py::rank_plans` |
-| 7 | `implement` | Operation Agent: code generation, execution, debugging | `agents/operation_agent.py`, `execution/*` |
-| 8 | `verify_impl` | Implementation verification; on failure, revise and loop back to step 4 | `verification/implementation.py` |
+```mermaid
+flowchart TB
+    subgraph Clients
+      UI[Next.js UI<br/>TypeScript · Tailwind]
+      CLI[automl-agent CLI<br/>notebooks · servers]
+      BENCH[Benchmark harness<br/>evaluation/]
+    end
+    subgraph Backend[FastAPI backend]
+      API[REST + SSE<br/>api/]
+      RS[Run service<br/>services/run_service.py]
+      DS[Dataset service<br/>ingest · profile]
+      BUS[Event bus<br/>services/event_bus.py]
+      subgraph Pipeline[Agent pipeline]
+        MGR[Manager]
+        AG[Prompt · Data · Model ·<br/>Plan Analyst · Operation agents]
+        VER[Verification<br/>request · grounding · implementation]
+        MEM[Experience memory]
+      end
+      LLM[LLM router<br/>Gemini smart/fast · cache · rate limits]
+      SBX[Sandbox<br/>time + memory limits]
+    end
+    subgraph Workspace[Workspace]
+      DB[(SQLite<br/>datasets · runs · observations · experience)]
+      FS[(Parquet data · splits ·<br/>scripts · models · event logs)]
+    end
+    UI --> API
+    CLI --> RS
+    BENCH --> RS
+    API --> RS & DS
+    RS --> MGR
+    MGR --> AG & VER & MEM
+    AG --> LLM
+    VER --> SBX
+    AG --> SBX
+    MGR --> BUS --> API
+    RS --> DB
+    DS --> FS
+    SBX --> FS
+    MEM --> DB
+```
 
-`AgentManager.run()` in `agents/manager.py` runs steps 4 to 8 up to `MAX_REVISIONS + 1` times. Each revision passes the earlier attempts' results as `feedback` to the planner. The best working implementation is kept even if the user's target is never met.
+## Backend packages
 
-## Sequence
+| Package | Responsibility |
+|---|---|
+| `agents/` | The Manager (orchestration, grounding, revisions) and the specialist agents; `RunContext`; budgets |
+| `prompts/` | One role prompt per agent (Markdown with a header documenting inputs and output schema) |
+| `llm/` | Gemini client, offline `FakeLLM`, role router, response cache, rate limiter |
+| `planning/` | Local knowledge base retrieval, Google Search retrieval, plan decomposition |
+| `verification/` | Request verification, pseudo ranking (paper), grounded successive halving, implementation verification |
+| `memory/` | Experience memory: meta-features, store, retriever, pipeline hooks |
+| `execution/` | Model registry, code templates, renderer, supervised sandbox |
+| `tools/` | Ingest to Parquet, Polars profiling, fixed splits, heuristics |
+| `schemas/` | Pydantic models shared by agents, API and UI |
+| `services/` | Event bus, dataset registration, run execution |
+| `storage/` | SQLModel tables and lightweight migrations |
+| `api/` | REST and SSE endpoints |
+| `extensions/` | `PipelineHooks`, the extension point memory is built on |
+
+## Design principles
+
+- **Agents reason, code executes.** LLM agents only produce structured JSON (validated with Pydantic). Everything that touches data runs as generated Python in the sandbox, against a fixed contract: read the Parquet + split files, write `metrics.json`.
+- **Ground truth beats prediction.** Plans are selected on measured validation scores (see [Grounded verification](grounded-verification.md)). The final score is always computed on a test split that no agent has seen.
+- **Every run is an experiment.** Configuration, predicted and observed scores, budgets and LLM usage are recorded per run, so the web UI and the benchmark harness read the same data.
+- **Reproducible and quota-friendly.** Responses are cached on disk, splits are seeded, and every threshold is a setting.
+- **Faithful baseline preserved.** `VERIFICATION_MODE=pseudo` and `MEMORY_ENABLED=false` reproduce the paper's behaviour for ablations.
+
+## Request lifecycle
 
 ```mermaid
 sequenceDiagram
-  participant UI as Next.js UI
+  participant UI as Web UI
   participant API as FastAPI
   participant M as Manager
-  participant P as Prompt Agent
-  participant D as Data Agent
-  participant Mo as Model Agent
-  participant O as Operation Agent
+  participant A as Agents (Gemini)
   participant S as Sandbox
+  participant DB as SQLite
 
-  UI->>API: POST /api/datasets (CSV)
-  API-->>UI: DatasetProfile
+  UI->>API: POST /api/datasets (or /register)
+  API->>API: ingest to Parquet, profile
+  API-->>UI: Dataset + profile
   UI->>API: POST /api/runs {dataset_id, prompt}
-  API->>M: background task
+  API->>M: start in background
   UI->>API: GET /api/runs/{id}/events (SSE)
-  M->>P: parse(prompt, profile)
-  P-->>M: TaskSpec
-  M->>M: verify_request, retrieve knowledge
-  M->>M: generate N plans (LLM)
-  par for each plan
-    M->>D: data sub-tasks
-    M->>Mo: model sub-tasks
+  M->>A: parse request -> TaskSpec
+  M->>M: verify request, create split
+  M->>A: retrieve knowledge (KB, web, memory), plan N candidates
+  par each plan
+    M->>A: Data + Model analysis (pseudo-execution)
   end
-  M->>M: rank plans, select best
-  M->>O: implement(best)
-  O->>S: run train.py
-  S-->>O: metrics.json / stderr
-  O->>O: fix and retry on error
-  M->>M: verify implementation (revise if needed)
-  API-->>UI: AgentEvents streamed throughout
+  loop successive halving rungs
+    M->>S: train surviving plans on r rows, score on valid
+  end
+  M->>A: Operation Agent writes final script
+  M->>S: full-data training, score on test
+  M->>M: implementation verification (revise if needed)
+  M->>DB: run outcome, observations, experience record
+  API-->>UI: events streamed throughout
 ```
-
-## Key design decisions
-
-- **Provider-agnostic LLM layer** (`llm/base.py`). Agents call only `complete_json(messages, PydanticSchema)`. The base class adds the schema instruction, parses JSON leniently, and asks the model to repair invalid output. Adapters implement a single `_complete` method. Token usage is tracked per run.
-- **Offline FakeLLM** (`llm/fake.py`). Agents embed their inputs in a `<context>{json}</context>` block. The fake answers each schema with heuristics, so tests, CI and demos need no API key.
-- **Template-grounded code generation.** Plans must pick a model family from `execution/model_registry.py`. The Operation Agent receives a working rendered template and may edit it. If every LLM-edited version fails, it falls back to the template alone. This keeps success rates high with weak or local models. Set `CODEGEN_MODE=template` to skip LLM code editing.
-- **A contract, not free-form output.** Every script must write `metrics.json` (`metric`, `score`, `metrics`) and `model.joblib`. Verification reads that file.
-- **Event bus + SSE** (`services/event_bus.py`). Each run is an append-only list of `AgentEvent`s, also saved to `workspace/runs/<id>/events.jsonl`. The UI can reconnect or reload and replay the history.
-- **Extension hooks** (`extensions/__init__.py`). `PipelineHooks` has `on_task_parsed`, `on_knowledge_retrieved`, `on_plans_generated`, `on_plans_ranked` and `on_run_finished`. Our extension goes there, so the core pipeline stays faithful to the paper.
 
 ## Runtime layout
 
-```
+```text
 backend/workspace/
-  automl.db                   SQLite: datasets + runs
-  datasets/<id>/data.csv      uploaded files
-  runs/<id>/events.jsonl      event log
-  runs/<id>/attempt_<k>/      train.py, metrics.json, model.joblib per revision
+  automl.db                       SQLite: datasets, runs, plan observations, experience records
+  datasets/<id>/data.parquet      converted dataset
+  datasets/<id>/splits/*.parquet  fixed train/valid/test assignment per target
+  runs/<id>/events.jsonl          event log (replayed by the UI after restarts)
+  runs/<id>/ground_r<k>/...       grounding runs
+  runs/<id>/attempt_<k>/          final script, metrics.json, model.joblib
+  llm_cache/<namespace>/          cached Gemini responses
 ```
