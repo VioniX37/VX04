@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
+import { formatBytes } from "@/lib/stages";
 import type { Dataset } from "@/lib/types";
 import { DatasetProfileTable } from "./DatasetProfileTable";
 import { Button, Card, CardTitle, ErrorNote, Spinner, cn } from "./ui";
@@ -14,25 +15,63 @@ const EXAMPLES = [
   "Classify the sentiment of product reviews with at least 85% accuracy.",
 ];
 
+type SourceTab = "upload" | "register" | "existing";
+
+const TABS: { id: SourceTab; label: string }[] = [
+  { id: "upload", label: "Upload" },
+  { id: "register", label: "Path or URL" },
+  { id: "existing", label: "Registered" },
+];
+
+/** Form to choose a dataset (upload, register by path/URL, or reuse) and describe the task. */
 export function NewRunForm() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const [tab, setTab] = useState<SourceTab>("upload");
   const [dataset, setDataset] = useState<Dataset | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [known, setKnown] = useState<Dataset[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [location, setLocation] = useState("");
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (tab === "existing" && known === null) api.listDatasets().then(setKnown, (e) => setError(e.message));
+  }, [tab, known]);
+
   async function upload(file: File) {
     setError(null);
-    setUploading(true);
+    setProgress(0);
+    setBusy(`Uploading ${file.name} (${formatBytes(file.size)})`);
     try {
-      setDataset(await api.uploadDataset(file));
+      const ds = await api.uploadDataset(file, (f) => {
+        setProgress(f);
+        if (f >= 1) setBusy("Converting to Parquet and profiling…");
+      });
+      setDataset(ds);
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setUploading(false);
+      setBusy(null);
+      setProgress(null);
+    }
+  }
+
+  async function register() {
+    const value = location.trim();
+    if (!value) return;
+    setError(null);
+    setBusy("Registering, converting to Parquet and profiling… (large files can take a minute)");
+    try {
+      const isUrl = /^https?:\/\//i.test(value);
+      setDataset(await api.registerDataset(isUrl ? { url: value } : { path: value }));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -52,55 +91,133 @@ export function NewRunForm() {
   return (
     <div className="grid gap-6 lg:grid-cols-5">
       <Card className="lg:col-span-3">
-        <CardTitle>1 · Dataset</CardTitle>
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => inputRef.current?.click()}
-          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragging(false);
-            const file = e.dataTransfer.files[0];
-            if (file) upload(file);
-          }}
-          className={cn(
-            "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-8 text-center text-sm transition-colors",
-            dragging ? "border-accent bg-accent-soft" : "border-border hover:bg-surface-muted",
-          )}
+        <CardTitle
+          aside={
+            <div role="tablist" className="flex rounded-lg bg-surface-muted p-0.5 text-xs">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  role="tab"
+                  aria-selected={tab === t.id}
+                  onClick={() => setTab(t.id)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1",
+                    tab === t.id ? "bg-surface font-medium shadow-sm" : "text-muted hover:text-foreground",
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          }
         >
-          {uploading ? (
-            <span className="flex items-center gap-2 text-muted">
-              <Spinner /> Uploading and profiling…
-            </span>
-          ) : dataset ? (
-            <>
-              <span className="font-medium">{dataset.filename}</span>
-              <span className="text-xs text-muted">Click or drop to replace</span>
-            </>
-          ) : (
-            <>
-              <span className="font-medium">Drop a CSV file here, or click to browse</span>
-              <span className="text-xs text-muted">Samples are in data/samples/</span>
-            </>
-          )}
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".csv,.tsv"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) upload(file);
-              e.target.value = "";
+          1 · Dataset
+        </CardTitle>
+
+        {tab === "upload" && (
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => !busy && inputRef.current?.click()}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
             }}
-          />
-        </div>
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              const file = e.dataTransfer.files[0];
+              if (file) upload(file);
+            }}
+            className={cn(
+              "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-8 text-center text-sm transition-colors",
+              dragging ? "border-accent bg-accent-soft" : "border-border hover:bg-surface-muted",
+            )}
+          >
+            {busy ? (
+              <div className="w-full max-w-sm space-y-2">
+                <span className="flex items-center justify-center gap-2 text-muted">
+                  <Spinner /> {busy}
+                </span>
+                {progress !== null && progress < 1 && (
+                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
+                    <div className="h-full bg-accent transition-all" style={{ width: `${progress * 100}%` }} />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+                <span className="font-medium">
+                  {dataset ? `${dataset.filename} — drop another file to replace` : "Drop a file here, or click to browse"}
+                </span>
+                <span className="text-xs text-muted">CSV, TSV, Parquet or JSONL (optionally .gz), up to 5 GB</span>
+              </>
+            )}
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".csv,.tsv,.parquet,.jsonl,.ndjson,.gz"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) upload(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+        )}
+
+        {tab === "register" && (
+          <div className="space-y-2">
+            <p className="text-xs text-muted">
+              For multi-gigabyte data, register a file that is already on the server (e.g. a Kaggle or Colab input
+              path) or an http(s) URL. Nothing passes through the browser.
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && register()}
+                placeholder="/kaggle/input/higgs/HIGGS.csv.gz  or  https://…/data.parquet"
+                className="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs outline-none focus:border-accent"
+              />
+              <Button variant="ghost" onClick={register} disabled={!location.trim() || !!busy}>
+                {busy && <Spinner />}
+                Register
+              </Button>
+            </div>
+            {busy && <p className="text-xs text-muted">{busy}</p>}
+          </div>
+        )}
+
+        {tab === "existing" && (
+          <div className="max-h-56 space-y-1 overflow-auto">
+            {known === null && (
+              <p className="flex items-center gap-2 text-sm text-muted">
+                <Spinner /> Loading datasets…
+              </p>
+            )}
+            {known?.length === 0 && <p className="text-sm text-muted">No datasets registered yet.</p>}
+            {known?.map((d) => (
+              <button
+                key={d.id}
+                onClick={() => setDataset(d)}
+                className={cn(
+                  "flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left text-sm",
+                  dataset?.id === d.id ? "bg-accent-soft" : "hover:bg-surface-muted",
+                )}
+              >
+                <span className="truncate font-medium">{d.filename}</span>
+                <span className="shrink-0 text-xs text-muted">
+                  {d.profile.n_rows.toLocaleString()} rows · {d.source}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
         {dataset && (
           <div className="mt-5">
             <DatasetProfileTable profile={dataset.profile} />
@@ -132,11 +249,7 @@ export function NewRunForm() {
         </div>
         <div className="mt-auto space-y-3 pt-5">
           {error && <ErrorNote>{error}</ErrorNote>}
-          <Button
-            className="w-full"
-            onClick={submit}
-            disabled={!dataset || prompt.trim().length < 3 || submitting}
-          >
+          <Button className="w-full" onClick={submit} disabled={!dataset || prompt.trim().length < 3 || submitting}>
             {submitting && <Spinner />}
             Start AutoML run
           </Button>

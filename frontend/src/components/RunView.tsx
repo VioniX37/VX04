@@ -3,9 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { api, subscribeToRun } from "@/lib/api";
-import type { AgentEvent, ExecutionMetrics, PlanEvaluation, Run, Stage, TaskSpec } from "@/lib/types";
+import type {
+  AgentEvent,
+  BudgetSnapshot,
+  ExecutionMetrics,
+  KnowledgeRef,
+  PlanEvaluation,
+  Run,
+  RungResult,
+  Stage,
+  TaskSpec,
+} from "@/lib/types";
 import { AgentTimeline } from "./AgentTimeline";
+import { BudgetPanel } from "./BudgetPanel";
 import { CodeViewer } from "./CodeViewer";
+import { GroundingPanel } from "./GroundingPanel";
+import { KnowledgePanel } from "./KnowledgePanel";
 import { MetricsPanel } from "./MetricsPanel";
 import { PlanCards } from "./PlanCards";
 import { StageStepper } from "./StageStepper";
@@ -19,6 +32,25 @@ function lastPayload<T>(events: AgentEvent[], stage: Stage, key: string): T | un
   return undefined;
 }
 
+/** Grounding rungs of the most recent planning round. */
+function latestGrounding(events: AgentEvent[]) {
+  let start = -1;
+  for (let i = events.length - 1; i >= 0; i--) {
+    if (events[i].stage === "ground" && events[i].payload && "predicted" in events[i].payload!) {
+      start = i;
+      break;
+    }
+  }
+  if (start < 0) return null;
+  const round = events.slice(start).filter((e) => e.stage === "ground");
+  return {
+    predicted: round[0].payload!.predicted as Record<string, number>,
+    rungs: round.filter((e) => e.payload && "rung" in e.payload).map((e) => e.payload!.rung as RungResult),
+    stoppedForBudget: round.some((e) => e.kind === "warning" && e.message.includes("budget")),
+  };
+}
+
+/** Live and historical view of one pipeline run. */
 export function RunView({ runId }: { runId: string }) {
   const [run, setRun] = useState<Run | null>(null);
   const [events, setEvents] = useState<AgentEvent[]>([]);
@@ -49,15 +81,20 @@ export function RunView({ runId }: { runId: string }) {
   const derived = useMemo(() => {
     const reached = new Set<Stage>(events.map((e) => e.stage));
     const nonDone = events.filter((e) => e.stage !== "done");
+    const progress = [...events].reverse().find((e) => e.stage === "implement" && e.payload && "progress" in e.payload);
     return {
       reached,
       current: nonDone.length ? nonDone[nonDone.length - 1].stage : null,
       spec: lastPayload<TaskSpec>(events, "verify_request", "task_spec"),
-      knowledge: lastPayload<{ id: string; title: string; source: string }[]>(events, "retrieve", "knowledge"),
+      split: lastPayload<{ train: number; valid: number; test: number }>(events, "prepare", "split"),
+      knowledge: lastPayload<KnowledgeRef[]>(events, "retrieve", "knowledge"),
       ranked: lastPayload<PlanEvaluation[]>(events, "select", "ranked"),
       selected: lastPayload<string>(events, "select", "selected") ?? null,
+      grounding: latestGrounding(events),
       liveCode: lastPayload<string>(events, "implement", "code"),
       liveMetrics: lastPayload<ExecutionMetrics>(events, "verify_impl", "metrics"),
+      liveBudget: lastPayload<BudgetSnapshot>(events, "verify_impl", "budget"),
+      progress: progress?.payload?.progress as { stage: string; n_train?: number } | undefined,
     };
   }, [events]);
 
@@ -73,6 +110,8 @@ export function RunView({ runId }: { runId: string }) {
   const spec = run.task_spec ?? derived.spec ?? null;
   const metrics = run.metrics ?? derived.liveMetrics;
   const code = run.code ?? derived.liveCode;
+  const budget = run.metrics?.budget ?? derived.liveBudget;
+  const cfg = run.config;
 
   return (
     <div className="space-y-6">
@@ -83,24 +122,39 @@ export function RunView({ runId }: { runId: string }) {
             <StatusBadge status={run.status} />
           </div>
           <p className="mt-1 max-w-3xl text-sm text-muted">“{run.prompt}”</p>
+          {cfg && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <Badge tone={cfg.verification_mode === "grounded" ? "accent" : "neutral"}>
+                {cfg.verification_mode === "grounded" ? "grounded verification" : "pseudo verification (paper)"}
+              </Badge>
+              <Badge tone={cfg.memory?.enabled ? "success" : "neutral"}>
+                memory {cfg.memory?.enabled ? "on" : "off"}
+              </Badge>
+              {cfg.agent_fusion && <Badge>fused agents</Badge>}
+              {Object.entries(cfg.models ?? {}).map(([role, model]) => (
+                <Badge key={role}>
+                  {role}: {model}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
         {run.llm_usage && (
           <div className="text-right text-xs text-muted">
             <div>{run.llm_usage.calls} LLM calls</div>
-            <div>
-              {(run.llm_usage.input_tokens + run.llm_usage.output_tokens).toLocaleString()} tokens
-            </div>
+            <div>{(run.llm_usage.total_tokens ?? run.llm_usage.input_tokens + run.llm_usage.output_tokens).toLocaleString()} tokens</div>
           </div>
         )}
       </div>
 
-      <StageStepper
-        reached={derived.reached}
-        current={derived.current}
-        finished={finished}
-        failed={run.status === "failed"}
-      />
+      <StageStepper reached={derived.reached} current={derived.current} finished={finished} failed={run.status === "failed"} />
 
+      {!finished && derived.current === "implement" && derived.progress && (
+        <p className="flex items-center gap-2 text-sm text-muted">
+          <Spinner className="text-accent" /> Final training on the full data: {derived.progress.stage}
+          {derived.progress.n_train ? ` (${derived.progress.n_train.toLocaleString()} rows)` : ""}
+        </p>
+      )}
       {error && <ErrorNote>{error}</ErrorNote>}
       {run.error && <ErrorNote>{run.error}</ErrorNote>}
 
@@ -108,8 +162,21 @@ export function RunView({ runId }: { runId: string }) {
         <div className="space-y-6 lg:col-span-2">
           {metrics && metrics.score !== undefined && (
             <Card>
-              <CardTitle>Result</CardTitle>
+              <CardTitle aside={metrics.split === "test" ? <Badge>held-out test split</Badge> : undefined}>Result</CardTitle>
               <MetricsPanel metrics={metrics} spec={spec} />
+            </Card>
+          )}
+
+          {derived.grounding && (
+            <Card>
+              <CardTitle aside={<Badge tone="accent">successive halving</Badge>}>Grounded verification</CardTitle>
+              <GroundingPanel
+                rungs={derived.grounding.rungs}
+                predicted={derived.grounding.predicted}
+                selected={derived.selected}
+                metric={spec?.metric}
+                stoppedForBudget={derived.grounding.stoppedForBudget}
+              />
             </Card>
           )}
 
@@ -139,21 +206,34 @@ export function RunView({ runId }: { runId: string }) {
                 <Row label="Metric" value={spec.metric} mono />
                 {spec.metric_target != null && <Row label="Target value" value={String(spec.metric_target)} />}
                 {spec.drop_columns.length > 0 && <Row label="Dropped" value={spec.drop_columns.join(", ")} mono />}
+                {derived.split && (
+                  <Row
+                    label="Split"
+                    value={`${derived.split.train.toLocaleString()} / ${derived.split.valid.toLocaleString()} / ${derived.split.test.toLocaleString()}`}
+                  />
+                )}
               </dl>
+              {spec.assumptions?.length > 0 && (
+                <ul className="mt-3 list-disc space-y-1 pl-4 text-xs text-muted">
+                  {spec.assumptions.map((a) => (
+                    <li key={a}>{a}</li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
+
+          {budget && (
+            <Card>
+              <CardTitle>Budget</CardTitle>
+              <BudgetPanel budget={budget} cacheHits={run.llm_usage?.cache_hits} />
             </Card>
           )}
 
           {derived.knowledge && (
             <Card>
-              <CardTitle>Retrieved knowledge</CardTitle>
-              <ul className="space-y-2 text-sm">
-                {derived.knowledge.map((k) => (
-                  <li key={k.id} className="flex items-start justify-between gap-2">
-                    <span>{k.title}</span>
-                    <Badge>{k.source}</Badge>
-                  </li>
-                ))}
-              </ul>
+              <CardTitle>Planning knowledge</CardTitle>
+              <KnowledgePanel items={derived.knowledge} />
             </Card>
           )}
 

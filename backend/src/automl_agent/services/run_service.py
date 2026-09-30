@@ -67,6 +67,7 @@ def run_config(settings: Settings, llm: LLMRouter) -> dict[str, Any]:
         "n_plans": settings.n_plans,
         "max_revisions": settings.max_revisions,
         "verification_mode": settings.verification_mode,
+        "memory": {"enabled": settings.memory_enabled, "k": settings.memory_k},
         "grounding": {
             "min_rows": settings.grounding_min_rows,
             "growth": settings.grounding_growth,
