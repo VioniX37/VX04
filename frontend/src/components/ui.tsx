@@ -5,16 +5,27 @@ export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-/** Bordered surface used for every panel. */
-export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <section className={cn("rounded-xl border border-border bg-surface p-5", className)}>{children}</section>;
+/** Glass panel used for every section; `glow` adds the gradient edge used for live/primary panels. */
+export function Card({
+  children,
+  className,
+  glow = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  glow?: boolean;
+}) {
+  return <section className={cn("panel fade-up p-5", glow && "panel-glow", className)}>{children}</section>;
 }
 
-/** Panel heading with an optional right-aligned element. */
-export function CardTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
+/** Panel heading: small mono eyebrow, a title, and an optional right-aligned element. */
+export function CardTitle({ children, eyebrow, aside }: { children: ReactNode; eyebrow?: string; aside?: ReactNode }) {
   return (
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <h2 className="text-sm font-semibold tracking-tight">{children}</h2>
+    <div className="mb-4 flex items-start justify-between gap-3">
+      <div>
+        {eyebrow && <p className="eyebrow mb-1">{eyebrow}</p>}
+        <h2 className="text-[15px] font-semibold tracking-tight">{children}</h2>
+      </div>
       {aside}
     </div>
   );
@@ -23,17 +34,22 @@ export function CardTitle({ children, aside }: { children: ReactNode; aside?: Re
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const TONES: Record<Tone, string> = {
-  neutral: "bg-surface-muted text-muted",
-  accent: "bg-accent-soft text-accent",
-  success: "bg-success-soft text-success",
-  warning: "bg-warning-soft text-warning",
-  danger: "bg-danger-soft text-danger",
+  neutral: "border-border bg-surface-muted text-muted",
+  accent: "border-accent/25 bg-accent-soft text-accent",
+  success: "border-success/25 bg-success-soft text-success",
+  warning: "border-warning/25 bg-warning-soft text-warning",
+  danger: "border-danger/25 bg-danger-soft text-danger",
 };
 
 /** Small pill label; `tone` selects the semantic colour. */
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Tone }) {
   return (
-    <span className={cn("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", TONES[tone])}>
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        TONES[tone],
+      )}
+    >
       {children}
     </span>
   );
@@ -49,11 +65,11 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all",
+        "disabled:cursor-not-allowed disabled:opacity-45",
         variant === "primary"
-          ? "bg-accent text-white hover:opacity-90"
-          : "border border-border bg-surface text-foreground hover:bg-surface-muted",
+          ? "bg-linear-to-r from-accent to-accent-2 text-white shadow-[0_8px_24px_-10px_var(--accent)] hover:brightness-110"
+          : "border border-border bg-surface-muted/60 text-foreground hover:border-border-strong hover:bg-surface-muted",
         className,
       )}
       {...props}
@@ -73,9 +89,14 @@ export function Spinner({ className }: { className?: string }) {
   );
 }
 
+/** Pulsing dot for "live" states. */
+export function LiveDot({ className }: { className?: string }) {
+  return <span aria-hidden className={cn("live-dot", className)} />;
+}
+
 /** Inline error message. */
 export function ErrorNote({ children }: { children: ReactNode }) {
-  return <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{children}</p>;
+  return <p className="rounded-xl border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">{children}</p>;
 }
 
 /** Badge for a run status (pending, running, succeeded, failed). */
@@ -84,8 +105,38 @@ export function StatusBadge({ status }: { status: string }) {
     status === "succeeded" ? "success" : status === "failed" ? "danger" : status === "running" ? "accent" : "neutral";
   return (
     <Badge tone={tone}>
-      {status === "running" && <Spinner className="mr-1 h-2.5 w-2.5" />}
+      {status === "running" && <LiveDot className="h-1.5 w-1.5" />}
       {status}
     </Badge>
+  );
+}
+
+/** Compact metric tile: mono label, large value, optional caption. */
+export function Stat({
+  label,
+  value,
+  caption,
+  tone,
+}: {
+  label: string;
+  value: ReactNode;
+  caption?: ReactNode;
+  tone?: "accent" | "success" | "warning";
+}) {
+  return (
+    <div className="min-w-0 rounded-xl border border-border bg-surface-muted/40 px-3.5 py-3">
+      <p className="eyebrow truncate">{label}</p>
+      <p
+        className={cn(
+          "tabular mt-1 truncate text-xl font-semibold tracking-tight",
+          tone === "accent" && "text-accent",
+          tone === "success" && "text-success",
+          tone === "warning" && "text-warning",
+        )}
+      >
+        {value}
+      </p>
+      {caption && <p className="mt-0.5 truncate text-[11px] text-muted">{caption}</p>}
+    </div>
   );
 }

@@ -12,6 +12,9 @@ CSV, TSV, Parquet, JSON Lines (`.jsonl`, `.ndjson`) and JSON are accepted, and s
 | **Register by path** (UI tab, `automl-agent ingest --data PATH`) | Files already on the server: Kaggle/Colab inputs, mounted drives | Disk space; disable with `ALLOW_PATH_REGISTRATION=false` on shared servers |
 | **Register by URL** | Public datasets (`http(s)://`) | 4 × `MAX_UPLOAD_MB` |
 
+!!! tip "Large files: register by path"
+    A browser upload is buffered in `<workspace>/tmp` and then copied into the dataset folder, so it temporarily needs about **twice the file's size** in free space on the workspace drive. If space runs out, the API answers `507` with a clear message. For multi-gigabyte files, registering by path is faster and needs no extra copy.
+
 ## Profiling
 
 Registration also profiles the data. The agents only ever see this profile, never raw rows beyond three sample values per column.

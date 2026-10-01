@@ -44,7 +44,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1        # macOS/Linux: source .venv/bin/activate
 pip install -e ".[dev,eval]"
 cp ../.env.example .env              # set GEMINI_API_KEY (or LLM_PROVIDER=fake to try it offline)
-python -m uvicorn automl_agent.main:app --reload --app-dir src
+automl-agent serve --reload           # API on http://localhost:8000
 
 # Web UI (Node 20+), in a second terminal
 cd frontend

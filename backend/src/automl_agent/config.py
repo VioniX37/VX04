@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import AliasChoices, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import AliasChoices, Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 REPO_ROOT = BACKEND_ROOT.parent
@@ -45,6 +45,16 @@ class Settings(BaseSettings):
     )
     gemini_model_fast: str = Field(
         "gemini-3.1-flash-lite", description="Model for high-volume roles: Prompt, Data and Model agents."
+    )
+    gemini_fallback_models: Annotated[list[str], NoDecode] = Field(
+        ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"],
+        description="Models tried in order when a model is overloaded (503) or out of quota (429); "
+        "comma-separated. Empty disables fallback.",
+    )
+    gemini_overload_wait_s: int = Field(
+        600,
+        description="While every model in the chain is overloaded, keep retrying (waiting between rounds) "
+        "for up to this many seconds before failing the run.",
     )
     gemini_use_vertexai: bool = Field(False, description="Use Vertex AI instead of the Gemini Developer API.")
     google_cloud_project: str | None = Field(None, description="GCP project id (Vertex AI mode only).")
@@ -117,6 +127,19 @@ class Settings(BaseSettings):
     workspace_dir: Path = Field(BACKEND_ROOT / "workspace", description="Datasets, runs, database, cache.")
     cors_origins: list[str] = Field(["http://localhost:3000"], description="Origins allowed to call the API.")
 
+    @field_validator("gemini_fallback_models", mode="before")
+    @classmethod
+    def _split_models(cls, value: object) -> object:
+        """Accept a comma-separated string (``a,b``) as well as a JSON or Python list."""
+        if isinstance(value, str):
+            text = value.strip()
+            if text.startswith("["):
+                import json
+
+                return json.loads(text)
+            return [m.strip() for m in text.split(",") if m.strip()]
+        return value
+
     @property
     def datasets_dir(self) -> Path:
         """Directory holding one sub-folder per registered dataset."""
@@ -126,6 +149,11 @@ class Settings(BaseSettings):
     def runs_dir(self) -> Path:
         """Directory holding one sub-folder per pipeline run."""
         return self.workspace_dir / "runs"
+
+    @property
+    def tmp_dir(self) -> Path:
+        """Scratch space for buffering uploads (kept on the workspace drive)."""
+        return self.workspace_dir / "tmp"
 
     @property
     def llm_cache_dir(self) -> Path:

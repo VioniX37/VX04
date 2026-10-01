@@ -97,3 +97,13 @@ def test_error_signature_normalises_data_specific_details():
     assert (
         error_signature("ValueError: could not convert 3 values") == "ValueError: could not convert N values"
     )
+
+
+def test_recall_handles_equally_similar_runs(settings, sample_csvs):
+    """Repeated runs on one dataset tie on distance; recall must not compare records, and keeps one."""
+    for i in range(3):
+        _run(settings, sample_csvs["churn"], "Predict churn", f"repeat{i}")
+    profile = profile_file(sample_csvs["churn"])
+    spec = guess_task_spec("Predict churn", profile)
+    items = asyncio.run(MemoryRetriever(settings).retrieve(spec, profile, ""))
+    assert [i.source for i in items] == ["memory:repeat2"]  # one recall per dataset: the most recent

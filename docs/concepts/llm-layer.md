@@ -22,10 +22,15 @@ Agents call `complete_json(messages, Schema)`. The Gemini client sends the Pydan
 | Per-model sliding-window limiter | `GEMINI_RPM_SMART`, `GEMINI_RPM_FAST` | Stay under requests-per-minute quotas |
 | Global concurrency cap | `GEMINI_MAX_CONCURRENCY` | Avoid bursts from parallel agents |
 | Retries with backoff | `GEMINI_MAX_RETRIES` | Recover from `429`/`5xx`; honours the server's `retryDelay` |
+| Model fallback chain | `GEMINI_FALLBACK_MODELS` | Another model answers when one is overloaded or out of quota |
+| Overload patience | `GEMINI_OVERLOAD_WAIT_S` | Rides out demand spikes that affect every model in the chain |
 | Response cache | `LLM_CACHE`, `LLM_CACHE_ROOT`, `LLM_CACHE_NAMESPACE` | Identical requests are free and reproducible |
 | Fused analysis | `AGENT_FUSION` | One call per plan instead of two |
 
 The limiter and semaphore are per process, because quota belongs to the API key rather than to a run.
+
+!!! warning "One key per deployment"
+    The client deliberately supports a single API key. Spreading requests over several keys to get past rate limits would break section 2(d) of the Google APIs Terms of Service, which says limits must not be circumvented. It would not help with `503` overloads anyway: those are capacity limits on Google's side, shared by every key. For more throughput, enable billing on the project (a paid tier) or use Vertex AI.
 
 ## Knowledge retrieval with Google Search
 

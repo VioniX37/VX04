@@ -110,9 +110,11 @@ class _FakeModels:
     def __init__(self, outcomes):
         self.outcomes = list(outcomes)
         self.calls = []
+        self.models_called = []
 
     async def generate_content(self, *, model, contents, config):
         self.calls.append(config)
+        self.models_called.append(model)
         outcome = self.outcomes.pop(0)
         if isinstance(outcome, Exception):
             raise outcome
@@ -161,3 +163,78 @@ def test_gemini_falls_back_when_schema_rejected():
 def test_retry_delay_parsing():
     assert retry_delay_from_error(Exception("retryDelay: '12s'")) == 12.0
     assert retry_delay_from_error(Exception("nothing")) is None
+
+
+def test_gemini_falls_back_to_next_model_when_overloaded(monkeypatch):
+    async def no_sleep(_):
+        return None
+
+    monkeypatch.setattr("automl_agent.llm.gemini.asyncio.sleep", no_sleep)
+    busy = errors.APIError(503, {"error": {"message": "high demand"}})
+    llm, models = _gemini([busy, busy, busy, '{"code": "ok"}'], fallback_models=["fb-model"])
+    llm.max_retries = 6
+    resp = asyncio.run(llm.complete([{"role": "user", "content": "hi"}]))
+    assert models.models_called == ["m", "m", "m", "fb-model"]
+    assert resp.model == "fb-model" and llm.usage.by_model == {"fb-model": 1}
+
+
+def test_gemini_does_not_fall_back_on_client_errors():
+    llm, models = _gemini([errors.APIError(403, {"error": {"message": "denied"}})], fallback_models=["fb"])
+    with pytest.raises(LLMError):
+        asyncio.run(llm.complete([{"role": "user", "content": "hi"}]))
+    assert models.models_called == ["m"]
+
+
+def test_fallback_models_setting_parsing():
+    assert Settings(gemini_fallback_models="a, b").gemini_fallback_models == ["a", "b"]
+    assert Settings(gemini_fallback_models='["x"]').gemini_fallback_models == ["x"]
+    assert Settings(gemini_fallback_models="").gemini_fallback_models == []
+
+
+def test_search_fails_fast_and_pauses_after_quota_error():
+    from automl_agent.llm.gemini import GeminiClient
+
+    GeminiClient._search_disabled_until = 0.0
+    quota = errors.APIError(429, {"error": {"message": "You exceeded your current quota"}})
+    llm, models = _gemini([quota], fallback_models=["fb"])
+    with pytest.raises(LLMError):
+        asyncio.run(llm.search("best model?"))
+    assert models.models_called == ["m"]  # one attempt, no retries, no fallback chain
+    with pytest.raises(LLMError, match="paused"):
+        asyncio.run(llm.search("another question"))
+    assert models.models_called == ["m"]  # skipped during the cooldown
+    GeminiClient._search_disabled_until = 0.0
+
+
+def test_automatic_function_calling_is_disabled():
+    llm, models = _gemini(['{"code": "x"}'])
+    asyncio.run(llm.complete_json([{"role": "user", "content": "hi"}], CodeDraft))
+    assert models.calls[0].automatic_function_calling.disable is True
+
+
+def test_gemini_waits_out_an_overload_across_the_whole_chain(monkeypatch):
+    waits = []
+
+    async def fake_sleep(s):
+        waits.append(s)
+
+    monkeypatch.setattr("automl_agent.llm.gemini.asyncio.sleep", fake_sleep)
+    busy = errors.APIError(503, {"error": {"message": "high demand"}})
+    # Round 1: both models busy (3 tries each); round 2: the first model recovers.
+    llm, models = _gemini([busy] * 6 + ['{"code": "ok"}'], fallback_models=["fb"], overload_wait_s=600)
+    resp = asyncio.run(llm.complete([{"role": "user", "content": "hi"}]))
+    assert resp.model == "m"
+    assert models.models_called == ["m"] * 3 + ["fb"] * 3 + ["m"]
+    assert 15 in waits  # waited between rounds
+
+
+def test_gemini_gives_up_after_the_overload_window(monkeypatch):
+    async def fake_sleep(_):
+        return None
+
+    monkeypatch.setattr("automl_agent.llm.gemini.asyncio.sleep", fake_sleep)
+    busy = errors.APIError(503, {"error": {"message": "high demand"}})
+    llm, models = _gemini([busy] * 6, fallback_models=["fb"], overload_wait_s=0)
+    with pytest.raises(LLMError) as exc:
+        asyncio.run(llm.complete([{"role": "user", "content": "hi"}]))
+    assert exc.value.code == 503 and len(models.models_called) == 6

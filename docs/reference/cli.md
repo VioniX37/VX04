@@ -3,7 +3,7 @@
 The `automl-agent` command is installed with the backend package (`pip install -e backend`). `python -m automl_agent` is equivalent.
 
 ```text
-automl-agent [--set KEY=VALUE ...] {ingest,run,datasets,models} ...
+automl-agent [--set KEY=VALUE ...] {serve,ingest,run,datasets,models} ...
 ```
 
 `--set` overrides any [setting](configuration.md) for one command and can be repeated. It must come **before** the sub-command:
@@ -11,6 +11,15 @@ automl-agent [--set KEY=VALUE ...] {ingest,run,datasets,models} ...
 ```bash
 automl-agent --set VERIFICATION_MODE=pseudo --set N_PLANS=2 run --data data.csv --prompt "..."
 ```
+
+## `serve`
+
+Start the API server.
+
+| Option | Description |
+|---|---|
+| `--reload` | Restart when source code changes. Only `src/automl_agent` is watched, never the workspace |
+| `--host` / `--port` | Bind address (default `127.0.0.1:8000`) |
 
 ## `ingest`
 

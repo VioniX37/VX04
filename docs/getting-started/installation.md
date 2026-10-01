@@ -59,10 +59,15 @@ automl-agent models
 ### Start the API
 
 ```bash
-python -m uvicorn automl_agent.main:app --reload --app-dir src
+automl-agent serve --reload
 ```
 
 The API listens on <http://localhost:8000>. Interactive OpenAPI docs are at <http://localhost:8000/docs>.
+
+!!! warning "Don't use plain `uvicorn --reload`"
+    `--reload` without restrictions watches the whole `backend/` folder, including the workspace. When a run writes its training script, the server restarts and the run is killed. `automl-agent serve --reload` watches only the source code. The equivalent raw command is
+    `python -m uvicorn automl_agent.main:app --reload --reload-dir src/automl_agent --app-dir src`.
+    Runs interrupted by a restart are marked as failed at the next startup, and re-running them is cheap thanks to the LLM cache.
 
 !!! note "`ModuleNotFoundError` when starting?"
     The virtual environment is not active, so a global `uvicorn` is being used. Activate the venv (your prompt shows `(.venv)`), or call the venv's interpreter directly: `.venv/Scripts/python -m uvicorn ...`.
