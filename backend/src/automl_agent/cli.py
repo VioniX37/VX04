@@ -2,6 +2,7 @@
 
 Examples::
 
+    automl-agent serve --reload           # API server; reloads on code changes only
     automl-agent ingest --data /kaggle/input/higgs/HIGGS.csv
     automl-agent run --data data/samples/customer_churn.csv --prompt "Predict churn, optimise F1"
     automl-agent run --dataset-id 3f2a... --prompt "..." --set VERIFICATION_MODE=pseudo
@@ -18,6 +19,7 @@ import argparse
 import asyncio
 import json
 import sys
+from pathlib import Path
 
 from sqlmodel import Session, select
 
@@ -134,6 +136,27 @@ def cmd_datasets(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    """Run the API server.
+
+    With ``--reload`` only the package source is watched. Watching the whole backend folder
+    (uvicorn's default) would restart the server whenever a run writes a script or model into
+    the workspace, killing the run.
+    """
+    import uvicorn
+
+    src = Path(__file__).resolve().parent.parent
+    uvicorn.run(
+        "automl_agent.main:app",
+        host=args.host,
+        port=args.port,
+        reload=args.reload,
+        reload_dirs=[str(src / "automl_agent")] if args.reload else None,
+        app_dir=str(src),
+    )
+    return 0
+
+
 def cmd_models(args: argparse.Namespace) -> int:
     """List Gemini models visible to the configured key and check the configured ones."""
     from automl_agent.llm import create_llm, validate_models
@@ -175,6 +198,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("datasets", help="List registered datasets")
     p.set_defaults(func=cmd_datasets)
+
+    p = sub.add_parser("serve", help="Run the API server (use --reload while developing)")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8000)
+    p.add_argument(
+        "--reload", action="store_true", help="Restart on source-code changes (workspace is ignored)"
+    )
+    p.set_defaults(func=cmd_serve)
 
     p = sub.add_parser("models", help="List available Gemini models and validate the configuration")
     p.set_defaults(func=cmd_models)

@@ -189,3 +189,24 @@ def test_fallback_models_setting_parsing():
     assert Settings(gemini_fallback_models="a, b").gemini_fallback_models == ["a", "b"]
     assert Settings(gemini_fallback_models='["x"]').gemini_fallback_models == ["x"]
     assert Settings(gemini_fallback_models="").gemini_fallback_models == []
+
+
+def test_search_fails_fast_and_pauses_after_quota_error():
+    from automl_agent.llm.gemini import GeminiClient
+
+    GeminiClient._search_disabled_until = 0.0
+    quota = errors.APIError(429, {"error": {"message": "You exceeded your current quota"}})
+    llm, models = _gemini([quota], fallback_models=["fb"])
+    with pytest.raises(LLMError):
+        asyncio.run(llm.search("best model?"))
+    assert models.models_called == ["m"]  # one attempt, no retries, no fallback chain
+    with pytest.raises(LLMError, match="paused"):
+        asyncio.run(llm.search("another question"))
+    assert models.models_called == ["m"]  # skipped during the cooldown
+    GeminiClient._search_disabled_until = 0.0
+
+
+def test_automatic_function_calling_is_disabled():
+    llm, models = _gemini(['{"code": "x"}'])
+    asyncio.run(llm.complete_json([{"role": "user", "content": "hi"}], CodeDraft))
+    assert models.calls[0].automatic_function_calling.disable is True

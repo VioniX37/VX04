@@ -37,6 +37,9 @@ Budgets are soft limits checked between stages. Grounding also uses the remainin
 |---|---|
 | Invalid `TaskSpec` twice | Run fails at `verify_request` with the issues listed |
 | Gemini `429`/`5xx` | Retried with exponential backoff, honouring the server's `retryDelay` |
+| A model stays overloaded (`503`) or out of quota (`429`) | After 3 tries, falls back along `GEMINI_FALLBACK_MODELS`; usage records the model that answered |
+| Google Search grounding quota exhausted | One attempt only; web search is paused for 10 minutes and planning continues with the other knowledge sources |
+| Server restarts mid-run | The run is marked failed ("Interrupted") at the next startup and its event stream is closed; re-run it (cached answers are free) |
 | Invalid JSON from the model | Error fed back for repair (up to 2 times); bad answers are evicted from the cache |
 | A plan fails during grounding | It ranks last; if every plan fails, ranking falls back to the order reached |
 | Script error | Operation Agent repairs it (with past fixes from memory); then template fallback |

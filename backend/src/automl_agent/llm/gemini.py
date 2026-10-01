@@ -13,6 +13,7 @@ import json
 import logging
 import random
 import re
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -25,6 +26,8 @@ RETRYABLE_CODES = {408, 429, 500, 502, 503, 504}
 FALLBACK_CODES = {429, 500, 503, 504}
 # Attempts on a model before moving to the next one in the fallback chain.
 ATTEMPTS_BEFORE_FALLBACK = 3
+# After a search-grounding quota error, skip web search for this long (it is optional knowledge).
+SEARCH_COOLDOWN_S = 600.0
 log = logging.getLogger(__name__)
 _RETRY_DELAY = re.compile(r"retryDelay['\"]?\s*[:=]\s*['\"]?(\d+(?:\.\d+)?)s")
 
@@ -60,6 +63,7 @@ class GeminiClient(LLMClient):
 
     provider = "gemini"
     native_json_schema = True
+    _search_disabled_until: float = 0.0  # shared by all clients in the process (quota is per key)
 
     def __init__(
         self,
@@ -119,8 +123,14 @@ class GeminiClient(LLMClient):
                 raise LLMError(f"gemini {model}: {e.code} {e.message or e}", code=e.code) from e
         raise LLMError(f"gemini {model}: retries exhausted")  # pragma: no cover
 
-    async def _generate(self, contents: list[Any], config: Any) -> tuple[Any, str]:
-        """Call `generate_content`, falling back along the model chain; returns (response, model used)."""
+    async def _generate(self, contents: list[Any], config: Any, *, quick: bool = False) -> tuple[Any, str]:
+        """Call `generate_content`, falling back along the model chain; returns (response, model used).
+
+        With ``quick=True`` (optional calls such as web search) only one attempt is made on the
+        configured model, so a quota error costs seconds instead of minutes.
+        """
+        if quick:
+            return await self._generate_with(self.model, contents, config, 1), self.model
         chain = [self.model, *self.fallback_models]
         for i, model in enumerate(chain):
             last = i == len(chain) - 1
@@ -170,6 +180,7 @@ class GeminiClient(LLMClient):
             temperature=temperature,
             response_mime_type="application/json" if json_mode else None,
             response_json_schema=schema if use_schema else None,
+            automatic_function_calling=self._types.AutomaticFunctionCallingConfig(disable=True),
         )
         try:
             resp, used = await self._generate(self._contents(chat), config)
@@ -210,11 +221,20 @@ class GeminiClient(LLMClient):
                 payload = json.loads(hit.text)
                 return SearchResult(payload["text"], payload["sources"])
 
+        if time.monotonic() < GeminiClient._search_disabled_until:
+            raise LLMError("google search grounding paused after a quota error", code=429)
         types = self._types
         config = types.GenerateContentConfig(
-            tools=[types.Tool(google_search=types.GoogleSearch())], temperature=0.0
+            tools=[types.Tool(google_search=types.GoogleSearch())],
+            temperature=0.0,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
-        resp, used = await self._generate([query], config)
+        try:
+            resp, used = await self._generate([query], config, quick=True)
+        except LLMError as e:
+            if e.code == 429:
+                GeminiClient._search_disabled_until = time.monotonic() + SEARCH_COOLDOWN_S
+            raise
         sources: list[dict[str, str]] = []
         candidates = getattr(resp, "candidates", None) or []
         meta = getattr(candidates[0], "grounding_metadata", None) if candidates else None

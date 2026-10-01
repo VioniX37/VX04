@@ -7,7 +7,7 @@ Python backend of **Grounded AutoML-Agent**: the multi-agent pipeline, the FastA
 python -m venv .venv
 .venv\Scripts\Activate.ps1          # macOS/Linux: source .venv/bin/activate
 pip install -e ".[dev]"
-python -m uvicorn automl_agent.main:app --reload --app-dir src
+automl-agent serve --reload
 ```
 
 See the repository [README](../README.md) and the documentation site (`mkdocs serve` from the

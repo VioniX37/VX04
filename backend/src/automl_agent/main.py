@@ -1,4 +1,4 @@
-"""FastAPI entry point: ``python -m uvicorn automl_agent.main:app --reload --app-dir src``."""
+"""FastAPI entry point. Start it with ``automl-agent serve --reload`` (reloads on source changes only)."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from automl_agent import __version__
 from automl_agent.api import api_router
 from automl_agent.config import Settings, get_settings
 from automl_agent.llm import validate_models
+from automl_agent.services.run_service import recover_interrupted_runs
 from automl_agent.storage.db import init_db
 
 log = logging.getLogger("automl_agent")
@@ -77,6 +78,7 @@ async def lifespan(app: FastAPI):
     settings.ensure_dirs()
     use_workspace_tempdir(settings)
     init_db()
+    recover_interrupted_runs(settings)
     app.state.models_available = {}
     task = asyncio.create_task(_check_models(app))
     yield

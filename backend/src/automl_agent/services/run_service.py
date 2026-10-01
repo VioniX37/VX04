@@ -9,18 +9,20 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from sqlmodel import Session
+import psutil
+from sqlmodel import Session, select
 
 from automl_agent.agents import AgentManager, PipelineResult, RunContext
 from automl_agent.config import Settings, get_settings
 from automl_agent.llm import LLMRouter, create_llm
 from automl_agent.schemas.dataset import DatasetProfile
-from automl_agent.schemas.events import Stage
+from automl_agent.schemas.events import AgentEvent, Stage
 from automl_agent.schemas.run import RunStatus
 from automl_agent.storage.db import (
     DatasetRecord,
@@ -59,6 +61,7 @@ def events_log_path(settings: Settings, run_id: str) -> Path:
 def run_config(settings: Settings, llm: LLMRouter) -> dict[str, Any]:
     """Snapshot of the settings that define an experimental condition."""
     return {
+        "pid": os.getpid(),  # owning process; used to detect runs orphaned by a restart
         "llm_provider": settings.llm_provider,
         "models": llm.models(),
         "agent_fusion": settings.agent_fusion,
@@ -80,6 +83,52 @@ def run_config(settings: Settings, llm: LLMRouter) -> dict[str, Any]:
             "tokens": settings.budget_tokens or None,
         },
     }
+
+
+INTERRUPTED_MESSAGE = (
+    "Interrupted: the process running this pipeline stopped (for example, the server restarted). "
+    "Start the run again; cached LLM answers make the repeat cheap."
+)
+
+
+def recover_interrupted_runs(settings: Settings) -> list[str]:
+    """Mark runs whose owning process is gone as failed, and close their event logs.
+
+    Runs started by another live process (e.g. a CLI run while the API restarts) are left alone.
+
+    Returns:
+        Ids of the runs that were marked as interrupted.
+    """
+    interrupted: list[str] = []
+    with Session(get_engine(settings.db_url)) as session:
+        unfinished = [RunStatus.pending.value, RunStatus.running.value]
+        active = select(RunRecord).where(RunRecord.status.in_(unfinished))
+        for run in session.exec(active).all():
+            pid = (run.config or {}).get("pid")
+            if pid and pid != os.getpid() and psutil.pid_exists(pid):
+                continue
+            run.status = RunStatus.failed.value
+            run.finished_at = utcnow()
+            run.error = INTERRUPTED_MESSAGE
+            session.add(run)
+            interrupted.append(run.id)
+            log_path = events_log_path(settings, run.id)
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            seq = sum(1 for _ in log_path.open(encoding="utf-8")) + 1 if log_path.exists() else 1
+            event = AgentEvent(
+                seq=seq,
+                run_id=run.id,
+                stage=Stage.done,
+                agent="system",
+                kind="error",
+                message=INTERRUPTED_MESSAGE,
+            )
+            with log_path.open("a", encoding="utf-8") as f:
+                f.write(event.model_dump_json() + "\n")
+        session.commit()
+    if interrupted:
+        log.warning("Marked %d interrupted run(s) as failed: %s", len(interrupted), ", ".join(interrupted))
+    return interrupted
 
 
 def new_run(session: Session, dataset_id: str, prompt: str) -> RunRecord:
@@ -142,7 +191,7 @@ async def execute_run(
     workdir = settings.runs_dir / run_id
     workdir.mkdir(parents=True, exist_ok=True)
     event_bus.attach_log(run_id, events_log_path(settings, run_id))
-    _update(settings, run_id, status=RunStatus.running.value)
+    _update(settings, run_id, status=RunStatus.running.value, config={"pid": os.getpid()})
 
     llm: LLMRouter | None = None
     try:
