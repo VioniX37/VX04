@@ -50,3 +50,27 @@ export function formatRows(rows: number | null | undefined): string {
 export function higherIsBetter(metric: string | undefined): boolean {
   return !["rmse", "mae", "mape", "rmsle"].includes(metric ?? "");
 }
+
+const FAMILY_LABELS: Record<string, string> = {
+  hist_gradient_boosting: "HistGB",
+  lightgbm: "LightGBM",
+  xgboost: "XGBoost",
+  random_forest: "Random forest",
+  extra_trees: "Extra trees",
+  gradient_boosting: "Grad. boosting",
+  logistic_regression: "Logistic reg.",
+  sgd: "SGD linear",
+  sgd_hashing: "SGD hashing",
+  linear_svm: "Linear SVM",
+  naive_bayes: "Naive Bayes",
+  svm: "SVM (RBF)",
+  knn: "k-NN",
+  ridge: "Ridge",
+  lasso: "Lasso",
+};
+
+/** Short display name for a model family key (falls back to the key). */
+export function familyLabel(family: string | undefined): string {
+  if (!family) return "—";
+  return FAMILY_LABELS[family] ?? family;
+}

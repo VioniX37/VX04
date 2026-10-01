@@ -171,7 +171,7 @@ export type Stage =
   | "verify_impl"
   | "done";
 
-export type EventKind = "status" | "info" | "llm" | "artifact" | "warning" | "error";
+export type EventKind = "status" | "info" | "llm" | "artifact" | "warning" | "error" | "telemetry";
 
 /** One entry of a run's live event stream. */
 export interface AgentEvent {
