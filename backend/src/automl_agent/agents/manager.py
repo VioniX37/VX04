@@ -289,8 +289,21 @@ class AgentManager(BaseAgent):
             remaining = ctx.budget.wall_remaining() if ctx.budget else None
             timeout = int(min(s.exec_timeout_s, remaining)) if remaining else s.exec_timeout_s
             workdir = ctx.workdir / f"ground_r{revision + 1}" / f"{ev.plan.id}_{rows or 'all'}"
+            job = {"plan_id": ev.plan.id, "rows": rows, "job": "ground", "round": revision + 1}
+
+            async def on_progress(item: dict[str, Any]) -> None:
+                key = "telemetry" if item.get("telemetry") else "progress"
+                message = (
+                    "resources" if key == "telemetry" else f"{ev.plan.id}: {item.get('stage', 'progress')}"
+                )
+                await ctx.emit(Stage.ground, self.name, message, kind="telemetry", payload={key: item, **job})
+
             result = await run_script(
-                code, workdir, timeout_s=max(timeout, 30), max_mem_mb=s.exec_max_mem_mb or None
+                code,
+                workdir,
+                timeout_s=max(timeout, 30),
+                max_mem_mb=s.exec_max_mem_mb or None,
+                on_progress=on_progress,
             )
             metrics = result.metrics or {}
             return Observation(

@@ -64,6 +64,12 @@ class OperationAgent(BaseAgent):
         ctx = self.ctx
 
         async def on_progress(item: dict[str, Any]) -> None:
+            if item.get("telemetry"):
+                await ctx.emit(
+                    Stage.implement, self.name, "resources", kind="telemetry",
+                    payload={"attempt": attempt, "telemetry": item, "job": "final"},
+                )  # fmt: skip
+                return
             await ctx.emit(
                 Stage.implement,
                 self.name,

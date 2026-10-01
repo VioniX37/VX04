@@ -107,3 +107,11 @@ def test_budget_stops_revisions(settings, sample_csvs):
     result, _, _ = _run(settings, sample_csvs["churn"], "Predict churn with 99.9% accuracy")
     assert result.stop_reason == "llm_calls_budget"
     assert len(result.attempts) == 1
+
+
+def test_events_carry_llm_metadata_and_grounding_progress(settings, sample_csvs):
+    _, events, _ = _run(settings, sample_csvs["churn"], "Predict churn")
+    llm = [e for e in events if e.kind == "llm"]
+    assert llm and all({"role", "duration_s", "calls", "input_tokens"} <= set(e.payload["meta"]) for e in llm)
+    ground_progress = [e for e in events if e.stage == Stage.ground and e.kind == "telemetry"]
+    assert {e.payload["plan_id"] for e in ground_progress} == {"r1p1", "r1p2", "r1p3"}

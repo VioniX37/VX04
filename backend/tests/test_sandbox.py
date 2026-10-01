@@ -47,8 +47,30 @@ def test_progress_lines_are_streamed(tmp_path):
     seen = []
 
     async def on_progress(item):
-        seen.append(item["i"])
+        if not item.get("telemetry"):
+            seen.append(item["i"])
 
     result = asyncio.run(run_script(code, tmp_path, on_progress=on_progress))
     assert result.ok and seen == [0, 1, 2]
     assert "regular output" in result.stdout and "PROGRESS" not in result.stdout
+
+
+def test_resource_telemetry_is_streamed(tmp_path):
+    code = (
+        "import json, time\n"
+        "blob = bytearray(80 * 1024 * 1024)\n"
+        "end = time.time() + 5\n"
+        "while time.time() < end:\n"
+        "    sum(range(10000))\n"
+        "json.dump({'score': 1}, open('metrics.json', 'w'))\n"
+    )
+    samples = []
+
+    async def on_progress(item):
+        if item.get("telemetry"):
+            samples.append(item)
+
+    result = asyncio.run(run_script(code, tmp_path, on_progress=on_progress))
+    assert result.ok and len(samples) >= 2
+    assert all(s["rss_mb"] > 50 for s in samples)
+    assert max(s["cores"] for s in samples) > 0.3  # the busy loop shows up as CPU use

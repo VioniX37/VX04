@@ -25,7 +25,8 @@ class Stage(StrEnum):
     done = "done"
 
 
-EventKind = Literal["status", "info", "llm", "artifact", "warning", "error"]
+# "telemetry" carries machine-readable samples (resource usage, training progress) for live charts.
+EventKind = Literal["status", "info", "llm", "artifact", "warning", "error", "telemetry"]
 
 
 class AgentEvent(BaseModel):

@@ -30,6 +30,7 @@ from automl_agent.schemas.plan import ExecutionResult
 MAX_LOG_CHARS = 8000
 PROGRESS_PREFIX = "PROGRESS "
 POLL_S = 0.25
+TELEMETRY_S = 2.0  # how often resource samples are forwarded to the caller
 
 ProgressCallback = Callable[[dict[str, Any]], Awaitable[None]]
 
@@ -66,6 +67,22 @@ def _tree_rss_mb(proc: psutil.Process) -> float:
         except psutil.Error:
             continue
     return total / 1024**2
+
+
+def _tree_cpu_seconds(proc: psutil.Process) -> float:
+    """Total user + system CPU seconds consumed by a process tree so far."""
+    try:
+        procs = [proc, *proc.children(recursive=True)]
+    except psutil.Error:
+        return 0.0
+    total = 0.0
+    for p in procs:
+        try:
+            t = p.cpu_times()
+            total += t.user + t.system
+        except psutil.Error:
+            continue
+    return total
 
 
 def _kill_tree(pid: int) -> None:
@@ -107,9 +124,17 @@ def _run_blocking(
         stderr_parts.append(proc.stderr.read())
 
     def watchdog() -> None:
+        last_sample, last_cpu = time.perf_counter(), 0.0
         while proc.poll() is None:
             rss = _tree_rss_mb(ps)
             state["peak_mb"] = max(state["peak_mb"], rss)
+            now = time.perf_counter()
+            if forward is not None and now - last_sample >= TELEMETRY_S:
+                cpu = _tree_cpu_seconds(ps)
+                cores = max(0.0, (cpu - last_cpu) / (now - last_sample)) if last_cpu else 0.0
+                forward({"telemetry": True, "t": round(now - start, 1), "rss_mb": round(rss, 1),
+                         "cores": round(cores, 2)})  # fmt: skip
+                last_sample, last_cpu = now, cpu
             if time.perf_counter() - start > timeout_s:
                 state["killed"] = "timeout"
             elif max_mem_mb and rss > max_mem_mb:
