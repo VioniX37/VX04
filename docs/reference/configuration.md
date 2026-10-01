@@ -21,7 +21,8 @@ Settings can also be overridden per command:
 | `GEMINI_API_KEY (or GOOGLE_API_KEY)` | `str \| None` | — | Google AI Studio API key (`GOOGLE_API_KEY` is accepted as an alias). |
 | `GEMINI_MODEL_SMART` | `str` | `gemini-3.8-flash` | Model for reasoning-heavy roles: Manager and Operation Agent. |
 | `GEMINI_MODEL_FAST` | `str` | `gemini-3.1-flash-lite` | Model for high-volume roles: Prompt, Data and Model agents. |
-| `GEMINI_FALLBACK_MODELS` | `list[str]` | `['gemini-3.7-flash', 'gemini-3.5-flash']` | Models tried in order when a model is overloaded (503) or out of quota (429); comma-separated. Empty disables fallback. |
+| `GEMINI_FALLBACK_MODELS` | `list[str]` | `['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash']` | Models tried in order when a model is overloaded (503) or out of quota (429); comma-separated. Empty disables fallback. |
+| `GEMINI_OVERLOAD_WAIT_S` | `int` | `600` | While every model in the chain is overloaded, keep retrying (waiting between rounds) for up to this many seconds before failing the run. |
 | `GEMINI_USE_VERTEXAI` | `bool` | `False` | Use Vertex AI instead of the Gemini Developer API. |
 | `GOOGLE_CLOUD_PROJECT` | `str \| None` | — | GCP project id (Vertex AI mode only). |
 | `GOOGLE_CLOUD_LOCATION` | `str` | `global` | GCP region (Vertex AI mode only). |

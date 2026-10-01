@@ -37,6 +37,7 @@ def create_llm(settings: Settings) -> LLMRouter:
             max_concurrency=settings.gemini_max_concurrency,
             max_retries=settings.gemini_max_retries,
             fallback_models=settings.gemini_fallback_models,
+            overload_wait_s=settings.gemini_overload_wait_s,
             vertexai=settings.gemini_use_vertexai,
             project=settings.google_cloud_project,
             location=settings.google_cloud_location,

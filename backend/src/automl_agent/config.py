@@ -47,9 +47,14 @@ class Settings(BaseSettings):
         "gemini-3.1-flash-lite", description="Model for high-volume roles: Prompt, Data and Model agents."
     )
     gemini_fallback_models: Annotated[list[str], NoDecode] = Field(
-        ["gemini-3.7-flash", "gemini-3.5-flash"],
+        ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"],
         description="Models tried in order when a model is overloaded (503) or out of quota (429); "
         "comma-separated. Empty disables fallback.",
+    )
+    gemini_overload_wait_s: int = Field(
+        600,
+        description="While every model in the chain is overloaded, keep retrying (waiting between rounds) "
+        "for up to this many seconds before failing the run.",
     )
     gemini_use_vertexai: bool = Field(False, description="Use Vertex AI instead of the Gemini Developer API.")
     google_cloud_project: str | None = Field(None, description="GCP project id (Vertex AI mode only).")

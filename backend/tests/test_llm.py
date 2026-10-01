@@ -210,3 +210,31 @@ def test_automatic_function_calling_is_disabled():
     llm, models = _gemini(['{"code": "x"}'])
     asyncio.run(llm.complete_json([{"role": "user", "content": "hi"}], CodeDraft))
     assert models.calls[0].automatic_function_calling.disable is True
+
+
+def test_gemini_waits_out_an_overload_across_the_whole_chain(monkeypatch):
+    waits = []
+
+    async def fake_sleep(s):
+        waits.append(s)
+
+    monkeypatch.setattr("automl_agent.llm.gemini.asyncio.sleep", fake_sleep)
+    busy = errors.APIError(503, {"error": {"message": "high demand"}})
+    # Round 1: both models busy (3 tries each); round 2: the first model recovers.
+    llm, models = _gemini([busy] * 6 + ['{"code": "ok"}'], fallback_models=["fb"], overload_wait_s=600)
+    resp = asyncio.run(llm.complete([{"role": "user", "content": "hi"}]))
+    assert resp.model == "m"
+    assert models.models_called == ["m"] * 3 + ["fb"] * 3 + ["m"]
+    assert 15 in waits  # waited between rounds
+
+
+def test_gemini_gives_up_after_the_overload_window(monkeypatch):
+    async def fake_sleep(_):
+        return None
+
+    monkeypatch.setattr("automl_agent.llm.gemini.asyncio.sleep", fake_sleep)
+    busy = errors.APIError(503, {"error": {"message": "high demand"}})
+    llm, models = _gemini([busy] * 6, fallback_models=["fb"], overload_wait_s=0)
+    with pytest.raises(LLMError) as exc:
+        asyncio.run(llm.complete([{"role": "user", "content": "hi"}]))
+    assert exc.value.code == 503 and len(models.models_called) == 6

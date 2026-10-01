@@ -26,6 +26,8 @@ RETRYABLE_CODES = {408, 429, 500, 502, 503, 504}
 FALLBACK_CODES = {429, 500, 503, 504}
 # Attempts on a model before moving to the next one in the fallback chain.
 ATTEMPTS_BEFORE_FALLBACK = 3
+# Waits between rounds through the whole chain while every model is busy (capped by overload_wait_s).
+ROUND_WAIT_S = (15.0, 30.0, 60.0)
 # After a search-grounding quota error, skip web search for this long (it is optional knowledge).
 SEARCH_COOLDOWN_S = 600.0
 log = logging.getLogger(__name__)
@@ -55,9 +57,11 @@ class GeminiClient(LLMClient):
         api_key: AI Studio key (ignored in Vertex AI mode).
         rpm: Requests-per-minute budget for this model.
         max_concurrency: Global cap on simultaneous requests.
-        max_retries: Attempts after the first on retryable errors (on the last model of the chain).
-        fallback_models: Models tried in order when this one stays overloaded (503) or out of
-            quota (429); a model further down the chain gets ``ATTEMPTS_BEFORE_FALLBACK`` tries first.
+        max_retries: Upper bound on attempts per model in one round (``ATTEMPTS_BEFORE_FALLBACK`` is used
+            when it is smaller).
+        fallback_models: Models tried in order when this one is overloaded (503) or out of quota (429).
+        overload_wait_s: How long to keep cycling through the chain, waiting between rounds, while
+            every model is overloaded, before giving up. Demand spikes are usually short.
         vertexai: Use Vertex AI (requires `project` and `location`).
     """
 
@@ -75,6 +79,7 @@ class GeminiClient(LLMClient):
         max_concurrency: int = 2,
         max_retries: int = 6,
         fallback_models: list[str] | None = None,
+        overload_wait_s: float = 600.0,
         vertexai: bool = False,
         project: str | None = None,
         location: str | None = None,
@@ -101,6 +106,7 @@ class GeminiClient(LLMClient):
         self.max_concurrency = max_concurrency
         self.max_retries = max_retries
         self.fallback_models = [m for m in (fallback_models or []) if m and m != model]
+        self.overload_wait_s = overload_wait_s
         self._schema_supported = True
 
     # ------------------------------------------------------------------ transport
@@ -132,15 +138,29 @@ class GeminiClient(LLMClient):
         if quick:
             return await self._generate_with(self.model, contents, config, 1), self.model
         chain = [self.model, *self.fallback_models]
-        for i, model in enumerate(chain):
-            last = i == len(chain) - 1
-            attempts = self.max_retries + 1 if last else min(ATTEMPTS_BEFORE_FALLBACK, self.max_retries + 1)
-            try:
-                return await self._generate_with(model, contents, config, attempts), model
-            except LLMError as e:
-                if last or e.code not in FALLBACK_CODES:
-                    raise
-                log.warning("%s unavailable (%s); falling back to %s", model, e.code, chain[i + 1])
+        attempts = min(ATTEMPTS_BEFORE_FALLBACK, self.max_retries + 1)
+        deadline = time.monotonic() + self.overload_wait_s
+        for round_no in range(10_000):
+            last_error: LLMError | None = None
+            for i, model in enumerate(chain):
+                try:
+                    return await self._generate_with(model, contents, config, attempts), model
+                except LLMError as e:
+                    if e.code not in FALLBACK_CODES:
+                        raise
+                    last_error = e
+                    if i < len(chain) - 1:
+                        log.warning("%s unavailable (%s); falling back to %s", model, e.code, chain[i + 1])
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                assert last_error is not None
+                raise last_error
+            wait = min(ROUND_WAIT_S[min(round_no, len(ROUND_WAIT_S) - 1)], remaining)
+            log.warning(
+                "all %d Gemini models busy (last error %s); retrying in %.0fs (giving up in %.0fs)",
+                len(chain), last_error.code if last_error else "?", wait, remaining,
+            )  # fmt: skip
+            await asyncio.sleep(wait)
         raise LLMError("gemini: no model available")  # pragma: no cover
 
     def _contents(self, chat: list[Message]) -> list[Any]:
