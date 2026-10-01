@@ -75,5 +75,7 @@ class MemoryRetriever:
         if not records:
             return []
         query = meta_features(profile, spec)
-        scored = sorted((distance(query, r.meta), r) for r in records if r.best_plan or r.plans)
-        return [describe(r, d) for d, r in scored[: self.settings.memory_k]]
+        candidates = [(distance(query, r.meta), r) for r in records if r.best_plan or r.plans]
+        # Nearest first; equally similar runs (e.g. repeats on the same dataset) -> most recent first.
+        candidates.sort(key=lambda pair: (pair[0], -pair[1].created_at.timestamp()))
+        return [describe(r, d) for d, r in candidates[: self.settings.memory_k]]
