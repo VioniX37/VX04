@@ -17,6 +17,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The project is proprietary: all rights reserved to the contributors (see `LICENSE`).
 - The default LLM provider is now `gemini`; `fake` remains for offline use.
 - Final scores are computed on a held-out test split that is never used for selection.
 - Default execution timeout raised to 30 minutes for full-data training.

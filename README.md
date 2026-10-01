@@ -4,7 +4,7 @@
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![LLM](https://img.shields.io/badge/LLM-Gemini-4285F4)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License: proprietary](https://img.shields.io/badge/license-proprietary-red)](LICENSE)
 
 **Multi-agent LLM AutoML that verifies its plans on real data, learns from experience and scales to millions of rows on a laptop.**
 
@@ -123,4 +123,5 @@ See [`CITATION.cff`](CITATION.cff). Please also cite the original work:
 
 ## License
 
-[MIT](LICENSE)
+Copyright (c) 2026 Grounded AutoML-Agent contributors. **All rights reserved.**
+This is proprietary software: no permission is granted to use, copy, modify or distribute it without prior written consent. See [LICENSE](LICENSE).

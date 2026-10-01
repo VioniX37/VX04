@@ -5,7 +5,6 @@ type: software
 authors:
   - name: "Grounded AutoML-Agent contributors"
 repository-code: "https://github.com/VioniX37/VX04"
-license: MIT
 version: 0.2.0-dev
 keywords:
   - AutoML
