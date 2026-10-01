@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { formatBytes } from "@/lib/stages";
 import type { Dataset } from "@/lib/types";
 import { DatasetProfileTable } from "./DatasetProfileTable";
+import { IngestProgress, type IngestPhase } from "./viz/IngestProgress";
 import { Button, Card, CardTitle, ErrorNote, Spinner, cn } from "./ui";
 
 const EXAMPLES = [
@@ -37,6 +38,7 @@ export function NewRunForm() {
   const [prompt, setPrompt] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ingest, setIngest] = useState<{ phase: IngestPhase; startedAt: number; viaPath: boolean } | null>(null);
 
   useEffect(() => {
     if (tab === "existing" && known === null) api.listDatasets().then(setKnown, (e) => setError(e.message));
@@ -46,14 +48,20 @@ export function NewRunForm() {
     setError(null);
     setProgress(0);
     setBusy(`Uploading ${file.name} (${formatBytes(file.size)})`);
+    setIngest({ phase: "upload", startedAt: Date.now(), viaPath: false });
     try {
       const ds = await api.uploadDataset(file, (f) => {
         setProgress(f);
-        if (f >= 1) setBusy("Converting to Parquet and profiling…");
+        if (f >= 1) {
+          setBusy("Converting to Parquet and profiling…");
+          setIngest((s) => (s ? { ...s, phase: "process" } : s));
+        }
       });
       setDataset(ds);
+      setIngest((s) => (s ? { ...s, phase: "ready" } : s));
     } catch (e) {
       setError((e as Error).message);
+      setIngest(null);
     } finally {
       setBusy(null);
       setProgress(null);
@@ -65,11 +73,14 @@ export function NewRunForm() {
     if (!value) return;
     setError(null);
     setBusy("Registering, converting to Parquet and profiling… (large files can take a minute)");
+    setIngest({ phase: "process", startedAt: Date.now(), viaPath: true });
     try {
       const isUrl = /^https?:\/\//i.test(value);
       setDataset(await api.registerDataset(isUrl ? { url: value } : { path: value }));
+      setIngest((s) => (s ? { ...s, phase: "ready" } : s));
     } catch (e) {
       setError((e as Error).message);
+      setIngest(null);
     } finally {
       setBusy(null);
     }
@@ -92,6 +103,7 @@ export function NewRunForm() {
     <div className="grid gap-6 lg:grid-cols-5">
       <Card className="lg:col-span-3">
         <CardTitle
+          eyebrow="step 1 · data"
           aside={
             <div role="tablist" className="flex rounded-lg bg-surface-muted p-0.5 text-xs">
               {TABS.map((t) => (
@@ -111,7 +123,7 @@ export function NewRunForm() {
             </div>
           }
         >
-          1 · Dataset
+          Dataset
         </CardTitle>
 
         {tab === "upload" && (
@@ -218,6 +230,12 @@ export function NewRunForm() {
           </div>
         )}
 
+        {ingest && (busy || ingest.phase === "ready") && tab !== "existing" && (
+          <div className="mt-4">
+            <IngestProgress phase={ingest.phase} startedAt={ingest.startedAt} uploadFraction={progress} viaPath={ingest.viaPath} />
+          </div>
+        )}
+
         {dataset && (
           <div className="mt-5">
             <DatasetProfileTable profile={dataset.profile} />
@@ -226,7 +244,7 @@ export function NewRunForm() {
       </Card>
 
       <Card className="flex flex-col lg:col-span-2">
-        <CardTitle>2 · Describe the task</CardTitle>
+        <CardTitle eyebrow="step 2 · intent">Describe the task</CardTitle>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}

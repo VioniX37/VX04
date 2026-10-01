@@ -24,7 +24,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col font-sans">
         <Header />
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+        <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">{children}</main>
+        <footer className="mx-auto w-full max-w-7xl px-4 pb-8 pt-4">
+          <p className="eyebrow">grounded automl-agent · proprietary · all rights reserved</p>
+        </footer>
       </body>
     </html>
   );
