@@ -39,9 +39,25 @@ CLAUDE.local.md
 AGENTS.md
 # ...but not the documentation page (Windows matches ignore rules case-insensitively)
 !docs/concepts/agents.md
-# Generated large datasets
-data/samples/large_*.parquet
+# Datasets: only the small bundled samples and their generators are versioned.
+# Large or third-party data (e.g. Kaggle downloads) must never be committed.
+data/**
+!data/samples/
+!data/samples/*.py
+!data/samples/customer_churn.csv
+!data/samples/house_prices.csv
+!data/samples/product_reviews.csv
+*.zip
+*.parquet
 backend/evaluation/data/
+
+# Frontend side-by-side build directories
+.next-*/
+*.tsbuildinfo
+backend/evaluation/data/
+
+# Logs
+*.log
 
 # Built documentation site
 site/
