@@ -1,3 +1,5 @@
+"""The agents of the pipeline: Manager, Prompt, Data, Model, Plan Analyst and Operation agents."""
+
 from .base import BaseAgent
 from .context import RunContext
 from .data_agent import DataAgent

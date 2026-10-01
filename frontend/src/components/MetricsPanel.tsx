@@ -2,6 +2,7 @@ import { formatMetric } from "@/lib/stages";
 import type { ExecutionMetrics, TaskSpec } from "@/lib/types";
 import { Badge } from "./ui";
 
+/** Final metrics of a run, the requirement verdict and training details. */
 export function MetricsPanel({ metrics, spec }: { metrics: ExecutionMetrics; spec: TaskSpec | null }) {
   const all = metrics.metrics ?? {};
   return (

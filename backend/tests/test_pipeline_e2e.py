@@ -67,3 +67,43 @@ def test_unreachable_target_triggers_revisions(settings, sample_csvs):
     assert not result.target_met
     assert len(result.attempts) == 2
     assert any("Revising" in e.message for e in events)
+
+
+def test_agent_fusion_halves_analysis_calls(settings, sample_csvs):
+    _, _, separate = _run(settings, sample_csvs["churn"], "Predict churn")
+    settings.agent_fusion = True
+    result, events, fused = _run(settings, sample_csvs["churn"], "Predict churn")
+    assert result.success
+    assert separate.llm.usage.calls - fused.llm.usage.calls == settings.n_plans
+    assert any(e.agent == "plan_analyst" for e in events)
+
+
+def test_pseudo_mode_skips_grounding(settings, sample_csvs):
+    settings.verification_mode = "pseudo"
+    result, events, _ = _run(settings, sample_csvs["churn"], "Predict churn")
+    assert result.success
+    assert not any(e.stage == Stage.ground for e in events)
+    assert all(o["final"] or "observed_score" not in o for o in result.observations)
+
+
+def test_grounded_mode_runs_every_plan_and_logs_observations(settings, sample_csvs):
+    result, events, ctx = _run(settings, sample_csvs["churn"], "Predict churn")
+    assert result.success
+    rung_events = [e for e in events if e.stage == Stage.ground and e.payload and "rung" in e.payload]
+    assert len(rung_events) == 1 and len(rung_events[0].payload["rung"]["results"]) == settings.n_plans
+    grounding_rows = [o for o in result.observations if not o["final"]]
+    assert len(grounding_rows) == settings.n_plans
+    assert all(o["observed_score"] is not None and o["predicted_score"] is not None for o in grounding_rows)
+    final = [o for o in result.observations if o["final"]]
+    assert final and final[0]["split"] == "test"
+    selected = next(e for e in events if e.stage == Stage.select).payload["selected"]
+    best = max(grounding_rows, key=lambda o: o["observed_score"])
+    assert selected == best["plan_id"]
+
+
+def test_budget_stops_revisions(settings, sample_csvs):
+    settings.max_revisions = 3
+    settings.budget_llm_calls = 1  # exhausted after the first round
+    result, _, _ = _run(settings, sample_csvs["churn"], "Predict churn with 99.9% accuracy")
+    assert result.stop_reason == "llm_calls_budget"
+    assert len(result.attempts) == 1

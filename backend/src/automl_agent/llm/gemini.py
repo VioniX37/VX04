@@ -1,45 +1,221 @@
-"""Adapter for Google Gemini via the `google-genai` SDK."""
+"""Gemini client built on the official `google-genai` SDK.
+
+Adds what the free tier needs on top of plain calls: per-model rate limiting,
+a global concurrency cap, retries with exponential backoff (honouring the
+server's ``retryDelay``), native JSON-schema output, and Google Search
+grounding for knowledge retrieval.
+"""
 
 from __future__ import annotations
 
+import asyncio
+import json
+import random
+import re
+from dataclasses import dataclass, field
+from typing import Any
+
 from .base import LLMClient, LLMError, LLMResponse, Message, split_system
+from .cache import ResponseCache
+from .rate_limit import concurrency_slot, get_limiter
+
+RETRYABLE_CODES = {408, 429, 500, 502, 503, 504}
+_RETRY_DELAY = re.compile(r"retryDelay['\"]?\s*[:=]\s*['\"]?(\d+(?:\.\d+)?)s")
+
+
+@dataclass
+class SearchResult:
+    """Answer text from a grounded search plus the web sources it cites."""
+
+    text: str
+    sources: list[dict[str, str]] = field(default_factory=list)
+
+
+def retry_delay_from_error(err: Exception) -> float | None:
+    """Extract the server-suggested retry delay (seconds) from an API error, if present."""
+    details = getattr(err, "details", None)
+    match = _RETRY_DELAY.search(json.dumps(details) if details is not None else str(err))
+    return float(match.group(1)) if match else None
 
 
 class GeminiClient(LLMClient):
-    provider = "gemini"
+    """One Gemini model with throttling, retries and structured output.
 
-    def __init__(self, model: str, *, api_key: str | None, temperature: float = 0.2) -> None:
-        super().__init__(model, temperature)
-        from google import genai
-        from google.genai import types
+    Args:
+        model: Gemini model id, e.g. ``gemini-3.8-flash``.
+        api_key: AI Studio key (ignored in Vertex AI mode).
+        rpm: Requests-per-minute budget for this model.
+        max_concurrency: Global cap on simultaneous requests.
+        max_retries: Attempts after the first on retryable errors.
+        vertexai: Use Vertex AI (requires `project` and `location`).
+    """
+
+    provider = "gemini"
+    native_json_schema = True
+
+    def __init__(
+        self,
+        model: str,
+        *,
+        api_key: str | None,
+        temperature: float = 0.2,
+        rpm: int = 10,
+        max_concurrency: int = 2,
+        max_retries: int = 6,
+        vertexai: bool = False,
+        project: str | None = None,
+        location: str | None = None,
+        cache: ResponseCache | None = None,
+        usage=None,
+        client: Any = None,
+    ) -> None:
+        super().__init__(model, temperature, usage=usage, cache=cache)
+        from google.genai import errors, types
 
         self._types = types
-        self._client = genai.Client(api_key=api_key)
+        self._errors = errors
+        if client is not None:  # injected in tests
+            self._client = client
+        else:
+            from google import genai
 
-    async def _complete(self, messages: list[Message], *, temperature: float, json_mode: bool) -> LLMResponse:
+            self._client = (
+                genai.Client(vertexai=True, project=project, location=location)
+                if vertexai
+                else genai.Client(api_key=api_key)
+            )
+        self.rpm = rpm
+        self.max_concurrency = max_concurrency
+        self.max_retries = max_retries
+        self._schema_supported = True
+
+    # ------------------------------------------------------------------ transport
+
+    async def _generate(self, contents: list[Any], config: Any) -> Any:
+        """Call `generate_content` with throttling and retries."""
+        limiter = get_limiter(self.model, self.rpm)
+        for attempt in range(self.max_retries + 1):
+            await limiter.acquire()
+            try:
+                async with concurrency_slot(self.max_concurrency):
+                    return await self._client.aio.models.generate_content(
+                        model=self.model, contents=contents, config=config
+                    )
+            except self._errors.APIError as e:
+                if e.code in RETRYABLE_CODES and attempt < self.max_retries:
+                    delay = retry_delay_from_error(e) or min(60.0, 2.0 * 2**attempt)
+                    await asyncio.sleep(delay + random.uniform(0, 1))
+                    continue
+                raise LLMError(f"gemini {self.model}: {e.code} {e.message or e}", code=e.code) from e
+        raise LLMError(f"gemini {self.model}: retries exhausted")  # pragma: no cover
+
+    def _contents(self, chat: list[Message]) -> list[Any]:
         types = self._types
-        system, chat = split_system(messages)
-        contents = [
+        return [
             types.Content(
-                role="model" if m["role"] == "assistant" else "user", parts=[types.Part(text=m["content"])]
+                role="model" if m["role"] == "assistant" else "user",
+                parts=[types.Part(text=m["content"])],
             )
             for m in chat
         ]
-        config = types.GenerateContentConfig(
+
+    @staticmethod
+    def _text(resp: Any) -> str:
+        text = resp.text
+        if text:
+            return text
+        reason = None
+        if getattr(resp, "candidates", None):
+            reason = resp.candidates[0].finish_reason
+        raise LLMError(f"gemini returned no text (finish_reason={reason})")
+
+    # ------------------------------------------------------------------ LLMClient API
+
+    async def _complete(
+        self,
+        messages: list[Message],
+        *,
+        temperature: float,
+        json_mode: bool,
+        schema: dict[str, Any] | None,
+    ) -> LLMResponse:
+        system, chat = split_system(messages)
+        use_schema = bool(schema) and self._schema_supported
+        config = self._types.GenerateContentConfig(
             system_instruction=system or None,
             temperature=temperature,
             response_mime_type="application/json" if json_mode else None,
+            response_json_schema=schema if use_schema else None,
         )
         try:
-            resp = await self._client.aio.models.generate_content(
-                model=self.model, contents=contents, config=config
-            )
-        except Exception as e:
-            raise LLMError(f"gemini request failed: {e}") from e
+            resp = await self._generate(self._contents(chat), config)
+        except LLMError as e:
+            # Some JSON-schema constructs are rejected by some models: fall back to prompt-described schema.
+            if use_schema and e.code == 400:
+                self._schema_supported = False
+                described = [
+                    {
+                        "role": "system",
+                        "content": f"Reply with JSON matching this schema:\n{json.dumps(schema)}",
+                    },
+                    *messages,
+                ]
+                return await self._complete(
+                    described, temperature=temperature, json_mode=json_mode, schema=None
+                )
+            raise
         meta = resp.usage_metadata
         return LLMResponse(
-            text=resp.text or "",
+            text=self._text(resp),
             model=self.model,
             input_tokens=(meta.prompt_token_count or 0) if meta else 0,
             output_tokens=(meta.candidates_token_count or 0) if meta else 0,
         )
+
+    # ------------------------------------------------------------------ extras
+
+    async def search(self, query: str) -> SearchResult:
+        """Answer `query` with Google Search grounding and return the cited web sources."""
+        cache_key = None
+        if self.cache is not None:
+            cache_key = self.cache.key(
+                self.model, [{"role": "user", "content": query}], 0.0, False, None, extra="google_search"
+            )
+            if (hit := self.cache.get(cache_key)) is not None:
+                self.usage.record(hit, cached=True)
+                payload = json.loads(hit.text)
+                return SearchResult(payload["text"], payload["sources"])
+
+        types = self._types
+        config = types.GenerateContentConfig(
+            tools=[types.Tool(google_search=types.GoogleSearch())], temperature=0.0
+        )
+        resp = await self._generate([query], config)
+        sources: list[dict[str, str]] = []
+        candidates = getattr(resp, "candidates", None) or []
+        meta = getattr(candidates[0], "grounding_metadata", None) if candidates else None
+        for chunk in (getattr(meta, "grounding_chunks", None) or []) if meta else []:
+            web = getattr(chunk, "web", None)
+            if web is not None and getattr(web, "uri", None):
+                sources.append({"title": web.title or web.uri, "url": web.uri})
+        result = SearchResult(self._text(resp), sources)
+
+        usage_meta = resp.usage_metadata
+        record = LLMResponse(
+            text=json.dumps({"text": result.text, "sources": result.sources}),
+            model=self.model,
+            input_tokens=(usage_meta.prompt_token_count or 0) if usage_meta else 0,
+            output_tokens=(usage_meta.candidates_token_count or 0) if usage_meta else 0,
+        )
+        self.usage.record(record)
+        if cache_key is not None:
+            self.cache.put(cache_key, record)
+        return result
+
+    async def list_models(self) -> list[str]:
+        """Return the model ids visible to this API key (used to validate configuration)."""
+        names: list[str] = []
+        pager = await self._client.aio.models.list()
+        async for m in pager:
+            names.append(m.name.removeprefix("models/"))
+        return names

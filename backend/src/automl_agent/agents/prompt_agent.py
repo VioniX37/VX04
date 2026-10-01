@@ -1,3 +1,5 @@
+"""Prompt Agent: parses the user's request into a structured TaskSpec (paper section 3.1)."""
+
 from __future__ import annotations
 
 from automl_agent.schemas.events import Stage
@@ -13,6 +15,7 @@ class PromptAgent(BaseAgent):
     prompt_name = "prompt_agent"
 
     async def parse(self, feedback: str | None = None) -> TaskSpec:
+        """Parse the run's prompt; `feedback` lists issues from a rejected earlier attempt."""
         context = {"user_prompt": self.ctx.prompt, "dataset_profile": self.ctx.profile.compact()}
         task = "Convert the user's request into a task specification."
         if feedback:

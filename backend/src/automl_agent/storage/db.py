@@ -1,13 +1,18 @@
-"""SQLite persistence for datasets and runs (artifacts live on disk under workspace/)."""
+"""SQLite persistence for datasets, runs and experiment observations.
+
+Large artifacts (data, scripts, models, event logs) live on disk under the
+workspace; the database stores metadata and small JSON documents.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from functools import cache
+from pathlib import Path
 from typing import Any
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, Column, inspect, text
 from sqlalchemy.engine import Engine
 from sqlmodel import Field, Session, SQLModel, create_engine
 
@@ -15,18 +20,25 @@ from automl_agent.config import get_settings
 
 
 def utcnow() -> datetime:
+    """Timezone-aware current UTC time."""
     return datetime.now(UTC)
 
 
 class DatasetRecord(SQLModel, table=True):
+    """A registered dataset (always stored as Parquet)."""
+
     id: str = Field(primary_key=True)
     filename: str
     path: str
+    source: str = "upload"
+    size_bytes: int = 0
     created_at: datetime = Field(default_factory=utcnow)
     profile: dict[str, Any] = Field(sa_column=Column(JSON, nullable=False))
 
 
 class RunRecord(SQLModel, table=True):
+    """One pipeline run and its final outcome."""
+
     id: str = Field(primary_key=True)
     dataset_id: str = Field(index=True)
     prompt: str
@@ -39,19 +51,106 @@ class RunRecord(SQLModel, table=True):
     code: str | None = None
     error: str | None = None
     llm_usage: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
+    config: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
+
+
+class PlanObservation(SQLModel, table=True):
+    """Predicted vs observed performance of one plan at one fidelity (RQ1 calibration data).
+
+    Grounding rows have ``split="valid"``; the final full-data run of the selected
+    plan has ``final=True`` and ``split="test"``. Pseudo-mode plans that were never
+    run have no observed score.
+    """
+
+    id: int | None = Field(default=None, primary_key=True)
+    run_id: str = Field(index=True)
+    dataset_id: str = Field(default="", index=True)
+    revision: int = 1
+    plan_id: str
+    model_family: str
+    metric: str
+    higher_is_better: bool = True
+    verification_mode: str = "grounded"
+    predicted_score: float | None = None
+    predicted_train_time_s: float | None = None
+    rank: int | None = None
+    split: str | None = None
+    final: bool = False
+    fidelity_rows: int | None = None
+    observed_score: float | None = None
+    observed_valid_score: float | None = None
+    ok: bool | None = None
+    duration_s: float | None = None
+    train_time_s: float | None = None
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class ExperienceRecord(SQLModel, table=True):
+    """What one finished run taught us, stored for experience memory (Contribution B).
+
+    ``meta`` holds the dataset meta-features used for similarity search; ``plans``
+    the candidate plans with predicted and observed scores; ``fixes`` the
+    error->fix pairs from the Operation Agent's debug loop.
+    """
+
+    run_id: str = Field(primary_key=True)
+    dataset_fingerprint: str = Field(index=True)
+    dataset_name: str = ""
+    task_type: str = Field(index=True)
+    metric: str
+    higher_is_better: bool = True
+    n_rows: int = 0
+    success: bool = False
+    target_met: bool = False
+    best_score: float | None = None
+    meta: dict[str, Any] = Field(sa_column=Column(JSON, nullable=False))
+    best_plan: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
+    plans: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+    fixes: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=utcnow)
 
 
 @cache
-def get_engine() -> Engine:
-    settings = get_settings()
-    settings.ensure_dirs()
-    return create_engine(settings.db_url, connect_args={"check_same_thread": False})
+def get_engine(url: str | None = None) -> Engine:
+    """Return a cached engine for `url` (defaults to the configured database)."""
+    if url is None:
+        settings = get_settings()
+        settings.ensure_dirs()
+        url = settings.db_url
+    if url.startswith("sqlite:///"):
+        Path(url.removeprefix("sqlite:///")).parent.mkdir(parents=True, exist_ok=True)
+    return create_engine(url, connect_args={"check_same_thread": False})
 
 
-def init_db() -> None:
-    SQLModel.metadata.create_all(get_engine())
+def _add_missing_columns(engine: Engine) -> None:
+    """Minimal forward migration: add columns that exist in the models but not yet in SQLite."""
+    inspector = inspect(engine)
+    with engine.begin() as conn:
+        for table in SQLModel.metadata.sorted_tables:
+            if not inspector.has_table(table.name):
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table.name)}
+            for column in table.columns:
+                if column.name in existing:
+                    continue
+                col_type = column.type.compile(dialect=engine.dialect)
+                default = (
+                    column.default.arg if column.default is not None and column.default.is_scalar else None
+                )
+                clause = f" DEFAULT {default!r}" if isinstance(default, int | float | str) else ""
+                conn.execute(
+                    text(f'ALTER TABLE "{table.name}" ADD COLUMN "{column.name}" {col_type}{clause}')
+                )
+
+
+def init_db(url: str | None = None) -> None:
+    """Create tables and apply additive column migrations."""
+    engine = get_engine(url)
+    SQLModel.metadata.create_all(engine)
+    _add_missing_columns(engine)
 
 
 def get_session() -> Iterator[Session]:
+    """FastAPI dependency yielding a session on the configured database."""
     with Session(get_engine()) as session:
         yield session

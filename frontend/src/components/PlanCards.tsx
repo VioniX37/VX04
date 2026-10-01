@@ -1,7 +1,8 @@
-import { formatMetric } from "@/lib/stages";
+import { formatMetric, formatRows } from "@/lib/stages";
 import type { PlanEvaluation } from "@/lib/types";
 import { Badge, cn } from "./ui";
 
+/** Candidate plans with rationale, predicted and observed scores, and data steps/risks. */
 export function PlanCards({
   ranked,
   selectedId,
@@ -37,6 +38,16 @@ export function PlanCards({
                 <dt className="text-muted">Est. train time</dt>
                 <dd className="font-medium tabular-nums">{Math.round(ev.model.predicted_train_time_s)}s</dd>
               </div>
+              {ev.observations?.length > 0 && (
+                <div className="col-span-2">
+                  <dt className="text-muted">
+                    Observed (valid, {formatRows(ev.observations[ev.observations.length - 1].fidelity_rows)} rows)
+                  </dt>
+                  <dd className="font-medium tabular-nums">
+                    {formatMetric(ev.observations[ev.observations.length - 1].score)}
+                  </dd>
+                </div>
+              )}
             </dl>
             <p className="mt-3 text-xs text-muted">{ev.plan.rationale}</p>
             <details className="mt-3 text-xs">

@@ -1,3 +1,5 @@
+"""Pydantic schemas shared by the agents, the API and the frontend."""
+
 from .dataset import ColumnProfile, DatasetOut, DatasetProfile
 from .events import AgentEvent, Stage
 from .plan import (

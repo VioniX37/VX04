@@ -15,6 +15,7 @@ const DOT: Record<EventKind, string> = {
   error: "bg-danger",
 };
 
+/** Chronological agent activity; raw LLM outputs can be expanded for inspection. */
 export function AgentTimeline({ events }: { events: AgentEvent[] }) {
   const [showLlm, setShowLlm] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);

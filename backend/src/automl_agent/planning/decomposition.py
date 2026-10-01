@@ -13,6 +13,7 @@ from automl_agent.schemas.plan import Plan, SubTask
 
 
 def decompose(plan: Plan) -> tuple[list[SubTask], list[SubTask]]:
+    """Split `plan` into (data sub-tasks, model sub-tasks)."""
     data = [
         SubTask(id=f"{plan.id}-d{i + 1}", agent="data", instruction=step)
         for i, step in enumerate(plan.preprocessing)

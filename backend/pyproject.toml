@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "automl-agent"
-version = "0.1.0"
-description = "Multi-agent LLM framework for full-pipeline AutoML (re-implementation of arXiv:2410.02958 + extensions)"
-readme = "../README.md"
+version = "0.2.0.dev0"
+description = "Grounded AutoML-Agent: multi-agent LLM AutoML with grounded verification and experience memory"
+license = { text = "Proprietary. All rights reserved." }
+readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115",
@@ -21,14 +22,23 @@ dependencies = [
   "numpy>=1.26",
   "scikit-learn>=1.5",
   "joblib>=1.4",
-  # LLM provider SDKs (imported lazily, only the configured one is used)
-  "openai>=1.40",
-  "anthropic>=0.40",
-  "google-genai>=1.0",
+  # Large-data pipeline
+  "polars>=1.20",
+  "pyarrow>=16",
+  "lightgbm>=4.3",
+  "xgboost>=2.1",
+  "psutil>=5.9",
+  # LLM: Gemini via the official Google GenAI SDK
+  "google-genai>=1.30",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+eval = ["optuna>=3.6", "matplotlib>=3.8", "scipy>=1.11"]
+docs = ["mkdocs>=1.6,<2", "mkdocs-material>=9.5", "mkdocstrings[python]>=0.26"]
+
+[project.scripts]
+automl-agent = "automl_agent.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -38,14 +48,25 @@ automl_agent = ["prompts/*.md", "knowledge/*.json", "execution/templates/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q"
 
 [tool.ruff]
 line-length = 110
 target-version = "py311"
 src = ["src", "tests"]
-extend-exclude = ["src/automl_agent/execution/templates"]
+extend-exclude = ["src/automl_agent/execution/templates", "evaluation/baselines/optuna_lgbm_script.py"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
-ignore = ["B008"]
+select = ["E", "F", "I", "UP", "B", "SIM", "D"]
+# D105/D107: magic methods and __init__ are documented on the class; D417: not every argument needs prose.
+ignore = ["B008", "D105", "D107", "D417"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["automl_agent", "evaluation"]

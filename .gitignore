@@ -37,3 +37,22 @@ CLAUDE.md
 CLAUDE.local.md
 .mcp.json
 AGENTS.md
+# ...but not the documentation page (Windows matches ignore rules case-insensitively)
+!docs/concepts/agents.md
+# Generated large datasets
+data/samples/large_*.parquet
+backend/evaluation/data/
+
+# Built documentation site
+site/
+
+# LaTeX build outputs
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
+paper/main.pdf

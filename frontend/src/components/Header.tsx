@@ -13,6 +13,7 @@ const NAV = [
   { href: "/runs", label: "Runs" },
 ];
 
+/** Top navigation with the backend connection status and the Gemini models in use. */
 export function Header() {
   const pathname = usePathname();
   const [health, setHealth] = useState<Health | null>(null);
@@ -49,7 +50,25 @@ export function Header() {
         </div>
         <div className="flex items-center gap-2 text-xs text-muted">
           <span className={cn("h-2 w-2 rounded-full", offline ? "bg-danger" : health ? "bg-success" : "bg-border")} />
-          {offline ? "backend offline" : health ? `${health.llm_provider} · ${health.llm_model}` : "connecting…"}
+          <span
+            title={
+              health?.models && Object.keys(health.models).length
+                ? Object.entries(health.models)
+                    .map(([role, model]) => `${role}: ${model}`)
+                    .join("\n")
+                : undefined
+            }
+          >
+            {offline
+              ? "backend offline"
+              : health
+                ? health.llm_provider === "fake"
+                  ? "offline fake LLM"
+                  : `Gemini · ${health.models.smart ?? health.llm_model}${
+                      health.models.fast && health.models.fast !== health.models.smart ? ` / ${health.models.fast}` : ""
+                    }`
+                : "connecting…"}
+          </span>
         </div>
       </div>
     </header>

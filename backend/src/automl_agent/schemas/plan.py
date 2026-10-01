@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 
 
 class Plan(BaseModel):
+    """An end-to-end candidate pipeline proposed by the Manager."""
+
     id: str = Field(description="Short unique id, e.g. 'p1'")
     title: str
     rationale: str = Field(description="Why this plan should work, citing retrieved knowledge")
@@ -18,10 +20,14 @@ class Plan(BaseModel):
 
 
 class PlanSet(BaseModel):
+    """The planner's structured output: several candidate plans."""
+
     plans: list[Plan]
 
 
 class SubTask(BaseModel):
+    """A data- or model-specific step decomposed from a plan."""
+
     id: str
     agent: Literal["data", "model"]
     instruction: str
@@ -45,19 +51,48 @@ class ModelAgentResult(BaseModel):
     predicted_train_time_s: float = Field(default=60.0)
 
 
+class PlanAnalysis(BaseModel):
+    """Data and Model agent results produced in a single fused call (``AGENT_FUSION=true``)."""
+
+    data: DataAgentResult
+    model: ModelAgentResult
+
+
+class Observation(BaseModel):
+    """A real training run of a plan at one fidelity (grounded verification)."""
+
+    fidelity_rows: int = Field(description="Training rows actually used")
+    score: float | None = Field(description="Validation score (None if the run failed)")
+    ok: bool
+    duration_s: float
+    error: str | None = None
+
+
 class PlanEvaluation(BaseModel):
+    """A plan with its agents' pseudo-execution results and, if grounded, real observations."""
+
     plan: Plan
     data: DataAgentResult
     model: ModelAgentResult
     rank: int | None = None
+    observations: list[Observation] = Field(default_factory=list)
+
+    @property
+    def last_observation(self) -> Observation | None:
+        """Observation at the highest fidelity this plan reached."""
+        return self.observations[-1] if self.observations else None
 
 
 class CodeDraft(BaseModel):
+    """A complete training script written by the Operation Agent."""
+
     code: str = Field(description="Complete runnable Python script")
     explanation: str = ""
 
 
 class ExecutionResult(BaseModel):
+    """Outcome of running a script in the sandbox."""
+
     ok: bool
     returncode: int | None
     duration_s: float
@@ -65,3 +100,5 @@ class ExecutionResult(BaseModel):
     stderr: str = ""
     metrics: dict[str, Any] | None = None
     timed_out: bool = False
+    memory_exceeded: bool = False
+    peak_memory_mb: float | None = None

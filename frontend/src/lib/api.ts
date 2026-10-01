@@ -1,7 +1,9 @@
 import type { AgentEvent, Dataset, Health, Run } from "./types";
 
+/** Base URL of the FastAPI backend (set `NEXT_PUBLIC_API_URL` in `frontend/.env.local`). */
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
+/** Error carrying the HTTP status and the backend's `detail` message. */
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -9,6 +11,14 @@ export class ApiError extends Error {
   ) {
     super(message);
   }
+}
+
+function detailOf(body: unknown, fallback: string): string {
+  if (body && typeof body === "object" && "detail" in body) {
+    const detail = (body as { detail: unknown }).detail;
+    return typeof detail === "string" ? detail : JSON.stringify(detail);
+  }
+  return fallback;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -21,8 +31,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     let detail = res.statusText;
     try {
-      const body = await res.json();
-      detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail ?? body);
+      detail = detailOf(await res.json(), detail);
     } catch {
       /* non-JSON error body */
     }
@@ -31,13 +40,45 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export const api = {
-  health: () => request<Health>("/health"),
-  uploadDataset: (file: File) => {
+/**
+ * Upload a file with progress reporting (fetch cannot report upload progress, so this uses XHR).
+ * `onProgress` receives a fraction in [0, 1]; the promise resolves after server-side ingest and profiling.
+ */
+function uploadWithProgress(file: File, onProgress?: (fraction: number) => void): Promise<Dataset> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_URL}/api/datasets`);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress?.(e.loaded / e.total);
+    };
+    xhr.onload = () => {
+      let body: unknown = null;
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        /* ignore */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(body as Dataset);
+      else reject(new ApiError(xhr.status, detailOf(body, xhr.statusText || "Upload failed")));
+    };
+    xhr.onerror = () => reject(new ApiError(0, `Cannot reach the backend at ${API_URL}. Is it running?`));
     const form = new FormData();
     form.append("file", file);
-    return request<Dataset>("/datasets", { method: "POST", body: form });
-  },
+    xhr.send(form);
+  });
+}
+
+/** Typed client for the backend REST API. */
+export const api = {
+  health: () => request<Health>("/health"),
+  uploadDataset: uploadWithProgress,
+  /** Register a dataset that already exists on the server's disk or at an http(s) URL. */
+  registerDataset: (source: { path?: string; url?: string; name?: string }) =>
+    request<Dataset>("/datasets/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(source),
+    }),
   listDatasets: () => request<Dataset[]>("/datasets"),
   createRun: (datasetId: string, prompt: string) =>
     request<Run>("/runs", {

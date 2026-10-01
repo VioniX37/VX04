@@ -2,6 +2,7 @@ import { STAGES } from "@/lib/stages";
 import type { Stage } from "@/lib/types";
 import { Spinner, cn } from "./ui";
 
+/** Progress through the pipeline stages; the active stage spins, a failed one turns red. */
 export function StageStepper({
   reached,
   current,
@@ -14,7 +15,7 @@ export function StageStepper({
   failed: boolean;
 }) {
   return (
-    <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+    <ol className="grid grid-cols-2 gap-2 sm:grid-cols-5">
       {STAGES.map((s, i) => {
         const active = !finished && current === s.id;
         const done = reached.has(s.id) && !active;

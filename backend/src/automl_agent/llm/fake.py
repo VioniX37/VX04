@@ -22,6 +22,9 @@ _CONTEXT = re.compile(r"<context>\s*(.*?)\s*</context>", re.DOTALL)
 
 # Rough prior for how well each family does, used to fake the Model Agent's prediction.
 _PRIOR = {
+    "lightgbm": 0.89,
+    "xgboost": 0.885,
+    "sgd_hashing": 0.82,
     "hist_gradient_boosting": 0.88,
     "gradient_boosting": 0.87,
     "random_forest": 0.86,
@@ -45,12 +48,22 @@ def _context(messages: list[Message]) -> dict:
 
 
 class FakeLLM(LLMClient):
+    """Heuristic stand-in for Gemini that needs no network or API key."""
+
     provider = "fake"
 
     def __init__(self, model: str = "fake-heuristic", temperature: float = 0.0) -> None:
         super().__init__(model, temperature)
 
-    async def _complete(self, messages: list[Message], *, temperature: float, json_mode: bool) -> LLMResponse:
+    async def _complete(
+        self,
+        messages: list[Message],
+        *,
+        temperature: float,
+        json_mode: bool,
+        schema: dict | None = None,
+    ) -> LLMResponse:
+        """Answer from the `<context>` block using the handler for the expected schema."""
         ctx = _context(messages)
         handler = getattr(self, f"_answer_{ctx.get('expected', '')}", None)
         payload = handler(ctx) if handler else {"text": "ok"}
@@ -69,6 +82,14 @@ class FakeLLM(LLMClient):
     def _answer_PlanSet(self, ctx: dict) -> dict:
         task_type = TaskType(ctx["task_spec"]["task_type"])
         families = list(ctx.get("allowed_models") or supported_models(task_type))
+        # Like a sensible planner, try families that worked on similar past datasets first.
+        remembered = [
+            k["data"]["best_model_family"]
+            for k in ctx.get("knowledge", [])
+            if str(k.get("source", "")).startswith("memory:")
+            and (k.get("data") or {}).get("best_model_family")
+        ]
+        families = list(dict.fromkeys([f for f in remembered if f in families] + families))
         n = int(ctx.get("n_plans", 3))
         offset = int(ctx.get("revision", 0)) * n  # revisions explore different families
         plans = []
@@ -117,6 +138,9 @@ class FakeLLM(LLMClient):
             "predicted_score": prior if higher else round(1 - prior, 3),
             "predicted_train_time_s": 30.0,
         }
+
+    def _answer_PlanAnalysis(self, ctx: dict) -> dict:
+        return {"data": self._answer_DataAgentResult(ctx), "model": self._answer_ModelAgentResult(ctx)}
 
     def _answer_CodeDraft(self, ctx: dict) -> dict:
         return {"code": ctx["base_code"], "explanation": "Using the rendered template unchanged."}

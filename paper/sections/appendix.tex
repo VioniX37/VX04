@@ -1,0 +1,9 @@
+\section{Implementation Details}
+\label{app:implementation}
+
+\todo{Agent prompts (from \texttt{backend/src/automl\_agent/prompts}), model registry with scale limits, grounding defaults ($r_0 = 20{,}000$, $g = 4$, $\eta = 2$, validation cap $100{,}000$), rate-limit settings, and the full configuration used per experiment (recorded in each run's \texttt{config}).}
+
+\section{Reproducibility}
+\label{app:reproducibility}
+
+All experiments are produced by \texttt{python -m evaluation.run\_benchmark} with the configs in \texttt{backend/evaluation/configs}; tables and figures by \texttt{python -m evaluation.analysis}. LLM responses are cached per seed, so re-running a config reproduces the same outputs.

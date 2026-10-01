@@ -12,6 +12,8 @@ from automl_agent.schemas.events import AgentEvent, EventKind, Stage
 
 
 class EventBus:
+    """Per-run append-only event lists with async subscribers and JSONL persistence."""
+
     def __init__(self) -> None:
         self._events: dict[str, list[AgentEvent]] = defaultdict(list)
         self._conds: dict[str, asyncio.Condition] = {}
@@ -37,6 +39,7 @@ class EventBus:
         kind: EventKind = "info",
         payload: dict[str, Any] | None = None,
     ) -> AgentEvent:
+        """Append an event to a run (assigning the next sequence number) and wake subscribers."""
         cond = self._cond(run_id)
         async with cond:
             event = AgentEvent(
@@ -56,12 +59,14 @@ class EventBus:
         return event
 
     async def close(self, run_id: str) -> None:
+        """Mark a run as finished so subscribers stop after draining its events."""
         cond = self._cond(run_id)
         async with cond:
             self._closed.add(run_id)
             cond.notify_all()
 
     def history(self, run_id: str) -> list[AgentEvent]:
+        """All events of a run seen by this process."""
         return list(self._events.get(run_id, []))
 
     def load_history(self, run_id: str, path: Path) -> None:

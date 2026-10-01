@@ -1,5 +1,12 @@
-import type { ColumnKind, DatasetProfile } from "@/lib/types";
+import { formatBytes } from "@/lib/stages";
+import type { ColumnKind, DatasetProfile, ScaleTier } from "@/lib/types";
 import { Badge } from "./ui";
+
+const TIER_TONE: Record<ScaleTier, "neutral" | "accent" | "warning"> = {
+  small: "neutral",
+  medium: "accent",
+  large: "warning",
+};
 
 const KIND_TONE: Record<ColumnKind, "neutral" | "accent" | "success" | "warning"> = {
   numeric: "accent",
@@ -10,18 +17,26 @@ const KIND_TONE: Record<ColumnKind, "neutral" | "accent" | "success" | "warning"
   boolean: "success",
 };
 
+/** Column-level profile of a dataset, with its size and scale tier. */
 export function DatasetProfileTable({ profile }: { profile: DatasetProfile }) {
   return (
     <div>
-      <p className="mb-3 text-sm text-muted">
-        {profile.n_rows.toLocaleString()} rows · {profile.n_cols} columns
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+        <Badge tone={TIER_TONE[profile.scale_tier]}>{profile.scale_tier} data</Badge>
+        <span>
+          {profile.n_rows.toLocaleString()} rows · {profile.n_cols} columns
+        </span>
+        {profile.size_bytes > 0 && <span>· {formatBytes(profile.size_bytes)} on disk</span>}
+        {profile.memory_estimate_mb > 0 && <span>· ~{formatBytes(profile.memory_estimate_mb * 1024 ** 2)} in memory</span>}
         {profile.guessed_target && (
-          <>
-            {" "}
+          <span>
             · likely target <span className="font-medium text-foreground">{profile.guessed_target}</span>
-          </>
+          </span>
         )}
-      </p>
+      </div>
+      {profile.approximate_counts && (
+        <p className="mb-3 text-xs text-muted">Distinct counts are estimates (HyperLogLog) for datasets this large.</p>
+      )}
       <div className="max-h-80 overflow-auto rounded-lg border border-border">
         <table className="w-full text-left text-sm">
           <thead className="sticky top-0 bg-surface-muted text-xs text-muted">

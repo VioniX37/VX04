@@ -9,15 +9,19 @@ from automl_agent.schemas.task_spec import TaskSpec, TaskType
 
 
 class VerificationResult(BaseModel):
+    """Pass/fail verdict with human-readable issues."""
+
     ok: bool
     issues: list[str] = []
 
     @property
     def feedback(self) -> str:
+        """Issues joined into one line (fed back to the agents)."""
         return "; ".join(self.issues)
 
 
 def verify_request(spec: TaskSpec, profile: DatasetProfile) -> VerificationResult:
+    """Check that the TaskSpec is valid and actionable for this dataset."""
     issues: list[str] = []
     names = {c.name for c in profile.columns}
 

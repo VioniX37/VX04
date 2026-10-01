@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it and the original AutoML-Agent paper."
+title: "Grounded AutoML-Agent: budget-aware multi-fidelity verification and experience memory for scalable LLM-driven AutoML"
+type: software
+authors:
+  - name: "Grounded AutoML-Agent contributors"
+repository-code: "https://github.com/VioniX37/VX04"
+version: 0.2.0-dev
+keywords:
+  - AutoML
+  - LLM agents
+  - multi-agent systems
+  - Gemini
+  - successive halving
+references:
+  - type: conference-paper
+    title: "AutoML-Agent: A Multi-Agent LLM Framework for Full-Pipeline AutoML"
+    authors:
+      - family-names: Trirat
+        given-names: Patara
+      - family-names: Jeong
+        given-names: Wonyong
+      - family-names: Hwang
+        given-names: Sung Ju
+    collection-title: "Proceedings of the 42nd International Conference on Machine Learning (ICML)"
+    year: 2025
+    url: "https://arxiv.org/abs/2410.02958"

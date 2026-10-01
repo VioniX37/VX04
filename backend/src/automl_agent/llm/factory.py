@@ -1,53 +1,61 @@
+"""Builds the per-run :class:`~automl_agent.llm.router.LLMRouter` from settings."""
+
 from __future__ import annotations
 
 from automl_agent.config import Settings
 
-from .base import LLMClient
-
-DEFAULT_MODELS = {
-    "openai": "gpt-4o-mini",
-    "anthropic": "claude-opus-5",
-    "gemini": "gemini-2.5-flash",
-    "groq": "llama-3.3-70b-versatile",
-    "ollama": "qwen2.5-coder:7b",
-    "openai_compatible": "",
-    "fake": "fake-heuristic",
-}
-
-_BASE_URLS = {
-    "groq": "https://api.groq.com/openai/v1",
-    "ollama": "http://localhost:11434/v1",
-}
+from .cache import ResponseCache
+from .router import LLMRouter
 
 
-def create_llm(settings: Settings) -> LLMClient:
-    """Build a fresh client for the configured provider (one per run, so usage is tracked per run)."""
-    provider = settings.llm_provider
-    model = settings.llm_model or DEFAULT_MODELS[provider]
-    temp = settings.llm_temperature
+def create_llm(settings: Settings) -> LLMRouter:
+    """Create a fresh router (one per run, so usage is tracked per run).
 
-    if provider == "fake":
+    Raises:
+        ValueError: If Gemini is selected but no API key / Vertex project is configured.
+    """
+    if settings.llm_provider == "fake":
         from .fake import FakeLLM
 
-        return FakeLLM(model)
-    if provider == "anthropic":
-        from .anthropic import AnthropicClient
+        return LLMRouter(FakeLLM())
 
-        return AnthropicClient(model, api_key=settings.anthropic_api_key, temperature=temp)
-    if provider == "gemini":
-        from .gemini import GeminiClient
+    if not settings.gemini_use_vertexai and not settings.gemini_api_key:
+        raise ValueError("GEMINI_API_KEY is not set. Add it to backend/.env or set LLM_PROVIDER=fake.")
+    if settings.gemini_use_vertexai and not settings.google_cloud_project:
+        raise ValueError("Vertex AI mode requires GOOGLE_CLOUD_PROJECT.")
 
-        return GeminiClient(model, api_key=settings.gemini_api_key, temperature=temp)
+    from .gemini import GeminiClient
 
-    from .openai_compat import OpenAICompatClient
+    cache = ResponseCache(settings.llm_cache_dir) if settings.llm_cache else None
 
-    if provider == "openai_compatible" and not (settings.llm_base_url and model):
-        raise ValueError("openai_compatible requires LLM_BASE_URL and LLM_MODEL")
-    api_key = {"openai": settings.openai_api_key, "groq": settings.groq_api_key}.get(provider)
-    return OpenAICompatClient(
-        model,
-        api_key=api_key,
-        base_url=settings.llm_base_url or _BASE_URLS.get(provider),
-        temperature=temp,
-        provider=provider,
-    )
+    def build(model: str, rpm: int) -> GeminiClient:
+        return GeminiClient(
+            model,
+            api_key=settings.gemini_api_key,
+            temperature=settings.llm_temperature,
+            rpm=rpm,
+            max_concurrency=settings.gemini_max_concurrency,
+            max_retries=settings.gemini_max_retries,
+            vertexai=settings.gemini_use_vertexai,
+            project=settings.google_cloud_project,
+            location=settings.google_cloud_location,
+            cache=cache,
+        )
+
+    smart = build(settings.gemini_model_smart, settings.gemini_rpm_smart)
+    if settings.gemini_model_fast == settings.gemini_model_smart:
+        return LLMRouter(smart)
+    return LLMRouter(smart, build(settings.gemini_model_fast, settings.gemini_rpm_fast))
+
+
+async def validate_models(settings: Settings) -> dict[str, bool]:
+    """Check that the configured Gemini model ids exist for this key.
+
+    Returns:
+        Mapping of model id -> available. Empty when validation is not applicable.
+    """
+    if settings.llm_provider != "gemini":
+        return {}
+    router = create_llm(settings)
+    available = set(await router.for_role("smart").list_models())  # type: ignore[attr-defined]
+    return {m: m in available for m in {settings.gemini_model_smart, settings.gemini_model_fast}}

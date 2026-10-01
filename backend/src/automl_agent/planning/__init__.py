@@ -1,3 +1,5 @@
+"""Retrieval-augmented planning: knowledge retrieval and plan decomposition."""
+
 from .decomposition import decompose
 from .retrieval import KnowledgeItem, LocalKnowledgeRetriever, Retriever, retrieve_all
 

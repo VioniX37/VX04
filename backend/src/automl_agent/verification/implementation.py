@@ -9,6 +9,7 @@ from .request import VerificationResult
 
 
 def verify_implementation(spec: TaskSpec, result: ExecutionResult) -> VerificationResult:
+    """Check that the script ran and its test-split metrics satisfy the user's constraints."""
     if not result.ok or result.metrics is None:
         return VerificationResult(ok=False, issues=["code did not run successfully"])
     score = result.metrics.get("score")

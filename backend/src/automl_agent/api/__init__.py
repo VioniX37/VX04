@@ -1,3 +1,5 @@
+"""REST API routers mounted under /api."""
+
 from fastapi import APIRouter
 
 from . import datasets, health, runs

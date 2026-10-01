@@ -1,3 +1,5 @@
+"""Data Agent: pseudo-executes the data-related sub-tasks of a plan (paper section 3.3)."""
+
 from __future__ import annotations
 
 from automl_agent.schemas.events import Stage
@@ -14,6 +16,7 @@ class DataAgent(BaseAgent):
     prompt_name = "data_agent"
 
     async def execute(self, spec: TaskSpec, plan: Plan, subtasks: list[SubTask]) -> DataAgentResult:
+        """Return the refined data steps and risks for `plan`."""
         return await self.ask_json(
             Stage.execute_plans,
             f"Carry out the data sub-tasks for plan {plan.id}.",

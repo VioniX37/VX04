@@ -24,21 +24,28 @@ if TYPE_CHECKING:
 
 
 class PipelineHooks:
+    """Base class for extensions; every method is a no-op pass-through by default."""
+
     async def on_task_parsed(self, ctx: RunContext, spec: TaskSpec) -> TaskSpec:
+        """Inspect or modify the verified task specification."""
         return spec
 
     async def on_knowledge_retrieved(
         self, ctx: RunContext, items: list[KnowledgeItem]
     ) -> list[KnowledgeItem]:
+        """Inspect, filter or extend the retrieved planning knowledge."""
         return items
 
     async def on_plans_generated(self, ctx: RunContext, plans: list[Plan]) -> list[Plan]:
+        """Inspect or modify the candidate plans before they are analysed."""
         return plans
 
     async def on_plans_ranked(self, ctx: RunContext, ranked: list[PlanEvaluation]) -> list[PlanEvaluation]:
+        """Re-rank or edit plans after verification; the first one is implemented."""
         return ranked
 
     async def on_run_finished(self, ctx: RunContext, result: PipelineResult) -> None:
+        """Observe the final result (e.g. to store it)."""
         return None
 
 
@@ -46,15 +53,19 @@ _registry: list[PipelineHooks] = []
 
 
 def register_hooks(hooks: PipelineHooks) -> None:
+    """Register an extension for all subsequent runs in this process."""
     _registry.append(hooks)
 
 
 def registered_hooks() -> list[PipelineHooks]:
+    """Return the user-registered extensions."""
     return list(_registry)
 
 
-async def run_hook(name: str, ctx: RunContext, value: Any, *args: Any) -> Any:
-    """Thread `value` through every registered hook's `name` method."""
-    for hooks in _registry:
-        value = await getattr(hooks, name)(ctx, value, *args)
+async def run_hook(
+    name: str, ctx: RunContext, value: Any, *args: Any, hooks: list[PipelineHooks] | None = None
+) -> Any:
+    """Thread `value` through each hook's `name` method (default: all registered hooks)."""
+    for h in _registry if hooks is None else hooks:
+        value = await getattr(h, name)(ctx, value, *args)
     return value

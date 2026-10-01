@@ -36,3 +36,35 @@ def test_health_upload_and_run(sample_csvs):
         with client.stream("GET", f"/api/runs/{run['id']}/events") as stream:
             body = "".join(stream.iter_text())
         assert "agent_event" in body and "event: end" in body
+
+
+def test_register_by_path_and_errors(sample_csvs):
+    with TestClient(create_app()) as client:
+        ok = client.post("/api/datasets/register", json={"path": str(sample_csvs["houses"])})
+        assert ok.status_code == 201, ok.text
+        body = ok.json()
+        assert body["source"] == "path" and body["profile"]["n_rows"] == 400
+        assert body["profile"]["scale_tier"] == "small"
+
+        missing = client.post("/api/datasets/register", json={"path": "does/not/exist.csv"})
+        assert missing.status_code == 400
+        both = client.post("/api/datasets/register", json={"path": "a.csv", "url": "http://x/a.csv"})
+        assert both.status_code == 422
+
+
+def test_observations_endpoint(sample_csvs):
+    with TestClient(create_app()) as client:
+        with sample_csvs["reviews"].open("rb") as f:
+            dataset = client.post("/api/datasets", files={"file": ("r.csv", f, "text/csv")}).json()
+        run = client.post(
+            "/api/runs", json={"dataset_id": dataset["id"], "prompt": "Classify sentiment"}
+        ).json()
+        deadline = time.time() + 120
+        while time.time() < deadline and client.get(f"/api/runs/{run['id']}").json()["status"] not in (
+            "succeeded",
+            "failed",
+        ):
+            time.sleep(0.5)
+        rows = client.get(f"/api/runs/{run['id']}/observations").json()
+        assert any(r["final"] for r in rows) and any(not r["final"] for r in rows)
+        assert client.get(f"/api/runs/{run['id']}").json()["config"]["verification_mode"] == "grounded"

@@ -1,0 +1,4 @@
+\section{Limitations}
+\label{sec:limitations}
+
+Grounding adds training cost, which is bounded by the schedule and the budget but not negligible on very large data. The memory benefits only related tasks and could propagate past mistakes, although records carry observed failures. We cover tabular and text tasks only; image, time-series and graph modalities are left to future work. Hosted LLMs evolve, so exact numbers may drift; we mitigate this by logging model ids and caching all responses. Public benchmark datasets may appear in pre-training data.

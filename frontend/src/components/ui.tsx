@@ -1,13 +1,16 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
+/** Join class names, skipping falsy values. */
 export function cn(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
+/** Bordered surface used for every panel. */
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
   return <section className={cn("rounded-xl border border-border bg-surface p-5", className)}>{children}</section>;
 }
 
+/** Panel heading with an optional right-aligned element. */
 export function CardTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
     <div className="mb-4 flex items-center justify-between gap-3">
@@ -27,14 +30,16 @@ const TONES: Record<Tone, string> = {
   danger: "bg-danger-soft text-danger",
 };
 
+/** Small pill label; `tone` selects the semantic colour. */
 export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Tone }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium", TONES[tone])}>
+    <span className={cn("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", TONES[tone])}>
       {children}
     </span>
   );
 }
 
+/** Primary or ghost button. */
 export function Button({
   children,
   variant = "primary",
@@ -58,6 +63,7 @@ export function Button({
   );
 }
 
+/** Inline loading indicator that inherits the text colour. */
 export function Spinner({ className }: { className?: string }) {
   return (
     <span
@@ -67,10 +73,12 @@ export function Spinner({ className }: { className?: string }) {
   );
 }
 
+/** Inline error message. */
 export function ErrorNote({ children }: { children: ReactNode }) {
   return <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{children}</p>;
 }
 
+/** Badge for a run status (pending, running, succeeded, failed). */
 export function StatusBadge({ status }: { status: string }) {
   const tone: Tone =
     status === "succeeded" ? "success" : status === "failed" ? "danger" : status === "running" ? "accent" : "neutral";
