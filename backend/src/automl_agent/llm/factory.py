@@ -36,6 +36,7 @@ def create_llm(settings: Settings) -> LLMRouter:
             rpm=rpm,
             max_concurrency=settings.gemini_max_concurrency,
             max_retries=settings.gemini_max_retries,
+            fallback_models=settings.gemini_fallback_models,
             vertexai=settings.gemini_use_vertexai,
             project=settings.google_cloud_project,
             location=settings.google_cloud_location,
@@ -58,4 +59,5 @@ async def validate_models(settings: Settings) -> dict[str, bool]:
         return {}
     router = create_llm(settings)
     available = set(await router.for_role("smart").list_models())  # type: ignore[attr-defined]
-    return {m: m in available for m in {settings.gemini_model_smart, settings.gemini_model_fast}}
+    configured = {settings.gemini_model_smart, settings.gemini_model_fast, *settings.gemini_fallback_models}
+    return {m: m in available for m in configured}

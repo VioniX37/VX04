@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import random
 import re
 from dataclasses import dataclass, field
@@ -20,6 +21,11 @@ from .cache import ResponseCache
 from .rate_limit import concurrency_slot, get_limiter
 
 RETRYABLE_CODES = {408, 429, 500, 502, 503, 504}
+# Errors that are specific to one model (overload, per-model quota): worth trying another model.
+FALLBACK_CODES = {429, 500, 503, 504}
+# Attempts on a model before moving to the next one in the fallback chain.
+ATTEMPTS_BEFORE_FALLBACK = 3
+log = logging.getLogger(__name__)
 _RETRY_DELAY = re.compile(r"retryDelay['\"]?\s*[:=]\s*['\"]?(\d+(?:\.\d+)?)s")
 
 
@@ -46,7 +52,9 @@ class GeminiClient(LLMClient):
         api_key: AI Studio key (ignored in Vertex AI mode).
         rpm: Requests-per-minute budget for this model.
         max_concurrency: Global cap on simultaneous requests.
-        max_retries: Attempts after the first on retryable errors.
+        max_retries: Attempts after the first on retryable errors (on the last model of the chain).
+        fallback_models: Models tried in order when this one stays overloaded (503) or out of
+            quota (429); a model further down the chain gets ``ATTEMPTS_BEFORE_FALLBACK`` tries first.
         vertexai: Use Vertex AI (requires `project` and `location`).
     """
 
@@ -62,6 +70,7 @@ class GeminiClient(LLMClient):
         rpm: int = 10,
         max_concurrency: int = 2,
         max_retries: int = 6,
+        fallback_models: list[str] | None = None,
         vertexai: bool = False,
         project: str | None = None,
         location: str | None = None,
@@ -87,27 +96,42 @@ class GeminiClient(LLMClient):
         self.rpm = rpm
         self.max_concurrency = max_concurrency
         self.max_retries = max_retries
+        self.fallback_models = [m for m in (fallback_models or []) if m and m != model]
         self._schema_supported = True
 
     # ------------------------------------------------------------------ transport
 
-    async def _generate(self, contents: list[Any], config: Any) -> Any:
-        """Call `generate_content` with throttling and retries."""
-        limiter = get_limiter(self.model, self.rpm)
-        for attempt in range(self.max_retries + 1):
+    async def _generate_with(self, model: str, contents: list[Any], config: Any, attempts: int) -> Any:
+        """Call one model with throttling and up to `attempts` tries on retryable errors."""
+        limiter = get_limiter(model, self.rpm)
+        for attempt in range(attempts):
             await limiter.acquire()
             try:
                 async with concurrency_slot(self.max_concurrency):
                     return await self._client.aio.models.generate_content(
-                        model=self.model, contents=contents, config=config
+                        model=model, contents=contents, config=config
                     )
             except self._errors.APIError as e:
-                if e.code in RETRYABLE_CODES and attempt < self.max_retries:
+                if e.code in RETRYABLE_CODES and attempt < attempts - 1:
                     delay = retry_delay_from_error(e) or min(60.0, 2.0 * 2**attempt)
                     await asyncio.sleep(delay + random.uniform(0, 1))
                     continue
-                raise LLMError(f"gemini {self.model}: {e.code} {e.message or e}", code=e.code) from e
-        raise LLMError(f"gemini {self.model}: retries exhausted")  # pragma: no cover
+                raise LLMError(f"gemini {model}: {e.code} {e.message or e}", code=e.code) from e
+        raise LLMError(f"gemini {model}: retries exhausted")  # pragma: no cover
+
+    async def _generate(self, contents: list[Any], config: Any) -> tuple[Any, str]:
+        """Call `generate_content`, falling back along the model chain; returns (response, model used)."""
+        chain = [self.model, *self.fallback_models]
+        for i, model in enumerate(chain):
+            last = i == len(chain) - 1
+            attempts = self.max_retries + 1 if last else min(ATTEMPTS_BEFORE_FALLBACK, self.max_retries + 1)
+            try:
+                return await self._generate_with(model, contents, config, attempts), model
+            except LLMError as e:
+                if last or e.code not in FALLBACK_CODES:
+                    raise
+                log.warning("%s unavailable (%s); falling back to %s", model, e.code, chain[i + 1])
+        raise LLMError("gemini: no model available")  # pragma: no cover
 
     def _contents(self, chat: list[Message]) -> list[Any]:
         types = self._types
@@ -148,7 +172,7 @@ class GeminiClient(LLMClient):
             response_json_schema=schema if use_schema else None,
         )
         try:
-            resp = await self._generate(self._contents(chat), config)
+            resp, used = await self._generate(self._contents(chat), config)
         except LLMError as e:
             # Some JSON-schema constructs are rejected by some models: fall back to prompt-described schema.
             if use_schema and e.code == 400:
@@ -167,7 +191,7 @@ class GeminiClient(LLMClient):
         meta = resp.usage_metadata
         return LLMResponse(
             text=self._text(resp),
-            model=self.model,
+            model=used,
             input_tokens=(meta.prompt_token_count or 0) if meta else 0,
             output_tokens=(meta.candidates_token_count or 0) if meta else 0,
         )
@@ -190,7 +214,7 @@ class GeminiClient(LLMClient):
         config = types.GenerateContentConfig(
             tools=[types.Tool(google_search=types.GoogleSearch())], temperature=0.0
         )
-        resp = await self._generate([query], config)
+        resp, used = await self._generate([query], config)
         sources: list[dict[str, str]] = []
         candidates = getattr(resp, "candidates", None) or []
         meta = getattr(candidates[0], "grounding_metadata", None) if candidates else None
@@ -203,7 +227,7 @@ class GeminiClient(LLMClient):
         usage_meta = resp.usage_metadata
         record = LLMResponse(
             text=json.dumps({"text": result.text, "sources": result.sources}),
-            model=self.model,
+            model=used,
             input_tokens=(usage_meta.prompt_token_count or 0) if usage_meta else 0,
             output_tokens=(usage_meta.candidates_token_count or 0) if usage_meta else 0,
         )
