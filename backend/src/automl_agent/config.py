@@ -128,6 +128,11 @@ class Settings(BaseSettings):
         return self.workspace_dir / "runs"
 
     @property
+    def tmp_dir(self) -> Path:
+        """Scratch space for buffering uploads (kept on the workspace drive)."""
+        return self.workspace_dir / "tmp"
+
+    @property
     def llm_cache_dir(self) -> Path:
         """Directory of the on-disk LLM response cache."""
         return (self.llm_cache_root or self.workspace_dir / "llm_cache") / self.llm_cache_namespace

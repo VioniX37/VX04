@@ -68,3 +68,29 @@ def test_observations_endpoint(sample_csvs):
         rows = client.get(f"/api/runs/{run['id']}/observations").json()
         assert any(r["final"] for r in rows) and any(not r["final"] for r in rows)
         assert client.get(f"/api/runs/{run['id']}").json()["config"]["verification_mode"] == "grounded"
+
+
+def test_uploads_buffer_on_workspace_drive():
+    import tempfile
+
+    from automl_agent.config import get_settings
+
+    with TestClient(create_app()):
+        assert tempfile.gettempdir() == str(get_settings().tmp_dir)
+
+
+def test_disk_full_during_upload_gives_clear_error():
+    from fastapi import HTTPException
+
+    app = create_app()
+
+    @app.get("/boom")
+    def boom():
+        raise HTTPException(400, "There was an error parsing the body") from OSError(
+            28, "No space left on device"
+        )
+
+    with TestClient(app) as client:
+        resp = client.get("/boom")
+    assert resp.status_code == 507
+    assert "register the file by path" in resp.json()["detail"]
