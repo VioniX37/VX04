@@ -1,43 +1,70 @@
 @import "tailwindcss";
 
-/* Design tokens (light) — components use the semantic Tailwind colors mapped below. */
+/*
+ * Design tokens. Components only use the semantic colours mapped in @theme below,
+ * so light and dark themes stay consistent. Dark is the primary ("mission control") theme.
+ */
 :root {
-  --background: #f7f7f5;
+  --background: #f5f6f8;
   --surface: #ffffff;
-  --surface-muted: #f1f1ee;
-  --border: #e3e3de;
-  --foreground: #1a1a17;
-  --muted: #6b6b63;
-  --accent: #4f46e5;
-  --accent-soft: #eef0ff;
-  --success: #15803d;
-  --success-soft: #e8f6ec;
+  --surface-muted: #eef0f4;
+  --surface-raised: #ffffff;
+  --border: #e2e5ec;
+  --border-strong: #cfd4de;
+  --foreground: #0f1320;
+  --muted: #5e6578;
+  --faint: #9aa1b2;
+  --accent: #5b5bf0;
+  --accent-2: #0891b2;
+  --accent-soft: #ecedff;
+  --success: #059669;
+  --success-soft: #e3f6ee;
   --warning: #b45309;
-  --warning-soft: #fdf3e2;
-  --danger: #b91c1c;
-  --danger-soft: #fdecec;
-  --code-bg: #16161a;
-  --code-fg: #e6e6e6;
+  --warning-soft: #fdf2e1;
+  --danger: #dc2626;
+  --danger-soft: #fdeaea;
+  --code-bg: #0b0d14;
+  --code-fg: #e4e7f0;
+  --grid-line: rgba(15, 19, 32, 0.045);
+  --glow: rgba(91, 91, 240, 0.18);
+  --chart-1: #5b5bf0;
+  --chart-2: #0891b2;
+  --chart-3: #d97706;
+  --chart-4: #db2777;
+  --chart-5: #059669;
+  --chart-6: #7c3aed;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0f0f10;
-    --surface: #18181b;
-    --surface-muted: #202024;
-    --border: #2c2c31;
-    --foreground: #ececec;
-    --muted: #9a9aa3;
-    --accent: #8b8cf8;
-    --accent-soft: #23234a;
-    --success: #4ade80;
-    --success-soft: #13301f;
+    --background: #06070b;
+    --surface: #0c0e15;
+    --surface-muted: #131623;
+    --surface-raised: #11141e;
+    --border: #1d2130;
+    --border-strong: #2a3044;
+    --foreground: #e8eaf2;
+    --muted: #8d93a8;
+    --faint: #5b6178;
+    --accent: #8b8cff;
+    --accent-2: #22d3ee;
+    --accent-soft: #1b1c3d;
+    --success: #34d399;
+    --success-soft: #0c2a20;
     --warning: #fbbf24;
-    --warning-soft: #33280f;
+    --warning-soft: #2e230c;
     --danger: #f87171;
-    --danger-soft: #3a1717;
-    --code-bg: #0b0b0d;
-    --code-fg: #e6e6e6;
+    --danger-soft: #331414;
+    --code-bg: #05060a;
+    --code-fg: #e4e7f0;
+    --grid-line: rgba(139, 140, 255, 0.045);
+    --glow: rgba(139, 140, 255, 0.22);
+    --chart-1: #8b8cff;
+    --chart-2: #22d3ee;
+    --chart-3: #fbbf24;
+    --chart-4: #f472b6;
+    --chart-5: #34d399;
+    --chart-6: #c084fc;
   }
 }
 
@@ -45,10 +72,14 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
+  --color-surface-raised: var(--surface-raised);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-faint: var(--faint);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-accent-soft: var(--accent-soft);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
@@ -67,6 +98,158 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Glow + grid backdrop on its own fixed, composited layer (cheap to scroll, unlike background-attachment: fixed). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1200px 520px at 50% -180px, var(--glow), transparent 70%),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 100% 100%, 44px 44px, 44px 44px;
+  will-change: transform;
+}
+
+/* ---------- surfaces ---------- */
+
+.panel {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface-raised) 92%, white 8%) 0%, var(--surface) 38%);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, white 6%, transparent),
+    0 1px 2px rgb(0 0 0 / 0.04),
+    0 12px 32px -18px rgb(0 0 0 / 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  .panel {
+    background: linear-gradient(180deg, #10131d 0%, var(--surface) 42%);
+  }
+}
+
+.panel-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(120deg, var(--accent), transparent 35%, transparent 65%, var(--accent-2));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.eyebrow {
+  font-family: var(--font-geist-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, var(--foreground), color-mix(in oklab, var(--accent) 70%, var(--foreground)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- motion ---------- */
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.live-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  animation: pulse-ring 1.6s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
+}
+
+@keyframes dash-flow {
+  to { stroke-dashoffset: -24; }
+}
+
+.flow {
+  stroke-dasharray: 6 6;
+  animation: dash-flow 0.9s linear infinite;
+}
+
+@keyframes node-breathe {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.9; }
+}
+
+.breathe {
+  animation: node-breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--accent) 35%, transparent), transparent);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up {
+  animation: fade-up 0.45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flow, .breathe, .shimmer::after, .live-dot::after, .fade-up {
+    animation: none;
+  }
+}
+
+/* ---------- misc ---------- */
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
 }
