@@ -43,6 +43,9 @@ class RunRecord(SQLModel, table=True):
     dataset_id: str = Field(index=True)
     prompt: str
     status: str = "pending"
+    approval: str = Field(default="auto")
+    human_override: bool = Field(default=False)
+    human_decision: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=utcnow)
     finished_at: datetime | None = None
     task_spec: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
@@ -102,6 +105,7 @@ class ExperienceRecord(SQLModel, table=True):
     n_rows: int = 0
     success: bool = False
     target_met: bool = False
+    human_override: bool = Field(default=False)
     best_score: float | None = None
     meta: dict[str, Any] = Field(sa_column=Column(JSON, nullable=False))
     best_plan: dict[str, Any] | None = Field(default=None, sa_column=Column(JSON))
@@ -137,7 +141,12 @@ def _add_missing_columns(engine: Engine) -> None:
                 default = (
                     column.default.arg if column.default is not None and column.default.is_scalar else None
                 )
-                clause = f" DEFAULT {default!r}" if isinstance(default, int | float | str) else ""
+                if isinstance(default, bool):
+                    clause = f" DEFAULT {1 if default else 0}"
+                elif isinstance(default, int | float | str):
+                    clause = f" DEFAULT {default!r}"
+                else:
+                    clause = ""
                 conn.execute(
                     text(f'ALTER TABLE "{table.name}" ADD COLUMN "{column.name}" {col_type}{clause}')
                 )

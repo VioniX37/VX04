@@ -131,19 +131,21 @@ def recover_interrupted_runs(settings: Settings) -> list[str]:
     return interrupted
 
 
-def new_run(session: Session, dataset_id: str, prompt: str) -> RunRecord:
+def new_run(session: Session, dataset_id: str, prompt: str, approval: str = "auto") -> RunRecord:
     """Insert a pending run record."""
-    run = RunRecord(id=uuid.uuid4().hex[:12], dataset_id=dataset_id, prompt=prompt)
+    run = RunRecord(id=uuid.uuid4().hex[:12], dataset_id=dataset_id, prompt=prompt, approval=approval)
     session.add(run)
     session.commit()
     session.refresh(run)
     return run
 
 
-def create_run(session: Session, dataset: DatasetRecord, prompt: str) -> RunRecord:
+def create_run(
+    session: Session, dataset: DatasetRecord, prompt: str, approval: str = "auto"
+) -> RunRecord:
     """Insert a run and start it in the background (API use)."""
     ref = DatasetRef.from_record(dataset)  # copy before commit() expires the ORM object
-    run = new_run(session, dataset.id, prompt)
+    run = new_run(session, dataset.id, prompt, approval=approval)
     task = asyncio.create_task(execute_run(run.id, ref, prompt))
     _tasks.add(task)
     task.add_done_callback(_tasks.discard)

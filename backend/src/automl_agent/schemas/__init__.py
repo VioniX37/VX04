@@ -12,11 +12,12 @@ from .plan import (
     PlanSet,
     SubTask,
 )
-from .run import RunCreate, RunOut, RunStatus
+from .run import ApprovalMode, PlanApprovalAction, PlanApprovalRequest, RunCreate, RunOut, RunStatus
 from .task_spec import TaskSpec, TaskType
 
 __all__ = [
     "AgentEvent",
+    "ApprovalMode",
     "CodeDraft",
     "ColumnProfile",
     "DataAgentResult",
@@ -25,6 +26,8 @@ __all__ = [
     "ExecutionResult",
     "ModelAgentResult",
     "Plan",
+    "PlanApprovalAction",
+    "PlanApprovalRequest",
     "PlanEvaluation",
     "PlanSet",
     "RunCreate",

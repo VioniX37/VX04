@@ -22,7 +22,7 @@ async def start_run(body: RunCreate, session: Session = Depends(get_session)) ->
     dataset = session.get(DatasetRecord, body.dataset_id)
     if dataset is None:
         raise HTTPException(404, "Dataset not found")
-    return create_run(session, dataset, body.prompt)
+    return create_run(session, dataset, body.prompt, approval=body.approval.value)
 
 
 @router.get("", response_model=list[RunOut])
