@@ -40,7 +40,13 @@ export function RunView({ runId }: { runId: string }) {
     const unsubscribe = subscribeToRun(runId, {
       onEvent: (e) => {
         setEvents((prev) => (prev.length && prev[prev.length - 1].seq >= e.seq ? prev : [...prev, e]));
-        if (e.stage === "done") refresh();
+        if (
+          e.stage === "done" ||
+          (e.payload && Boolean((e.payload as Record<string, unknown>).approval_step)) ||
+          e.message?.toLowerCase().includes("resumed")
+        ) {
+          refresh();
+        }
       },
       onEnd: refresh,
       onError: () => !cancelled && setError("Lost connection to the event stream."),
@@ -50,6 +56,16 @@ export function RunView({ runId }: { runId: string }) {
       unsubscribe();
     };
   }, [runId]);
+
+  const isAwaitingInput = useMemo(() => {
+    if (run?.status === "awaiting_input") return true;
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i];
+      if (e.stage === "done" || e.message?.toLowerCase().includes("resumed")) return false;
+      if ((e.payload as Record<string, unknown>)?.approval_step) return true;
+    }
+    return false;
+  }, [run?.status, events]);
 
   const finished = run?.status === "succeeded" || run?.status === "failed" || run?.status === "cancelled";
   const model = useMemo(() => buildRunModel(events, finished, run?.status === "failed"), [events, finished, run?.status]);
@@ -88,7 +104,7 @@ export function RunView({ runId }: { runId: string }) {
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-gradient font-mono text-3xl font-semibold tracking-tight">{run.id}</h1>
-            <StatusBadge status={run.status} />
+            <StatusBadge status={isAwaitingInput ? "awaiting_input" : run.status} />
             {run.human_override && (
               <Badge tone="accent" title="A human expert intervened in plan or code selection">
                 👤 Human Guided
@@ -138,8 +154,19 @@ export function RunView({ runId }: { runId: string }) {
         <Stat label="elapsed" value={formatDuration(nowSec)} caption={finished ? "total" : "live"} tone={finished ? undefined : "accent"} />
         <Stat
           label="stage"
-          value={finished ? (run.status === "succeeded" ? "Complete" : run.status === "cancelled" ? "Cancelled" : "Stopped") : currentStage?.label ?? "Starting"}
-          caption={finished ? undefined : currentStage?.agent}
+          value={
+            finished
+              ? run.status === "succeeded"
+                ? "Complete"
+                : run.status === "cancelled"
+                  ? "Cancelled"
+                  : "Stopped"
+              : isAwaitingInput
+                ? "Needs your input"
+                : currentStage?.label ?? "Starting"
+          }
+          caption={finished ? undefined : isAwaitingInput ? "Human approval" : currentStage?.agent}
+          tone={isAwaitingInput ? "warning" : undefined}
         />
         <Stat
           label={metrics?.score != null ? `test ${metrics.metric ?? ""}` : "best validation"}
@@ -157,7 +184,7 @@ export function RunView({ runId }: { runId: string }) {
       {run.error && <ErrorNote>{run.error}</ErrorNote>}
 
       {/* Human approval review card when awaiting input */}
-      {run.status === "awaiting_input" && (
+      {isAwaitingInput && (
         <ApprovalCard
           run={run}
           events={events}
