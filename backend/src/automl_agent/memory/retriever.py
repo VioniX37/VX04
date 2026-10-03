@@ -42,6 +42,8 @@ def describe(record: ExperienceRecord, dist: float) -> KnowledgeItem:
     failed = sorted({p["model_family"] for p in record.plans if p.get("ok") is False})
     if failed:
         lines.append("Failed to run: " + ", ".join(failed) + ".")
+    if record.human_override:
+        lines.append("A human expert selected or edited this plan over the automated ranking.")
     return KnowledgeItem(
         id=f"memory-{record.run_id}",
         task_types=[record.task_type],
@@ -55,6 +57,7 @@ def describe(record: ExperienceRecord, dist: float) -> KnowledgeItem:
             "best_score": record.best_score,
             "distance": round(dist, 4),
             "failed_families": failed,
+            "human_override": record.human_override,
         },
     )
 

@@ -1,4 +1,4 @@
-import type { AgentEvent, Dataset, Health, Run } from "./types";
+import type { AgentEvent, ApprovalMode, Dataset, Health, PlanApprovalRequest, Run } from "./types";
 
 /** Base URL of the FastAPI backend (set `NEXT_PUBLIC_API_URL` in `frontend/.env.local`). */
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -80,14 +80,24 @@ export const api = {
       body: JSON.stringify(source),
     }),
   listDatasets: () => request<Dataset[]>("/datasets"),
-  createRun: (datasetId: string, prompt: string) =>
+  createRun: (datasetId: string, prompt: string, approval: ApprovalMode = "auto") =>
     request<Run>("/runs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dataset_id: datasetId, prompt }),
+      body: JSON.stringify({ dataset_id: datasetId, prompt, approval }),
     }),
   listRuns: () => request<Run[]>("/runs"),
   getRun: (id: string) => request<Run>(`/runs/${id}`),
+  cancelRun: (id: string) =>
+    request<Run>(`/runs/${id}/cancel`, {
+      method: "POST",
+    }),
+  approveRun: (id: string, body: PlanApprovalRequest) =>
+    request<Run>(`/runs/${id}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
 };
 
 /** Subscribe to a run's live agent events (SSE). Returns an unsubscribe function. */

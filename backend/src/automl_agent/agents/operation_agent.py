@@ -9,11 +9,13 @@ from typing import Any
 
 from automl_agent.execution.renderer import render_template
 from automl_agent.execution.sandbox import run_script
+from automl_agent.extensions import PipelineHooks, run_hook
 from automl_agent.schemas.events import Stage
 from automl_agent.schemas.plan import CodeDraft, ExecutionResult, PlanEvaluation
 from automl_agent.schemas.task_spec import TaskSpec
 
 from .base import BaseAgent
+from .context import RunContext
 
 
 def error_signature(stderr: str) -> str:
@@ -42,6 +44,10 @@ class OperationAgent(BaseAgent):
     name = "operation_agent"
     prompt_name = "operation_agent"
     model_role = "smart"
+
+    def __init__(self, ctx: RunContext, hooks: list[PipelineHooks] | None = None) -> None:
+        super().__init__(ctx)
+        self.hooks = hooks
 
     def base_code(self, spec: TaskSpec, ev: PlanEvaluation) -> str:
         """Render the template for a final, full-data run scored on the held-out test split."""
@@ -121,6 +127,8 @@ class OperationAgent(BaseAgent):
                 CodeDraft,
             )
             code = draft.code
+
+        code = await run_hook("on_code_generated", self.ctx, code, base, plan, hooks=self.hooks)
 
         outcome = ImplementationOutcome(
             code=code, result=ExecutionResult(ok=False, returncode=None, duration_s=0.0)

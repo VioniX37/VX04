@@ -44,6 +44,12 @@ class PipelineHooks:
         """Re-rank or edit plans after verification; the first one is implemented."""
         return ranked
 
+    async def on_code_generated(
+        self, ctx: RunContext, code: str, template_code: str, plan: Plan
+    ) -> str:
+        """Inspect or edit generated script before execution."""
+        return code
+
     async def on_run_finished(self, ctx: RunContext, result: PipelineResult) -> None:
         """Observe the final result (e.g. to store it)."""
         return None

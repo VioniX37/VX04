@@ -42,12 +42,24 @@ const TONES: Record<Tone, string> = {
 };
 
 /** Small pill label; `tone` selects the semantic colour. */
-export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Tone }) {
+export function Badge({
+  children,
+  tone = "neutral",
+  className,
+  title,
+}: {
+  children: ReactNode;
+  tone?: Tone;
+  className?: string;
+  title?: string;
+}) {
   return (
     <span
+      title={title}
       className={cn(
         "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium",
         TONES[tone],
+        className,
       )}
     >
       {children}
@@ -59,13 +71,15 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
 export function Button({
   children,
   variant = "primary",
+  size = "md",
   className,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "ghost" | "outline"; size?: "sm" | "md" }) {
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all",
+        "inline-flex items-center justify-center gap-2 font-medium transition-all",
+        size === "sm" ? "rounded-lg px-2.5 py-1 text-xs" : "rounded-xl px-4 py-2 text-sm",
         "disabled:cursor-not-allowed disabled:opacity-45",
         variant === "primary"
           ? "bg-linear-to-r from-accent to-accent-2 text-white shadow-[0_8px_24px_-10px_var(--accent)] hover:brightness-110"
@@ -99,14 +113,24 @@ export function ErrorNote({ children }: { children: ReactNode }) {
   return <p className="rounded-xl border border-danger/25 bg-danger-soft px-3 py-2 text-sm text-danger">{children}</p>;
 }
 
-/** Badge for a run status (pending, running, succeeded, failed). */
+/** Badge for a run status (pending, running, awaiting_input, succeeded, failed, cancelled). */
 export function StatusBadge({ status }: { status: string }) {
   const tone: Tone =
-    status === "succeeded" ? "success" : status === "failed" ? "danger" : status === "running" ? "accent" : "neutral";
+    status === "succeeded"
+      ? "success"
+      : status === "failed" || status === "cancelled"
+      ? "danger"
+      : status === "awaiting_input"
+      ? "warning"
+      : status === "running"
+      ? "accent"
+      : "neutral";
+  const label = status === "awaiting_input" ? "Needs your input" : status;
   return (
     <Badge tone={tone}>
       {status === "running" && <LiveDot className="h-1.5 w-1.5" />}
-      {status}
+      {status === "awaiting_input" && <LiveDot className="h-1.5 w-1.5 text-warning" />}
+      {label}
     </Badge>
   );
 }

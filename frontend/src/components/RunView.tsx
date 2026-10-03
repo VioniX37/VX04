@@ -8,12 +8,13 @@ import { formatMetric } from "@/lib/stages";
 import type { AgentEvent, ExecutionMetrics, Run } from "@/lib/types";
 import { useNow } from "@/lib/use-now";
 import { AgentTimeline } from "./AgentTimeline";
+import { ApprovalCard } from "./ApprovalCard";
 import { CodeViewer } from "./CodeViewer";
 import { GroundingPanel } from "./GroundingPanel";
 import { KnowledgePanel } from "./KnowledgePanel";
 import { MetricsPanel } from "./MetricsPanel";
 import { PlanCards } from "./PlanCards";
-import { Badge, Card, CardTitle, cn, ErrorNote, LiveDot, Spinner, Stat, StatusBadge } from "./ui";
+import { Badge, Button, Card, CardTitle, cn, ErrorNote, LiveDot, Spinner, Stat, StatusBadge } from "./ui";
 import { AgentGantt } from "./viz/AgentGantt";
 import { BudgetGauges, SplitBar } from "./viz/Gauges";
 import { GroundingChart } from "./viz/GroundingChart";
@@ -50,7 +51,7 @@ export function RunView({ runId }: { runId: string }) {
     };
   }, [runId]);
 
-  const finished = run?.status === "succeeded" || run?.status === "failed";
+  const finished = run?.status === "succeeded" || run?.status === "failed" || run?.status === "cancelled";
   const model = useMemo(() => buildRunModel(events, finished, run?.status === "failed"), [events, finished, run?.status]);
   const nowMs = useNow(!finished && !!run);
   const nowSec = finished ? model.now : Math.max(model.now, (nowMs - model.t0) / 1000);
@@ -88,6 +89,11 @@ export function RunView({ runId }: { runId: string }) {
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-gradient font-mono text-3xl font-semibold tracking-tight">{run.id}</h1>
             <StatusBadge status={run.status} />
+            {run.human_override && (
+              <Badge tone="accent" title="A human expert intervened in plan or code selection">
+                👤 Human Guided
+              </Badge>
+            )}
           </div>
           <p className="mt-2 max-w-3xl text-sm text-muted">“{run.prompt}”</p>
           {cfg && (
@@ -105,6 +111,26 @@ export function RunView({ runId }: { runId: string }) {
             </div>
           )}
         </div>
+
+        {!finished && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              if (confirm("Are you sure you want to cancel this run?")) {
+                try {
+                  const cancelledRun = await api.cancelRun(run.id);
+                  setRun(cancelledRun);
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }
+            }}
+            className="text-danger hover:bg-danger-soft/20"
+          >
+            Cancel Run
+          </Button>
+        )}
       </div>
 
       {/* KPI strip */}
@@ -112,7 +138,7 @@ export function RunView({ runId }: { runId: string }) {
         <Stat label="elapsed" value={formatDuration(nowSec)} caption={finished ? "total" : "live"} tone={finished ? undefined : "accent"} />
         <Stat
           label="stage"
-          value={finished ? (run.status === "succeeded" ? "Complete" : "Stopped") : currentStage?.label ?? "Starting"}
+          value={finished ? (run.status === "succeeded" ? "Complete" : run.status === "cancelled" ? "Cancelled" : "Stopped") : currentStage?.label ?? "Starting"}
           caption={finished ? undefined : currentStage?.agent}
         />
         <Stat
@@ -129,6 +155,15 @@ export function RunView({ runId }: { runId: string }) {
 
       {error && <ErrorNote>{error}</ErrorNote>}
       {run.error && <ErrorNote>{run.error}</ErrorNote>}
+
+      {/* Human approval review card when awaiting input */}
+      {run.status === "awaiting_input" && (
+        <ApprovalCard
+          run={run}
+          events={events}
+          onUpdated={(updatedRun) => setRun(updatedRun)}
+        />
+      )}
 
       {/* pipeline graph */}
       <Card glow={!finished}>

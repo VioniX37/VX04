@@ -140,13 +140,28 @@ export interface RunConfig {
   budget: { wall_s: number | null; llm_calls: number | null; tokens: number | null };
 }
 
-export type RunStatus = "pending" | "running" | "succeeded" | "failed";
+export type RunStatus = "pending" | "running" | "awaiting_input" | "succeeded" | "failed" | "cancelled";
+
+export type ApprovalMode = "auto" | "plans" | "plans+code";
+
+export type PlanApprovalAction = "approve" | "pick" | "edit";
+
+export interface PlanApprovalRequest {
+  action: PlanApprovalAction;
+  plan_id?: string | null;
+  edited_plan?: Record<string, unknown> | null;
+  edited_code?: string | null;
+  feedback?: string | null;
+}
 
 export interface Run {
   id: string;
   dataset_id: string;
   prompt: string;
   status: RunStatus;
+  approval?: ApprovalMode;
+  human_override?: boolean;
+  human_decision?: Record<string, unknown> | null;
   created_at: string;
   finished_at: string | null;
   task_spec: TaskSpec | null;

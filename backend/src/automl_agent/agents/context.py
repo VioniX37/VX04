@@ -33,6 +33,7 @@ class RunContext:
     budget: BudgetTracker | None = None
     state: dict[str, Any] = field(default_factory=dict)  # scratch space for extensions
     observations: list[dict[str, Any]] = field(default_factory=list)
+    approval: str = "auto"
 
     def __post_init__(self) -> None:
         if self.budget is None:

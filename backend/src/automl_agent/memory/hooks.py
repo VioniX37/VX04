@@ -57,6 +57,7 @@ class MemoryHooks(PipelineHooks):
             n_rows=ctx.profile.n_rows,
             success=result.success,
             target_met=result.target_met,
+            human_override=bool(ctx.state.get("human_override", False)),
             best_score=(result.metrics or {}).get("score"),
             meta=meta_features(ctx.profile, spec),
             best_plan=result.plan.model_dump(mode="json") if result.plan else None,

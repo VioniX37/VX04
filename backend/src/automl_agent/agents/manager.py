@@ -20,6 +20,7 @@ from automl_agent.execution.model_registry import normalize_model, supported_mod
 from automl_agent.execution.renderer import render_template
 from automl_agent.execution.sandbox import run_script
 from automl_agent.extensions import PipelineHooks, registered_hooks, run_hook
+from automl_agent.extensions.approval import ApprovalHooks
 from automl_agent.memory import MemoryHooks, MemoryRetriever
 from automl_agent.planning.decomposition import decompose
 from automl_agent.planning.gemini_search import GeminiSearchRetriever
@@ -92,13 +93,17 @@ class AgentManager(BaseAgent):
         self.prompt_agent = PromptAgent(ctx)
         self.data_agent = DataAgent(ctx)
         self.model_agent = ModelAgent(ctx)
-        self.operation_agent = OperationAgent(ctx)
+        self.operation_agent = OperationAgent(ctx, hooks=self.hooks)
         self.plan_analyst = PlanAnalyst(ctx)
 
     @staticmethod
     def default_hooks(ctx: RunContext) -> list[PipelineHooks]:
-        """Extension hooks for this run: experience memory (when enabled) plus user-registered hooks."""
-        builtin: list[PipelineHooks] = [MemoryHooks()] if ctx.settings.memory_enabled else []
+        """Extension hooks for this run: approval, experience memory, plus user-registered hooks."""
+        builtin: list[PipelineHooks] = []
+        if ctx.approval in ("plans", "plans+code"):
+            builtin.append(ApprovalHooks())
+        if ctx.settings.memory_enabled:
+            builtin.append(MemoryHooks())
         return [*builtin, *registered_hooks()]
 
     @staticmethod

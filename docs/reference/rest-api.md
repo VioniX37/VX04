@@ -41,14 +41,16 @@ Errors: `400` for unreadable or unsupported files and bad paths/URLs, `413` for 
 
 | Method | Path | Body / query | Returns |
 |---|---|---|---|
-| POST | `/runs` | `{"dataset_id": "...", "prompt": "..."}` | `Run` (201); the pipeline starts in the background |
+| POST | `/runs` | `{"dataset_id": "...", "prompt": "...", "approval": "auto" \| "plans" \| "plans+code"}` | `Run` (201); the pipeline starts in the background |
 | GET | `/runs` | | `Run[]`, newest first |
 | GET | `/runs/{id}` | | `Run` |
+| POST | `/runs/{id}/approve` | `{"action": "approve" \| "pick" \| "edit", "plan_id": "...", "plan": {...}, "code": "..."}` | `{"status": "resumed", "run_id": "..."}` (200) |
+| POST | `/runs/{id}/cancel` | | `{"status": "cancelled", "run_id": "..."}` (200) |
 | GET | `/runs/{id}/events` | `?after=<seq>` | **Server-Sent Events** stream (below) |
 | GET | `/runs/{id}/events/history` | | `AgentEvent[]` |
 | GET | `/runs/{id}/observations` | | Predicted-vs-observed rows (`PlanObservation[]`) |
 
-`Run` fields: `id`, `dataset_id`, `prompt`, `status` (`pending`/`running`/`succeeded`/`failed`), timestamps, `task_spec`, `plan` (selected, with final hyperparameters), `metrics` (final `metrics.json` plus `target_met`, `attempts`, `stop_reason`, `budget`, `artifact_dir`), `code`, `error`, `llm_usage` (`calls`, `cache_hits`, token counts) and `config` (the experimental condition: models, verification mode, memory, grounding, budgets).
+`Run` fields: `id`, `dataset_id`, `prompt`, `status` (`pending`/`running`/`awaiting_input`/`succeeded`/`failed`/`cancelled`), `approval` (`auto`/`plans`/`plans+code`), `human_override` (boolean), timestamps, `task_spec`, `plan` (selected, with final hyperparameters), `metrics` (final `metrics.json` plus `target_met`, `attempts`, `stop_reason`, `budget`, `artifact_dir`), `code`, `error`, `llm_usage` (`calls`, `cache_hits`, token counts) and `config` (the experimental condition: models, verification mode, memory, grounding, budgets).
 
 ## Event stream
 
