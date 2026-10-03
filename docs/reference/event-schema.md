@@ -28,7 +28,7 @@ Every run produces an ordered stream of `AgentEvent`s:
 | `implement` (info) | `attempt`, `progress` | A `PROGRESS` line printed by the script: `{stage, ...}` |
 | `implement` (artifact/warning) | `attempt`, `result` | `ExecutionResult`: `ok`, `returncode`, `duration_s`, `stdout`, `stderr`, `metrics`, `timed_out`, `memory_exceeded`, `peak_memory_mb` |
 | `verify_impl` | `issues`, `metrics`, `budget` | Unmet requirements, test metrics, budget snapshot |
-| `done` | `success`, `metrics`, `target_met` | Final outcome |
+| `done` | `success`, `metrics`, `target_met`, `cancelled`, `event` | Final outcome (on cancel: `{event: "run_cancelled", cancelled: true, success: false}`) |
 
 ## Persistence
 

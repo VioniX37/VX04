@@ -84,6 +84,7 @@ class OperationAgent(BaseAgent):
             timeout_s=ctx.settings.exec_timeout_s,
             max_mem_mb=ctx.settings.exec_max_mem_mb or None,
             on_progress=on_progress,
+            run_id=ctx.run_id,
         )
 
     async def implement(

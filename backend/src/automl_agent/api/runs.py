@@ -8,9 +8,9 @@ from sse_starlette.sse import EventSourceResponse
 
 from automl_agent.config import get_settings
 from automl_agent.schemas.events import AgentEvent
-from automl_agent.schemas.run import RunCreate, RunOut
+from automl_agent.schemas.run import RunCreate, RunOut, RunStatus
 from automl_agent.services.event_bus import bus
-from automl_agent.services.run_service import create_run, events_log_path
+from automl_agent.services.run_service import cancel_run, create_run, events_log_path
 from automl_agent.storage.db import DatasetRecord, PlanObservation, RunRecord, get_session
 
 router = APIRouter(prefix="/runs", tags=["runs"])
@@ -40,8 +40,22 @@ def get_run(run_id: str, session: Session = Depends(get_session)) -> RunRecord:
     return run
 
 
+@router.post("/{run_id}/cancel", response_model=RunOut)
+async def cancel_run_endpoint(run_id: str, session: Session = Depends(get_session)) -> RunRecord:
+    """Cancel an active or paused run."""
+    run = session.get(RunRecord, run_id)
+    if run is None:
+        raise HTTPException(404, "Run not found")
+    if run.status in (RunStatus.succeeded.value, RunStatus.failed.value, RunStatus.cancelled.value):
+        raise HTTPException(400, f"Cannot cancel finished run (status={run.status})")
+    cancelled = await cancel_run(run_id)
+    if cancelled is None:
+        raise HTTPException(404, "Run not found")
+    return cancelled
+
+
 def _ensure_history(run: RunRecord) -> None:
-    if run.status in ("succeeded", "failed"):
+    if run.status in ("succeeded", "failed", "cancelled"):
         bus.load_history(run.id, events_log_path(get_settings(), run.id))
 
 

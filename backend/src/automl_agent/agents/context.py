@@ -32,6 +32,7 @@ class RunContext:
     split: SplitInfo | None = None  # set by the Manager's prepare stage
     budget: BudgetTracker | None = None
     state: dict[str, Any] = field(default_factory=dict)  # scratch space for extensions
+    observations: list[dict[str, Any]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if self.budget is None:

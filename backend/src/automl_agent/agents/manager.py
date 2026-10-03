@@ -304,6 +304,7 @@ class AgentManager(BaseAgent):
                 timeout_s=max(timeout, 30),
                 max_mem_mb=s.exec_max_mem_mb or None,
                 on_progress=on_progress,
+                run_id=ctx.run_id,
             )
             metrics = result.metrics or {}
             return Observation(
@@ -379,6 +380,7 @@ class AgentManager(BaseAgent):
                         "duration_s": obs.duration_s,
                     }
                 )
+        self.ctx.observations = list(result.observations)
 
     async def run(self) -> PipelineResult:
         """Execute the pipeline end to end and return its result."""
@@ -465,6 +467,7 @@ class AgentManager(BaseAgent):
                     "train_time_s": (exec_result.metrics or {}).get("train_time_s"),
                 }
             )
+            self.ctx.observations = list(result.observations)
             history.append(
                 {
                     "plan": chosen.plan.title,

@@ -20,6 +20,7 @@ from sqlmodel import Session, select
 
 from automl_agent.agents import AgentManager, PipelineResult, RunContext
 from automl_agent.config import Settings, get_settings
+from automl_agent.execution.sandbox import kill_run_processes
 from automl_agent.llm import LLMRouter, create_llm
 from automl_agent.schemas.dataset import DatasetProfile
 from automl_agent.schemas.events import AgentEvent, Stage
@@ -37,6 +38,7 @@ from .event_bus import EventBus, bus
 
 log = logging.getLogger(__name__)
 _tasks: set[asyncio.Task] = set()
+_active_tasks: dict[str, asyncio.Task] = {}
 
 
 @dataclass(frozen=True)
@@ -147,7 +149,9 @@ def create_run(
     ref = DatasetRef.from_record(dataset)  # copy before commit() expires the ORM object
     run = new_run(session, dataset.id, prompt, approval=approval)
     task = asyncio.create_task(execute_run(run.id, ref, prompt))
+    _active_tasks[run.id] = task
     _tasks.add(task)
+    task.add_done_callback(lambda t: _active_tasks.pop(run.id, None))
     task.add_done_callback(_tasks.discard)
     return run
 
@@ -196,7 +200,12 @@ async def execute_run(
     _update(settings, run_id, status=RunStatus.running.value, config={"pid": os.getpid()})
 
     llm: LLMRouter | None = None
+    ctx: RunContext | None = None
     try:
+        current_task = asyncio.current_task()
+        if current_task is not None:
+            _active_tasks[run_id] = current_task
+
         llm = create_llm(settings)
         _update(settings, run_id, config=run_config(settings, llm))
         ctx = RunContext(
@@ -239,6 +248,28 @@ async def execute_run(
             payload={"success": result.success, "metrics": result.metrics, "target_met": result.target_met},
         )
         return result
+    except asyncio.CancelledError:
+        log.info("run %s was cancelled", run_id)
+        kill_run_processes(run_id)
+        if ctx and ctx.observations:
+            save_observations(settings, run_id, dataset.id, ctx.observations)
+        _update(
+            settings,
+            run_id,
+            status=RunStatus.cancelled.value,
+            finished_at=utcnow(),
+            error="Cancelled by user",
+            llm_usage=llm.usage.to_dict() if llm else None,
+        )
+        await event_bus.publish(
+            run_id,
+            stage=Stage.done,
+            agent="system",
+            kind="warning",
+            message="Run cancelled",
+            payload={"event": "run_cancelled", "cancelled": True, "success": False},
+        )
+        raise
     except Exception as e:  # keep the server alive and report the failure to the UI
         log.exception("run %s crashed", run_id)
         _update(
@@ -258,4 +289,43 @@ async def execute_run(
         )
         return None
     finally:
+        _active_tasks.pop(run_id, None)
         await event_bus.close(run_id)
+
+
+async def cancel_run(run_id: str, settings: Settings | None = None) -> RunRecord | None:
+    """Cancel an active or paused run: kills sandbox processes, stops task, and persists status."""
+    settings = settings or get_settings()
+    kill_run_processes(run_id)
+
+    task = _active_tasks.get(run_id)
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            pass
+
+    with Session(get_engine(settings.db_url)) as session:
+        run = session.get(RunRecord, run_id)
+        if run is None:
+            return None
+        if run.status not in (RunStatus.succeeded.value, RunStatus.failed.value, RunStatus.cancelled.value):
+            run.status = RunStatus.cancelled.value
+            run.finished_at = utcnow()
+            run.error = "Cancelled by user"
+            session.add(run)
+            session.commit()
+            session.refresh(run)
+            await bus.publish(
+                run_id,
+                stage=Stage.done,
+                agent="system",
+                kind="warning",
+                message="Run cancelled",
+                payload={"event": "run_cancelled", "cancelled": True, "success": False},
+            )
+            await bus.close(run_id)
+        return run
