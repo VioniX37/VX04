@@ -38,6 +38,7 @@ export function ApprovalCard({ run, events, onUpdated }: ApprovalCardProps) {
   const [editedCode, setEditedCode] = useState(generatedCode);
 
   const [submitting, setSubmitting] = useState(false);
+  const [approved, setApproved] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,9 +85,11 @@ export function ApprovalCard({ run, events, onUpdated }: ApprovalCardProps) {
         };
       }
 
+      setApproved(true);
       const updated = await api.approveRun(run.id, requestBody);
       onUpdated(updated);
     } catch (e) {
+      setApproved(false);
       setError((e as Error).message);
     } finally {
       setSubmitting(false);
@@ -102,9 +105,11 @@ export function ApprovalCard({ run, events, onUpdated }: ApprovalCardProps) {
         ? { action: "edit" as const, edited_code: editedCode }
         : { action: "approve" as const };
 
+      setApproved(true);
       const updated = await api.approveRun(run.id, requestBody);
       onUpdated(updated);
     } catch (e) {
+      setApproved(false);
       setError((e as Error).message);
     } finally {
       setSubmitting(false);
@@ -281,7 +286,7 @@ export function ApprovalCard({ run, events, onUpdated }: ApprovalCardProps) {
               variant="outline"
               size="sm"
               onClick={handleCancelRun}
-              disabled={cancelling || submitting}
+              disabled={cancelling || submitting || approved}
               className="text-danger hover:bg-danger-soft/20"
             >
               {cancelling ? <Spinner /> : null} Cancel Run
@@ -291,10 +296,23 @@ export function ApprovalCard({ run, events, onUpdated }: ApprovalCardProps) {
               <Button
                 variant="primary"
                 onClick={handleApprovePlan}
-                disabled={submitting || cancelling}
-                className="bg-success text-white hover:bg-success/90"
+                disabled={submitting || cancelling || approved}
+                className={cn(
+                  "text-white",
+                  approved ? "bg-success/80" : "bg-success hover:bg-success/90",
+                )}
               >
-                {submitting ? <Spinner /> : "✓"} Approve & Implement Plan
+                {approved ? (
+                  <>
+                    <span className="text-white">✓</span> Approved! Resuming pipeline…
+                  </>
+                ) : submitting ? (
+                  <>
+                    <Spinner /> Resuming…
+                  </>
+                ) : (
+                  "✓ Approve & Implement Plan"
+                )}
               </Button>
             </div>
           </div>
@@ -381,7 +399,7 @@ export function ApprovalCard({ run, events, onUpdated }: ApprovalCardProps) {
               variant="outline"
               size="sm"
               onClick={handleCancelRun}
-              disabled={cancelling || submitting}
+              disabled={cancelling || submitting || approved}
               className="text-danger hover:bg-danger-soft/20"
             >
               {cancelling ? <Spinner /> : null} Cancel Run
@@ -390,10 +408,23 @@ export function ApprovalCard({ run, events, onUpdated }: ApprovalCardProps) {
             <Button
               variant="primary"
               onClick={handleApproveCode}
-              disabled={submitting || cancelling}
-              className="bg-success text-white hover:bg-success/90"
+              disabled={submitting || cancelling || approved}
+              className={cn(
+                "text-white",
+                approved ? "bg-success/80" : "bg-success hover:bg-success/90",
+              )}
             >
-              {submitting ? <Spinner /> : "✓"} Approve & Run Training Script
+              {approved ? (
+                <>
+                  <span className="text-white">✓</span> Code approved! Running sandbox…
+                </>
+              ) : submitting ? (
+                <>
+                  <Spinner /> Resuming…
+                </>
+              ) : (
+                "✓ Approve & Run Training Script"
+              )}
             </Button>
           </div>
         </div>

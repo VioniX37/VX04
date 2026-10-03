@@ -58,10 +58,21 @@ export function RunView({ runId }: { runId: string }) {
   }, [runId]);
 
   const isAwaitingInput = useMemo(() => {
+    if (run?.status === "succeeded" || run?.status === "failed" || run?.status === "cancelled") {
+      return false;
+    }
+    if (run?.status === "running") return false;
     if (run?.status === "awaiting_input") return true;
     for (let i = events.length - 1; i >= 0; i--) {
       const e = events[i];
-      if (e.stage === "done" || e.message?.toLowerCase().includes("resumed")) return false;
+      if (
+        e.stage === "done" ||
+        e.stage === "implement" ||
+        e.message?.toLowerCase().includes("approved") ||
+        e.message?.toLowerCase().includes("resumed")
+      ) {
+        return false;
+      }
       if ((e.payload as Record<string, unknown>)?.approval_step) return true;
     }
     return false;
