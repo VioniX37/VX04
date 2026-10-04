@@ -8,6 +8,7 @@ from a notebook also appear in the web UI.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import uuid
@@ -20,10 +21,12 @@ from sqlmodel import Session, select
 
 from automl_agent.agents import AgentManager, PipelineResult, RunContext
 from automl_agent.config import Settings, get_settings
+from automl_agent.execution.sandbox import kill_run_processes
+from automl_agent.extensions.approval import cancel_pending_approval, resolve_approval
 from automl_agent.llm import LLMRouter, create_llm
 from automl_agent.schemas.dataset import DatasetProfile
 from automl_agent.schemas.events import AgentEvent, Stage
-from automl_agent.schemas.run import RunStatus
+from automl_agent.schemas.run import PlanApprovalRequest, RunStatus
 from automl_agent.storage.db import (
     DatasetRecord,
     PlanObservation,
@@ -37,6 +40,7 @@ from .event_bus import EventBus, bus
 
 log = logging.getLogger(__name__)
 _tasks: set[asyncio.Task] = set()
+_active_tasks: dict[str, asyncio.Task] = {}
 
 
 @dataclass(frozen=True)
@@ -131,21 +135,23 @@ def recover_interrupted_runs(settings: Settings) -> list[str]:
     return interrupted
 
 
-def new_run(session: Session, dataset_id: str, prompt: str) -> RunRecord:
+def new_run(session: Session, dataset_id: str, prompt: str, approval: str = "auto") -> RunRecord:
     """Insert a pending run record."""
-    run = RunRecord(id=uuid.uuid4().hex[:12], dataset_id=dataset_id, prompt=prompt)
+    run = RunRecord(id=uuid.uuid4().hex[:12], dataset_id=dataset_id, prompt=prompt, approval=approval)
     session.add(run)
     session.commit()
     session.refresh(run)
     return run
 
 
-def create_run(session: Session, dataset: DatasetRecord, prompt: str) -> RunRecord:
+def create_run(session: Session, dataset: DatasetRecord, prompt: str, approval: str = "auto") -> RunRecord:
     """Insert a run and start it in the background (API use)."""
     ref = DatasetRef.from_record(dataset)  # copy before commit() expires the ORM object
-    run = new_run(session, dataset.id, prompt)
-    task = asyncio.create_task(execute_run(run.id, ref, prompt))
+    run = new_run(session, dataset.id, prompt, approval=approval)
+    task = asyncio.create_task(execute_run(run.id, ref, prompt, approval=approval))
+    _active_tasks[run.id] = task
     _tasks.add(task)
+    task.add_done_callback(lambda t: _active_tasks.pop(run.id, None))
     task.add_done_callback(_tasks.discard)
     return run
 
@@ -178,6 +184,7 @@ async def execute_run(
     dataset: DatasetRef,
     prompt: str,
     *,
+    approval: str = "auto",
     settings: Settings | None = None,
     event_bus: EventBus = bus,
 ) -> PipelineResult | None:
@@ -193,8 +200,19 @@ async def execute_run(
     event_bus.attach_log(run_id, events_log_path(settings, run_id))
     _update(settings, run_id, status=RunStatus.running.value, config={"pid": os.getpid()})
 
+    if approval == "auto":
+        with Session(get_engine(settings.db_url)) as session:
+            rec = session.get(RunRecord, run_id)
+            if rec and rec.approval:
+                approval = rec.approval
+
     llm: LLMRouter | None = None
+    ctx: RunContext | None = None
     try:
+        current_task = asyncio.current_task()
+        if current_task is not None:
+            _active_tasks[run_id] = current_task
+
         llm = create_llm(settings)
         _update(settings, run_id, config=run_config(settings, llm))
         ctx = RunContext(
@@ -207,6 +225,7 @@ async def execute_run(
             llm=llm,
             bus=event_bus,
             dataset_id=dataset.id,
+            approval=approval,
         )
         await ctx.emit(Stage.parse, "system", f"Run started with {llm.provider}: {llm.model}", kind="status")
         result = await AgentManager(ctx).run()
@@ -227,6 +246,8 @@ async def execute_run(
             code=result.code,
             error=result.error,
             llm_usage=llm.usage.to_dict(),
+            human_override=ctx.state.get("human_override", False),
+            human_decision=ctx.state.get("human_decision"),
         )
         save_observations(settings, run_id, dataset.id, result.observations)
         await ctx.emit(
@@ -237,6 +258,28 @@ async def execute_run(
             payload={"success": result.success, "metrics": result.metrics, "target_met": result.target_met},
         )
         return result
+    except asyncio.CancelledError:
+        log.info("run %s was cancelled", run_id)
+        kill_run_processes(run_id)
+        if ctx and ctx.observations:
+            save_observations(settings, run_id, dataset.id, ctx.observations)
+        _update(
+            settings,
+            run_id,
+            status=RunStatus.cancelled.value,
+            finished_at=utcnow(),
+            error="Cancelled by user",
+            llm_usage=llm.usage.to_dict() if llm else None,
+        )
+        await event_bus.publish(
+            run_id,
+            stage=Stage.done,
+            agent="system",
+            kind="warning",
+            message="Run cancelled",
+            payload={"event": "run_cancelled", "cancelled": True, "success": False},
+        )
+        raise
     except Exception as e:  # keep the server alive and report the failure to the UI
         log.exception("run %s crashed", run_id)
         _update(
@@ -256,4 +299,101 @@ async def execute_run(
         )
         return None
     finally:
+        _active_tasks.pop(run_id, None)
         await event_bus.close(run_id)
+
+
+async def cancel_run(run_id: str, settings: Settings | None = None) -> RunRecord | None:
+    """Cancel an active or paused run: kills sandbox processes, stops task, and persists status."""
+    settings = settings or get_settings()
+    kill_run_processes(run_id)
+    cancel_pending_approval(run_id)
+
+    task = _active_tasks.get(run_id)
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            pass
+
+    with Session(get_engine(settings.db_url)) as session:
+        run = session.get(RunRecord, run_id)
+        if run is None:
+            return None
+        if run.status not in (RunStatus.succeeded.value, RunStatus.failed.value, RunStatus.cancelled.value):
+            run.status = RunStatus.cancelled.value
+            run.finished_at = utcnow()
+            run.error = "Cancelled by user"
+            session.add(run)
+            session.commit()
+            session.refresh(run)
+            await bus.publish(
+                run_id,
+                stage=Stage.done,
+                agent="system",
+                kind="warning",
+                message="Run cancelled",
+                payload={"event": "run_cancelled", "cancelled": True, "success": False},
+            )
+            await bus.close(run_id)
+        return run
+
+
+async def approve_run(
+    run_id: str,
+    request: PlanApprovalRequest,
+    settings: Settings | None = None,
+) -> RunRecord | None:
+    """Approve, pick, or edit a plan for a run waiting in awaiting_input."""
+    settings = settings or get_settings()
+    with Session(get_engine(settings.db_url)) as session:
+        run = session.get(RunRecord, run_id)
+        if run is None or run.status != RunStatus.awaiting_input.value:
+            return None
+
+    if resolve_approval(run_id, request):
+        await asyncio.sleep(0.02)  # yield control to let resumed task update status and DB
+        with Session(get_engine(settings.db_url)) as session:
+            return session.get(RunRecord, run_id)
+
+    # Recovery scenario (e.g. backend restarted while run was awaiting input)
+    workdir = settings.runs_dir / run_id
+    pause_file = workdir / "pause_state.json"
+    if pause_file.exists():
+        try:
+            data = json.loads(pause_file.read_text(encoding="utf-8"))
+            data["decision"] = request.model_dump(mode="json")
+            pause_file.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        except Exception:
+            log.exception("Failed updating pause_state.json for run %s", run_id)
+
+    with Session(get_engine(settings.db_url)) as session:
+        run_record = session.get(RunRecord, run_id)
+        if run_record is None:
+            return None
+        dataset_record = session.get(DatasetRecord, run_record.dataset_id)
+        if dataset_record is None:
+            return None
+        ref = DatasetRef.from_record(dataset_record)
+        run_record.status = RunStatus.running.value
+        session.add(run_record)
+        session.commit()
+        session.refresh(run_record)
+
+    task = asyncio.create_task(
+        execute_run(
+            run_record.id,
+            ref,
+            run_record.prompt,
+            approval=run_record.approval,
+            settings=settings,
+        )
+    )
+    _active_tasks[run_record.id] = task
+    _tasks.add(task)
+    task.add_done_callback(lambda t: _active_tasks.pop(run_record.id, None))
+    task.add_done_callback(_tasks.discard)
+    return run_record

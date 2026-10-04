@@ -50,9 +50,9 @@ export function RunList() {
       </Card>
     );
 
-  const done = runs.filter((r) => r.status === "succeeded" || r.status === "failed");
+  const done = runs.filter((r) => r.status === "succeeded" || r.status === "failed" || r.status === "cancelled");
   const ok = runs.filter((r) => r.status === "succeeded");
-  const live = runs.filter((r) => r.status === "running" || r.status === "pending");
+  const live = runs.filter((r) => r.status === "running" || r.status === "pending" || r.status === "awaiting_input");
   const calls = runs.reduce((s, r) => s + (r.llm_usage?.calls ?? 0), 0);
   const scored = runs.filter((r) => r.metrics?.score != null);
 
@@ -84,10 +84,20 @@ export function RunList() {
                 return (
                   <tr key={r.id} className="border-b border-border/60 transition-colors last:border-0 hover:bg-surface-muted/50">
                     <td className="px-4 py-3 font-mono text-xs">
-                      <Link href={`/runs/${r.id}`} className="inline-flex items-center gap-2 text-accent hover:underline">
-                        {(r.status === "running" || r.status === "pending") && <LiveDot className="h-1.5 w-1.5" />}
-                        {r.id}
-                      </Link>
+                      <div className="inline-flex items-center gap-2">
+                        <Link href={`/runs/${r.id}`} className="inline-flex items-center gap-2 text-accent hover:underline">
+                          {(r.status === "running" || r.status === "pending" || r.status === "awaiting_input") && <LiveDot className="h-1.5 w-1.5" />}
+                          {r.id}
+                        </Link>
+                        {r.human_override && (
+                          <span
+                            title="Human Guided (Plan or code adjusted by user)"
+                            className="rounded bg-accent-soft px-1.5 py-0.5 text-[10px] font-sans font-medium text-accent"
+                          >
+                            Guided
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="max-w-[16rem] truncate px-4 py-3 text-muted">{r.prompt}</td>
                     <td className="px-4 py-3"><StatusBadge status={r.status} /></td>

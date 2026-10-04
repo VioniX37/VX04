@@ -2,11 +2,12 @@
 
 from .model_registry import SUPPORTED_MODELS, normalize_model, supported_models
 from .renderer import build_config, render_template
-from .sandbox import run_script, static_check
+from .sandbox import kill_run_processes, run_script, static_check
 
 __all__ = [
     "SUPPORTED_MODELS",
     "build_config",
+    "kill_run_processes",
     "normalize_model",
     "render_template",
     "run_script",

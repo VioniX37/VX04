@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
 import { formatBytes } from "@/lib/stages";
-import type { Dataset } from "@/lib/types";
+import type { ApprovalMode, Dataset } from "@/lib/types";
 import { DatasetProfileTable } from "./DatasetProfileTable";
 import { IngestProgress, type IngestPhase } from "./viz/IngestProgress";
 import { Button, Card, CardTitle, ErrorNote, Spinner, cn } from "./ui";
@@ -36,6 +36,7 @@ export function NewRunForm() {
   const [dragging, setDragging] = useState(false);
   const [location, setLocation] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [approval, setApproval] = useState<ApprovalMode>("auto");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ingest, setIngest] = useState<{ phase: IngestPhase; startedAt: number; viaPath: boolean } | null>(null);
@@ -91,7 +92,7 @@ export function NewRunForm() {
     setError(null);
     setSubmitting(true);
     try {
-      const run = await api.createRun(dataset.id, prompt.trim());
+      const run = await api.createRun(dataset.id, prompt.trim(), approval);
       router.push(`/runs/${run.id}`);
     } catch (e) {
       setError((e as Error).message);
@@ -265,6 +266,38 @@ export function NewRunForm() {
             </button>
           ))}
         </div>
+
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-foreground">Human-in-the-Loop</span>
+            <span className="text-[11px] text-muted">Approval Mode</span>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 rounded-lg bg-surface-muted p-1 text-xs">
+            {(
+              [
+                { id: "auto", label: "Auto", desc: "No review" },
+                { id: "plans", label: "Plans", desc: "Review plans" },
+                { id: "plans+code", label: "Plans+Code", desc: "Review code" },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setApproval(opt.id)}
+                className={cn(
+                  "flex flex-col items-center rounded-md p-2 text-center transition-all",
+                  approval === opt.id
+                    ? "bg-surface font-semibold text-accent shadow-xs"
+                    : "text-muted hover:bg-surface/50 hover:text-foreground",
+                )}
+              >
+                <span>{opt.label}</span>
+                <span className="text-[10px] font-normal text-muted">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-auto space-y-3 pt-5">
           {error && <ErrorNote>{error}</ErrorNote>}
           <Button className="w-full" onClick={submit} disabled={!dataset || prompt.trim().length < 3 || submitting}>

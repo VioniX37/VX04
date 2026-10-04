@@ -14,8 +14,36 @@ class RunStatus(StrEnum):
 
     pending = "pending"
     running = "running"
+    awaiting_input = "awaiting_input"
     succeeded = "succeeded"
     failed = "failed"
+    cancelled = "cancelled"
+
+
+class ApprovalMode(StrEnum):
+    """Approval gate for pipeline decisions."""
+
+    auto = "auto"
+    plans = "plans"
+    plans_code = "plans+code"
+
+
+class PlanApprovalAction(StrEnum):
+    """Action taken by the user on a paused run."""
+
+    approve = "approve"
+    pick = "pick"
+    edit = "edit"
+
+
+class PlanApprovalRequest(BaseModel):
+    """Payload to approve, pick, or edit a plan for a paused run."""
+
+    action: PlanApprovalAction = PlanApprovalAction.approve
+    plan_id: str | None = None
+    edited_plan: dict[str, Any] | None = None
+    edited_code: str | None = None
+    feedback: str | None = None
 
 
 class RunCreate(BaseModel):
@@ -23,6 +51,7 @@ class RunCreate(BaseModel):
 
     dataset_id: str
     prompt: str = Field(min_length=3)
+    approval: ApprovalMode = Field(default=ApprovalMode.auto)
 
 
 class RunOut(BaseModel):
@@ -32,6 +61,9 @@ class RunOut(BaseModel):
     dataset_id: str
     prompt: str
     status: RunStatus
+    approval: ApprovalMode = ApprovalMode.auto
+    human_override: bool = False
+    human_decision: dict[str, Any] | None = None
     created_at: datetime
     finished_at: datetime | None = None
     task_spec: dict[str, Any] | None = None

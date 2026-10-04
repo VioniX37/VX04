@@ -19,7 +19,7 @@ OUTPUT = REPO_ROOT / "docs" / "reference" / "configuration.md"
 
 SECTIONS = [
     ("LLM (Gemini)", "llm_provider", "search_grounding"),
-    ("Pipeline", "n_plans", "exec_n_jobs"),
+    ("Pipeline", "n_plans", "approval_timeout_s"),
     ("Data", "max_upload_mb", "profile_sample_rows"),
     ("Storage and server", "workspace_dir", "cors_origins"),
 ]

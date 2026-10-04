@@ -12,13 +12,14 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import contextlib
 import json
 import os
 import subprocess
 import sys
 import threading
 import time
-from collections import deque
+from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any
@@ -33,6 +34,40 @@ POLL_S = 0.25
 TELEMETRY_S = 2.0  # how often resource samples are forwarded to the caller
 
 ProgressCallback = Callable[[dict[str, Any]], Awaitable[None]]
+
+_active_processes: set[int] = set()
+_run_processes: dict[str, set[int]] = defaultdict(set)
+_proc_lock = threading.Lock()
+
+
+def register_process(pid: int, run_id: str | None = None) -> None:
+    """Track an active sandbox process for cancellation."""
+    with _proc_lock:
+        _active_processes.add(pid)
+        if run_id:
+            _run_processes[run_id].add(pid)
+
+
+def unregister_process(pid: int, run_id: str | None = None) -> None:
+    """Remove a process from tracking after it exits."""
+    with _proc_lock:
+        _active_processes.discard(pid)
+        if run_id and run_id in _run_processes:
+            _run_processes[run_id].discard(pid)
+            if not _run_processes[run_id]:
+                _run_processes.pop(run_id, None)
+
+
+def kill_run_processes(run_id: str) -> None:
+    """Kill all active sandbox process trees associated with a run."""
+    with _proc_lock:
+        pids = list(_run_processes.get(run_id, set()))
+    for pid in pids:
+        _kill_tree(pid)
+        with _proc_lock:
+            if run_id in _run_processes:
+                _run_processes[run_id].discard(pid)
+            _active_processes.discard(pid)
 
 
 def static_check(code: str) -> str | None:
@@ -86,13 +121,28 @@ def _tree_cpu_seconds(proc: psutil.Process) -> float:
 
 
 def _kill_tree(pid: int) -> None:
+    """Kill a process and all its children recursively across Windows and POSIX."""
     try:
         parent = psutil.Process(pid)
-        for child in parent.children(recursive=True):
-            child.kill()
-        parent.kill()
-    except psutil.Error:
+        children = parent.children(recursive=True)
+        for child in children:
+            with contextlib.suppress(psutil.NoSuchProcess, psutil.AccessDenied):
+                child.kill()
+        with contextlib.suppress(psutil.NoSuchProcess, psutil.AccessDenied):
+            parent.kill()
+        psutil.wait_procs(children + [parent], timeout=3)
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
+    except Exception:
+        pass
+    if sys.platform == "win32":
+        with contextlib.suppress(Exception):
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
 
 
 def _run_blocking(
@@ -100,6 +150,7 @@ def _run_blocking(
     timeout_s: int,
     max_mem_mb: int,
     forward: Callable[[dict[str, Any]], None] | None,
+    run_id: str | None = None,
 ) -> ExecutionResult:
     env = {**os.environ, "PYTHONHASHSEED": "0", "MPLBACKEND": "Agg", "PYTHONIOENCODING": "utf-8"}
     metrics_file = script.parent / "metrics.json"
@@ -115,81 +166,86 @@ def _run_blocking(
         errors="replace",
         env=env,
     )
-    ps = psutil.Process(proc.pid)
-    stderr_parts: list[str] = []
-    stdout_lines: deque[str] = deque(maxlen=500)
-    state = {"killed": None, "peak_mb": 0.0}
+    register_process(proc.pid, run_id)
+    try:
+        ps = psutil.Process(proc.pid)
+        stderr_parts: list[str] = []
+        stdout_lines: deque[str] = deque(maxlen=500)
+        state = {"killed": None, "peak_mb": 0.0}
 
-    def read_stderr() -> None:
-        stderr_parts.append(proc.stderr.read())
+        def read_stderr() -> None:
+            stderr_parts.append(proc.stderr.read())
 
-    def watchdog() -> None:
-        last_sample, last_cpu = time.perf_counter(), 0.0
-        while proc.poll() is None:
-            rss = _tree_rss_mb(ps)
-            state["peak_mb"] = max(state["peak_mb"], rss)
-            now = time.perf_counter()
-            if forward is not None and now - last_sample >= TELEMETRY_S:
-                cpu = _tree_cpu_seconds(ps)
-                cores = max(0.0, (cpu - last_cpu) / (now - last_sample)) if last_cpu else 0.0
-                forward({"telemetry": True, "t": round(now - start, 1), "rss_mb": round(rss, 1),
-                         "cores": round(cores, 2)})  # fmt: skip
-                last_sample, last_cpu = now, cpu
-            if time.perf_counter() - start > timeout_s:
-                state["killed"] = "timeout"
-            elif max_mem_mb and rss > max_mem_mb:
-                state["killed"] = "memory"
-            if state["killed"]:
-                _kill_tree(proc.pid)
-                return
-            time.sleep(POLL_S)
+        def watchdog() -> None:
+            last_sample, last_cpu = time.perf_counter(), 0.0
+            while proc.poll() is None:
+                rss = _tree_rss_mb(ps)
+                state["peak_mb"] = max(state["peak_mb"], rss)
+                now = time.perf_counter()
+                if forward is not None and now - last_sample >= TELEMETRY_S:
+                    cpu = _tree_cpu_seconds(ps)
+                    cores = max(0.0, (cpu - last_cpu) / (now - last_sample)) if last_cpu else 0.0
+                    forward({"telemetry": True, "t": round(now - start, 1), "rss_mb": round(rss, 1),
+                             "cores": round(cores, 2)})  # fmt: skip
+                    last_sample, last_cpu = now, cpu
+                if time.perf_counter() - start > timeout_s:
+                    state["killed"] = "timeout"
+                elif max_mem_mb and rss > max_mem_mb:
+                    state["killed"] = "memory"
+                if state["killed"]:
+                    _kill_tree(proc.pid)
+                    return
+                time.sleep(POLL_S)
 
-    threads = [
-        threading.Thread(target=read_stderr, daemon=True),
-        threading.Thread(target=watchdog, daemon=True),
-    ]
-    for t in threads:
-        t.start()
-    for line in proc.stdout:
-        if line.startswith(PROGRESS_PREFIX) and forward is not None:
-            try:
-                forward(json.loads(line[len(PROGRESS_PREFIX) :]))
-            except json.JSONDecodeError:
+        threads = [
+            threading.Thread(target=read_stderr, daemon=True),
+            threading.Thread(target=watchdog, daemon=True),
+        ]
+        for t in threads:
+            t.start()
+        for line in proc.stdout:
+            if line.startswith(PROGRESS_PREFIX) and forward is not None:
+                try:
+                    forward(json.loads(line[len(PROGRESS_PREFIX) :]))
+                except json.JSONDecodeError:
+                    stdout_lines.append(line)
+            else:
                 stdout_lines.append(line)
-        else:
-            stdout_lines.append(line)
-    proc.wait()
-    for t in threads:
-        t.join(timeout=5)
+        proc.wait()
+        for t in threads:
+            t.join(timeout=5)
 
-    duration = round(time.perf_counter() - start, 3)
-    stderr = "".join(stderr_parts)
-    if state["killed"] == "timeout":
-        stderr += f"\nKilled: exceeded the {timeout_s}s time limit."
-    elif state["killed"] == "memory":
-        stderr += (
-            f"\nKilled: exceeded the {max_mem_mb} MB memory limit. Use a lower fidelity or a leaner model."
+        duration = round(time.perf_counter() - start, 3)
+        stderr = "".join(stderr_parts)
+        if state["killed"] == "timeout":
+            stderr += f"\nKilled: exceeded the {timeout_s}s time limit."
+        elif state["killed"] == "memory":
+            stderr += (
+                f"\nKilled: exceeded the {max_mem_mb} MB memory limit. "
+                "Use a lower fidelity or a leaner model."
+            )
+
+        metrics = None
+        if metrics_file.exists():
+            try:
+                metrics = json.loads(metrics_file.read_text(encoding="utf-8"))
+            except json.JSONDecodeError:
+                metrics = None
+        if proc.returncode == 0 and metrics is None:
+            stderr += "\nScript finished but did not write a valid metrics.json"
+        return ExecutionResult(
+            ok=proc.returncode == 0 and metrics is not None and state["killed"] is None,
+            returncode=proc.returncode,
+            duration_s=duration,
+            stdout=_tail("".join(stdout_lines)),
+            stderr=_tail(stderr),
+            metrics=metrics,
+            timed_out=state["killed"] == "timeout",
+            memory_exceeded=state["killed"] == "memory",
+            peak_memory_mb=round(state["peak_mb"], 1),
         )
-
-    metrics = None
-    if metrics_file.exists():
-        try:
-            metrics = json.loads(metrics_file.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            metrics = None
-    if proc.returncode == 0 and metrics is None:
-        stderr += "\nScript finished but did not write a valid metrics.json"
-    return ExecutionResult(
-        ok=proc.returncode == 0 and metrics is not None and state["killed"] is None,
-        returncode=proc.returncode,
-        duration_s=duration,
-        stdout=_tail("".join(stdout_lines)),
-        stderr=_tail(stderr),
-        metrics=metrics,
-        timed_out=state["killed"] == "timeout",
-        memory_exceeded=state["killed"] == "memory",
-        peak_memory_mb=round(state["peak_mb"], 1),
-    )
+    finally:
+        unregister_process(proc.pid, run_id)
 
 
 async def run_script(
@@ -200,6 +256,7 @@ async def run_script(
     timeout_s: int = 600,
     max_mem_mb: int | None = None,
     on_progress: ProgressCallback | None = None,
+    run_id: str | None = None,
 ) -> ExecutionResult:
     """Write `code` to `workdir/filename`, run it, and return the outcome.
 
@@ -209,6 +266,7 @@ async def run_script(
 
     Args:
         max_mem_mb: Resident-memory ceiling for the process tree (None = 80% of RAM, 0 = unlimited).
+        run_id: Optional run id for process cancellation.
     """
     workdir.mkdir(parents=True, exist_ok=True)
     script = workdir / filename
@@ -218,7 +276,12 @@ async def run_script(
     limit = default_memory_limit_mb() if max_mem_mb is None else max_mem_mb
 
     if on_progress is None:
-        return await asyncio.to_thread(_run_blocking, script, timeout_s, limit, None)
+        try:
+            return await asyncio.to_thread(_run_blocking, script, timeout_s, limit, None, run_id)
+        except asyncio.CancelledError:
+            if run_id:
+                kill_run_processes(run_id)
+            raise
 
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
@@ -226,11 +289,17 @@ async def run_script(
     def forward(item: dict[str, Any]) -> None:
         loop.call_soon_threadsafe(queue.put_nowait, item)
 
-    task = asyncio.ensure_future(asyncio.to_thread(_run_blocking, script, timeout_s, limit, forward))
-    while not (task.done() and queue.empty()):
-        try:
-            item = await asyncio.wait_for(queue.get(), timeout=POLL_S)
-        except TimeoutError:
-            continue
-        await on_progress(item)
-    return task.result()
+    task = asyncio.ensure_future(asyncio.to_thread(_run_blocking, script, timeout_s, limit, forward, run_id))
+    try:
+        while not (task.done() and queue.empty()):
+            try:
+                item = await asyncio.wait_for(queue.get(), timeout=POLL_S)
+            except TimeoutError:
+                continue
+            await on_progress(item)
+        return task.result()
+    except asyncio.CancelledError:
+        if run_id:
+            kill_run_processes(run_id)
+        task.cancel()
+        raise

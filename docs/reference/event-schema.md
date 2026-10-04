@@ -24,11 +24,13 @@ Every run produces an ordered stream of `AgentEvent`s:
 | `ground` (status) | `schedule`, `n_train`, `predicted` | Rows per rung (`null` = all), training size, predicted score per plan id |
 | `ground` (artifact) | `rung` | `{rows, results: [{plan_id, model_family, fidelity_rows, score, ok, duration_s, error}]}` |
 | `select` | `ranked`, `selected`, `verification_mode` | `PlanEvaluation[]` (with observations), selected plan id |
+| `pause` | `approval_step`, `options` or `code` | `{approval_step: "plans", options: PlanEvaluation[]} ` or `{approval_step: "code", code: string}` |
+| `resume` | `action`, `plan_id` or `code` | Human decision resolving the paused state |
 | `implement` (status) | `attempt`, `code` | Script about to run |
 | `implement` (info) | `attempt`, `progress` | A `PROGRESS` line printed by the script: `{stage, ...}` |
 | `implement` (artifact/warning) | `attempt`, `result` | `ExecutionResult`: `ok`, `returncode`, `duration_s`, `stdout`, `stderr`, `metrics`, `timed_out`, `memory_exceeded`, `peak_memory_mb` |
 | `verify_impl` | `issues`, `metrics`, `budget` | Unmet requirements, test metrics, budget snapshot |
-| `done` | `success`, `metrics`, `target_met` | Final outcome |
+| `done` | `success`, `metrics`, `target_met`, `cancelled`, `event` | Final outcome (on cancel: `{event: "run_cancelled", cancelled: true, success: false}`) |
 
 ## Persistence
 

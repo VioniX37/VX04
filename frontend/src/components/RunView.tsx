@@ -8,12 +8,13 @@ import { formatMetric } from "@/lib/stages";
 import type { AgentEvent, ExecutionMetrics, Run } from "@/lib/types";
 import { useNow } from "@/lib/use-now";
 import { AgentTimeline } from "./AgentTimeline";
+import { ApprovalCard } from "./ApprovalCard";
 import { CodeViewer } from "./CodeViewer";
 import { GroundingPanel } from "./GroundingPanel";
 import { KnowledgePanel } from "./KnowledgePanel";
 import { MetricsPanel } from "./MetricsPanel";
 import { PlanCards } from "./PlanCards";
-import { Badge, Card, CardTitle, cn, ErrorNote, LiveDot, Spinner, Stat, StatusBadge } from "./ui";
+import { Badge, Button, Card, CardTitle, cn, ErrorNote, LiveDot, Spinner, Stat, StatusBadge } from "./ui";
 import { AgentGantt } from "./viz/AgentGantt";
 import { BudgetGauges, SplitBar } from "./viz/Gauges";
 import { GroundingChart } from "./viz/GroundingChart";
@@ -39,7 +40,13 @@ export function RunView({ runId }: { runId: string }) {
     const unsubscribe = subscribeToRun(runId, {
       onEvent: (e) => {
         setEvents((prev) => (prev.length && prev[prev.length - 1].seq >= e.seq ? prev : [...prev, e]));
-        if (e.stage === "done") refresh();
+        if (
+          e.stage === "done" ||
+          (e.payload && Boolean((e.payload as Record<string, unknown>).approval_step)) ||
+          e.message?.toLowerCase().includes("resumed")
+        ) {
+          refresh();
+        }
       },
       onEnd: refresh,
       onError: () => !cancelled && setError("Lost connection to the event stream."),
@@ -50,7 +57,28 @@ export function RunView({ runId }: { runId: string }) {
     };
   }, [runId]);
 
-  const finished = run?.status === "succeeded" || run?.status === "failed";
+  const isAwaitingInput = useMemo(() => {
+    if (run?.status === "succeeded" || run?.status === "failed" || run?.status === "cancelled") {
+      return false;
+    }
+    if (run?.status === "running") return false;
+    if (run?.status === "awaiting_input") return true;
+    for (let i = events.length - 1; i >= 0; i--) {
+      const e = events[i];
+      if (
+        e.stage === "done" ||
+        e.stage === "implement" ||
+        e.message?.toLowerCase().includes("approved") ||
+        e.message?.toLowerCase().includes("resumed")
+      ) {
+        return false;
+      }
+      if ((e.payload as Record<string, unknown>)?.approval_step) return true;
+    }
+    return false;
+  }, [run?.status, events]);
+
+  const finished = run?.status === "succeeded" || run?.status === "failed" || run?.status === "cancelled";
   const model = useMemo(() => buildRunModel(events, finished, run?.status === "failed"), [events, finished, run?.status]);
   const nowMs = useNow(!finished && !!run);
   const nowSec = finished ? model.now : Math.max(model.now, (nowMs - model.t0) / 1000);
@@ -87,7 +115,12 @@ export function RunView({ runId }: { runId: string }) {
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-gradient font-mono text-3xl font-semibold tracking-tight">{run.id}</h1>
-            <StatusBadge status={run.status} />
+            <StatusBadge status={isAwaitingInput ? "awaiting_input" : run.status} />
+            {run.human_override && (
+              <Badge tone="accent" title="A human expert intervened in plan or code selection">
+                👤 Human Guided
+              </Badge>
+            )}
           </div>
           <p className="mt-2 max-w-3xl text-sm text-muted">“{run.prompt}”</p>
           {cfg && (
@@ -105,6 +138,26 @@ export function RunView({ runId }: { runId: string }) {
             </div>
           )}
         </div>
+
+        {!finished && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              if (confirm("Are you sure you want to cancel this run?")) {
+                try {
+                  const cancelledRun = await api.cancelRun(run.id);
+                  setRun(cancelledRun);
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }
+            }}
+            className="text-danger hover:bg-danger-soft/20"
+          >
+            Cancel Run
+          </Button>
+        )}
       </div>
 
       {/* KPI strip */}
@@ -112,8 +165,19 @@ export function RunView({ runId }: { runId: string }) {
         <Stat label="elapsed" value={formatDuration(nowSec)} caption={finished ? "total" : "live"} tone={finished ? undefined : "accent"} />
         <Stat
           label="stage"
-          value={finished ? (run.status === "succeeded" ? "Complete" : "Stopped") : currentStage?.label ?? "Starting"}
-          caption={finished ? undefined : currentStage?.agent}
+          value={
+            finished
+              ? run.status === "succeeded"
+                ? "Complete"
+                : run.status === "cancelled"
+                  ? "Cancelled"
+                  : "Stopped"
+              : isAwaitingInput
+                ? "Needs your input"
+                : currentStage?.label ?? "Starting"
+          }
+          caption={finished ? undefined : isAwaitingInput ? "Human approval" : currentStage?.agent}
+          tone={isAwaitingInput ? "warning" : undefined}
         />
         <Stat
           label={metrics?.score != null ? `test ${metrics.metric ?? ""}` : "best validation"}
@@ -129,6 +193,15 @@ export function RunView({ runId }: { runId: string }) {
 
       {error && <ErrorNote>{error}</ErrorNote>}
       {run.error && <ErrorNote>{run.error}</ErrorNote>}
+
+      {/* Human approval review card when awaiting input */}
+      {isAwaitingInput && (
+        <ApprovalCard
+          run={run}
+          events={events}
+          onUpdated={(updatedRun) => setRun(updatedRun)}
+        />
+      )}
 
       {/* pipeline graph */}
       <Card glow={!finished}>

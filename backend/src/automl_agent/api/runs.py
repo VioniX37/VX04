@@ -8,9 +8,9 @@ from sse_starlette.sse import EventSourceResponse
 
 from automl_agent.config import get_settings
 from automl_agent.schemas.events import AgentEvent
-from automl_agent.schemas.run import RunCreate, RunOut
+from automl_agent.schemas.run import PlanApprovalRequest, RunCreate, RunOut, RunStatus
 from automl_agent.services.event_bus import bus
-from automl_agent.services.run_service import create_run, events_log_path
+from automl_agent.services.run_service import approve_run, cancel_run, create_run, events_log_path
 from automl_agent.storage.db import DatasetRecord, PlanObservation, RunRecord, get_session
 
 router = APIRouter(prefix="/runs", tags=["runs"])
@@ -22,7 +22,7 @@ async def start_run(body: RunCreate, session: Session = Depends(get_session)) ->
     dataset = session.get(DatasetRecord, body.dataset_id)
     if dataset is None:
         raise HTTPException(404, "Dataset not found")
-    return create_run(session, dataset, body.prompt)
+    return create_run(session, dataset, body.prompt, approval=body.approval.value)
 
 
 @router.get("", response_model=list[RunOut])
@@ -40,8 +40,41 @@ def get_run(run_id: str, session: Session = Depends(get_session)) -> RunRecord:
     return run
 
 
+@router.post("/{run_id}/cancel", response_model=RunOut)
+async def cancel_run_endpoint(run_id: str, session: Session = Depends(get_session)) -> RunRecord:
+    """Cancel an active or paused run."""
+    run = session.get(RunRecord, run_id)
+    if run is None:
+        raise HTTPException(404, "Run not found")
+    if run.status in (RunStatus.succeeded.value, RunStatus.failed.value, RunStatus.cancelled.value):
+        raise HTTPException(400, f"Cannot cancel finished run (status={run.status})")
+    cancelled = await cancel_run(run_id)
+    if cancelled is None:
+        raise HTTPException(404, "Run not found")
+    return cancelled
+
+
+@router.post("/{run_id}/approve", response_model=RunOut)
+async def approve_run_endpoint(
+    run_id: str,
+    request: PlanApprovalRequest,
+    session: Session = Depends(get_session),
+) -> RunRecord:
+    """Approve, pick, or edit a plan for a run waiting in awaiting_input."""
+    run = session.get(RunRecord, run_id)
+    if run is None:
+        raise HTTPException(404, "Run not found")
+    if run.status != RunStatus.awaiting_input.value:
+        raise HTTPException(400, f"Run is not awaiting input (status={run.status})")
+
+    resumed = await approve_run(run_id, request)
+    if resumed is None:
+        raise HTTPException(500, "Failed to resume run")
+    return resumed
+
+
 def _ensure_history(run: RunRecord) -> None:
-    if run.status in ("succeeded", "failed"):
+    if run.status in ("succeeded", "failed", "cancelled"):
         bus.load_history(run.id, events_log_path(get_settings(), run.id))
 
 
