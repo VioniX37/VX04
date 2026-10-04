@@ -1,4 +1,4 @@
-import type { AgentEvent, Dataset, Health, Run } from "./types";
+import type { AgentEvent, BundleSchema, Dataset, Health, PredictResult, Run } from "./types";
 
 /** Base URL of the FastAPI backend (set `NEXT_PUBLIC_API_URL` in `frontend/.env.local`). */
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -88,6 +88,32 @@ export const api = {
     }),
   listRuns: () => request<Run[]>("/runs"),
   getRun: (id: string) => request<Run>(`/runs/${id}`),
+  /** Score JSON records against a finished run's model. */
+  predictRecords: (runId: string, records: Record<string, unknown>[]) =>
+    request<PredictResult>(`/runs/${runId}/predict`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(records),
+    }),
+  /** Return the bundle download URL (opens in a new tab or triggers <a> download). */
+  bundleUrl: (runId: string) => `${API_URL}/api/runs/${runId}/artifacts/bundle`,
+  /** Score a file upload; returns the response blob for saving. */
+  predictBatch: async (runId: string, file: File): Promise<Blob> => {
+    const form = new FormData();
+    form.append("file", file);
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}/api/runs/${runId}/predict/batch`, { method: "POST", body: form, cache: "no-store" });
+    } catch {
+      throw new ApiError(0, `Cannot reach the backend at ${API_URL}. Is it running?`);
+    }
+    if (!res.ok) {
+      let detail = res.statusText;
+      try { detail = detailOf(await res.json(), detail); } catch { /* non-JSON */ }
+      throw new ApiError(res.status, detail);
+    }
+    return res.blob();
+  },
 };
 
 /** Subscribe to a run's live agent events (SSE). Returns an unsubscribe function. */

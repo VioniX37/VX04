@@ -209,3 +209,24 @@ export interface Health {
   models_available: Record<string, boolean>;
   codegen_mode: string;
 }
+
+/** Response from POST /runs/{id}/predict. */
+export interface PredictResult {
+  run_id: string;
+  n: number;
+  predictions: (string | number)[];
+  /** Only present for classifiers that support predict_proba. */
+  probabilities?: number[][];
+  /** Class labels in the same order as the probabilities columns. */
+  classes?: string[];
+}
+
+/** Contents of schema.json in the deployment bundle. */
+export interface BundleSchema {
+  features: string[];
+  task_type: string;
+  target: string | null;
+  drop_columns: string[];
+  dtypes: Record<string, string>;
+}
+

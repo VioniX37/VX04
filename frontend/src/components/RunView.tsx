@@ -13,6 +13,7 @@ import { GroundingPanel } from "./GroundingPanel";
 import { KnowledgePanel } from "./KnowledgePanel";
 import { MetricsPanel } from "./MetricsPanel";
 import { PlanCards } from "./PlanCards";
+import { UseModelPanel } from "./UseModelPanel";
 import { Badge, Card, CardTitle, cn, ErrorNote, LiveDot, Spinner, Stat, StatusBadge } from "./ui";
 import { AgentGantt } from "./viz/AgentGantt";
 import { BudgetGauges, SplitBar } from "./viz/Gauges";
@@ -158,6 +159,8 @@ export function RunView({ runId }: { runId: string }) {
               <MetricsPanel metrics={metrics} spec={spec} />
             </Card>
           )}
+
+          {run.status === "succeeded" && <UseModelPanel run={run} />}
 
           {model.grounding && (
             <Card>
