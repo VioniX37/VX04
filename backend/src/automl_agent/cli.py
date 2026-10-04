@@ -6,6 +6,7 @@ Examples::
     automl-agent ingest --data /kaggle/input/higgs/HIGGS.csv
     automl-agent run --data data/samples/customer_churn.csv --prompt "Predict churn, optimise F1"
     automl-agent run --dataset-id 3f2a... --prompt "..." --set VERIFICATION_MODE=pseudo
+    automl-agent predict --run <run-id> --data new.csv --out scored.parquet
     automl-agent datasets
     automl-agent models
 
@@ -173,6 +174,69 @@ def cmd_models(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_predict(args: argparse.Namespace) -> int:
+    """Score new data using the model trained by a finished run.
+
+    Finds the model.joblib for the specified run, validates the input schema,
+    and writes a Parquet (default) or CSV file with a ``prediction`` column.
+    """
+    from pathlib import Path as _Path
+
+    from automl_agent.execution.inference import InferenceError, load_bundle, score_file
+    from automl_agent.tools.ingest import IngestError, ingest_to_parquet
+
+    settings = _settings_with(args.set)
+    run_dir = settings.runs_dir / args.run
+
+    # Find model.joblib (prefer latest attempt, fall back to run root).
+    attempt_dirs = sorted(run_dir.glob("attempt_*"), reverse=True)
+    model_path = None
+    for attempt in attempt_dirs:
+        candidate = attempt / "model.joblib"
+        if candidate.exists():
+            model_path = candidate
+            break
+    if model_path is None:
+        candidate = run_dir / "model.joblib"
+        if candidate.exists():
+            model_path = candidate
+    if model_path is None:
+        print(f"error: no model.joblib found for run '{args.run}'", file=sys.stderr)
+        return 2
+
+    try:
+        bundle = load_bundle(model_path)
+    except InferenceError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    # Ingest input to Parquet.
+    src = _Path(args.data)
+    tmp_parquet = src.parent / f"_cli_infer_{src.stem}.parquet"
+    try:
+        ingest_to_parquet(src, tmp_parquet)
+    except IngestError as exc:
+        print(f"error ingesting input: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        fmt = "csv" if str(args.out).endswith(".csv") else "parquet"
+        out_bytes = score_file(tmp_parquet, bundle, output_format=fmt)
+    except InferenceError as exc:
+        d = exc.detail()
+        msg = d["error"]
+        if d.get("column"):
+            msg += f" (column: {d['column']})"
+        print(f"error: {msg}", file=sys.stderr)
+        return 2
+    finally:
+        tmp_parquet.unlink(missing_ok=True)
+
+    _Path(args.out).write_bytes(out_bytes)
+    print(f"Scored output written to {args.out}", flush=True)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the argument parser for all sub-commands."""
     parser = argparse.ArgumentParser(prog="automl-agent", description=__doc__.split("\n\n")[0])
@@ -209,6 +273,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("models", help="List available Gemini models and validate the configuration")
     p.set_defaults(func=cmd_models)
+
+    p = sub.add_parser("predict", help="Score new data with the model from a finished run")
+    p.add_argument("--run", required=True, metavar="RUN_ID", help="Id of the succeeded run")
+    p.add_argument("--data", required=True, help="Input file (CSV/TSV/Parquet/JSONL)")
+    p.add_argument(
+        "--out",
+        default="scored.parquet",
+        help="Output path (default: scored.parquet; use .csv for CSV output)",
+    )
+    p.set_defaults(func=cmd_predict)
     return parser
 
 
