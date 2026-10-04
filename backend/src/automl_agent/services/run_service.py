@@ -144,9 +144,7 @@ def new_run(session: Session, dataset_id: str, prompt: str, approval: str = "aut
     return run
 
 
-def create_run(
-    session: Session, dataset: DatasetRecord, prompt: str, approval: str = "auto"
-) -> RunRecord:
+def create_run(session: Session, dataset: DatasetRecord, prompt: str, approval: str = "auto") -> RunRecord:
     """Insert a run and start it in the background (API use)."""
     ref = DatasetRef.from_record(dataset)  # copy before commit() expires the ORM object
     run = new_run(session, dataset.id, prompt, approval=approval)

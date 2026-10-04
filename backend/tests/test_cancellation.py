@@ -20,13 +20,9 @@ from automl_agent.storage.db import RunRecord, get_engine, init_db
 def test_kill_run_processes_leaves_no_orphans(tmp_path):
     """Test that kill_run_processes recursively terminates both parent and child processes."""
     # A script that spawns a child process and both sleep for 60s
-    child_code = (
-        f'"{sys.executable}" -c "import time; time.sleep(60)"'
-    )
+    child_code = f'"{sys.executable}" -c "import time; time.sleep(60)"'
     parent_script = (
-        "import subprocess, time\n"
-        f"child = subprocess.Popen({child_code!r}, shell=True)\n"
-        "time.sleep(60)\n"
+        f"import subprocess, time\nchild = subprocess.Popen({child_code!r}, shell=True)\ntime.sleep(60)\n"
     )
 
     parent_proc = subprocess.Popen(

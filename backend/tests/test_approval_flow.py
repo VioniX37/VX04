@@ -104,9 +104,7 @@ def test_approval_hook_plans_approve(settings, tmp_path):
 
     with Session(get_engine(settings.db_url)) as s:
         s.add(
-            RunRecord(
-                id=run_id, dataset_id="d1", prompt="Predict churn", approval="plans", status="running"
-            )
+            RunRecord(id=run_id, dataset_id="d1", prompt="Predict churn", approval="plans", status="running")
         )
         s.commit()
 
@@ -172,9 +170,7 @@ def test_approval_hook_plans_pick(settings, tmp_path):
 
     with Session(get_engine(settings.db_url)) as s:
         s.add(
-            RunRecord(
-                id=run_id, dataset_id="d1", prompt="Predict churn", approval="plans", status="running"
-            )
+            RunRecord(id=run_id, dataset_id="d1", prompt="Predict churn", approval="plans", status="running")
         )
         s.commit()
 
@@ -232,9 +228,7 @@ def test_approval_hook_plans_edit(settings, tmp_path):
 
     with Session(get_engine(settings.db_url)) as s:
         s.add(
-            RunRecord(
-                id=run_id, dataset_id="d1", prompt="Predict churn", approval="plans", status="running"
-            )
+            RunRecord(id=run_id, dataset_id="d1", prompt="Predict churn", approval="plans", status="running")
         )
         s.commit()
 
@@ -342,9 +336,7 @@ def test_cancel_during_awaiting_input(settings, tmp_path):
 
     with Session(get_engine(settings.db_url)) as s:
         s.add(
-            RunRecord(
-                id=run_id, dataset_id="d1", prompt="Predict churn", approval="plans", status="running"
-            )
+            RunRecord(id=run_id, dataset_id="d1", prompt="Predict churn", approval="plans", status="running")
         )
         s.commit()
 

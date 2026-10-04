@@ -289,9 +289,7 @@ async def run_script(
     def forward(item: dict[str, Any]) -> None:
         loop.call_soon_threadsafe(queue.put_nowait, item)
 
-    task = asyncio.ensure_future(
-        asyncio.to_thread(_run_blocking, script, timeout_s, limit, forward, run_id)
-    )
+    task = asyncio.ensure_future(asyncio.to_thread(_run_blocking, script, timeout_s, limit, forward, run_id))
     try:
         while not (task.done() and queue.empty()):
             try:

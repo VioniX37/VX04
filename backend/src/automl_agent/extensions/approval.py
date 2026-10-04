@@ -61,9 +61,7 @@ def _update_run(settings: Settings, run_id: str, **fields: Any) -> None:
 class ApprovalHooks(PipelineHooks):
     """Pauses pipeline execution for user approval of plans and/or code."""
 
-    async def on_plans_ranked(
-        self, ctx: RunContext, ranked: list[PlanEvaluation]
-    ) -> list[PlanEvaluation]:
+    async def on_plans_ranked(self, ctx: RunContext, ranked: list[PlanEvaluation]) -> list[PlanEvaluation]:
         """Pause run and await user approval/pick/edit when approval mode is enabled."""
         if ctx.approval not in ("plans", "plans+code") or not ranked:
             return ranked
@@ -137,9 +135,7 @@ class ApprovalHooks(PipelineHooks):
         )
         return ranked
 
-    async def on_code_generated(
-        self, ctx: RunContext, code: str, template_code: str, plan: Plan
-    ) -> str:
+    async def on_code_generated(self, ctx: RunContext, code: str, template_code: str, plan: Plan) -> str:
         """Pause run and await user code review when approval mode is plans+code."""
         if ctx.approval != "plans+code":
             return code
@@ -259,9 +255,7 @@ class ApprovalHooks(PipelineHooks):
         )
         return ranked
 
-    def _apply_code_decision(
-        self, ctx: RunContext, code: str, req: PlanApprovalRequest
-    ) -> str:
+    def _apply_code_decision(self, ctx: RunContext, code: str, req: PlanApprovalRequest) -> str:
         prior_override = ctx.state.get("human_override", False)
         human_override = False
         if req.edited_code and req.edited_code != code:
