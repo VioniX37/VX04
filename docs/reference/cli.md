@@ -3,7 +3,7 @@
 The `automl-agent` command is installed with the backend package (`pip install -e backend`). `python -m automl_agent` is equivalent.
 
 ```text
-automl-agent [--set KEY=VALUE ...] {serve,ingest,run,datasets,models} ...
+automl-agent [--set KEY=VALUE ...] {serve,ingest,run,datasets,models,predict} ...
 ```
 
 `--set` overrides any [setting](configuration.md) for one command and can be repeated. It must come **before** the sub-command:
@@ -50,6 +50,19 @@ List registered datasets: id, name, rows, scale tier and source.
 ## `models`
 
 List the Gemini models visible to the configured key and report whether `GEMINI_MODEL_SMART` and `GEMINI_MODEL_FAST` are available.
+
+## `predict`
+
+Score new data using the model trained by a finished run.
+
+| Option | Description |
+|---|---|
+| `--run RUN_ID` | Id of the succeeded run (required) |
+| `--data PATH` | Input file to score (CSV/TSV/Parquet/JSONL) (required) |
+| `--out PATH` | Destination path for scored output (default: `scored.parquet`; use `.csv` for CSV output) |
+
+Finds `model.joblib` in the run's workspace (preferring the latest attempt directory), ingests the input file, validates the input schema against the training bundle, and writes the output with predictions (and class probabilities for classifiers).
+
 
 ## Benchmark commands
 

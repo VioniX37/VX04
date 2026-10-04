@@ -88,6 +88,8 @@ Generated from the source docstrings. The most useful entry points for extending
 
 ::: automl_agent.execution.sandbox
 
+::: automl_agent.execution.inference
+
 ## Schemas
 
 ::: automl_agent.schemas.task_spec

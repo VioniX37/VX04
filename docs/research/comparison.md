@@ -18,7 +18,7 @@ This project was written from the paper; no code from the official repository (C
 | Data handling | In-memory, small benchmark datasets; 8×A100 | Parquet ingest, Polars profiling, fixed stratified splits, LightGBM/XGBoost, out-of-core text; 5M rows on a laptop CPU | `tools/`, `execution/` |
 | Execution | Subprocess | Supervised subprocess with memory watchdog, timeout and live progress | `execution/sandbox.py` |
 | Modalities | Image, text, tabular (classification/regression/clustering), time series, graph | Tabular classification/regression, text classification | `execution/model_registry.py` |
-| Deployment | Deployment-ready code + inference endpoint | Trained model artifact (`model.joblib`); endpoint left as future work | — |
+| Deployment | Deployment-ready code + inference endpoint | Standalone bundle (`predict.py`, `requirements.txt`, `schema.json`), in-process `InferenceEngine`, REST endpoints (`/predict`, `/predict/batch`, `/bundle`), CLI `automl-agent predict`, interactive Web UI panel | `execution/inference.py`, `api/server.py`, `cli.py`, `frontend/src/components/UseModelPanel.tsx` |
 | Interface | Python API | Web UI with live event stream, REST API, CLI | `frontend/`, `api/`, `cli.py` |
 | Reproducibility | — | Seeded splits, on-disk LLM response cache, per-run configuration and observation logs | `llm/cache.py`, `storage/db.py` |
 | Evaluation | SR / NPS / CS over 14 datasets; AutoGluon, DS-Agent, GPT-4 zero-shot, SELA | Same metrics + calibration (RQ1) + cost; zero-shot Gemini and Optuna+LightGBM baselines; ablation matrix | `evaluation/` |
