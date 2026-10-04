@@ -249,7 +249,19 @@ def main():
     if eval_split == "test":
         result["metrics_valid"] = evaluate(model, X_valid, y_valid)
     if CONFIG.get("save_model", True):
-        joblib.dump({"model": model, "classes": classes, "features": list(X_train.columns)}, "model.joblib")
+        joblib.dump(
+            {
+                "model": model,
+                "classes": classes,
+                "features": list(X_train.columns),
+                # Inference metadata — kept in sync with execution/inference.py
+                "task_type": CONFIG["task_type"],
+                "target": CONFIG["target"],
+                "drop_columns": CONFIG.get("drop_columns", []),
+                "config": CONFIG,
+            },
+            "model.joblib",
+        )
     with open("metrics.json", "w") as f:
         json.dump(result, f, indent=2, default=str)
     progress("done", score=result["score"])

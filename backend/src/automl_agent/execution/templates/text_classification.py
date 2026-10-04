@@ -173,6 +173,12 @@ def main():
     if eval_split == "test":
         result["metrics_valid"] = evaluate("valid", CONFIG.get("eval_max_rows"))[0]
     if CONFIG.get("save_model", True):
+        artifact["task_type"] = CONFIG["task_type"]
+        artifact["target"] = CONFIG["target"]
+        artifact["text_column"] = CONFIG["text_column"]
+        artifact["drop_columns"] = CONFIG.get("drop_columns", [])
+        artifact["features"] = [CONFIG["text_column"]]  # single text feature
+        artifact["config"] = CONFIG
         joblib.dump(artifact, "model.joblib")
     with open("metrics.json", "w") as f:
         json.dump(result, f, indent=2)
