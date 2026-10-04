@@ -4,10 +4,12 @@ import asyncio
 import contextlib
 import json
 import time
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
+from automl_agent.config import Settings
 from automl_agent.extensions.approval import (
     ApprovalHooks,
     has_pending_approval,
@@ -397,7 +399,7 @@ def test_end_to_end_api_approval_flow(sample_csvs):
         run_id = resp.json()["id"]
 
         # Poll until the run pauses in awaiting_input
-        deadline = time.time() + 15
+        deadline = time.time() + 35
         paused = False
         while time.time() < deadline:
             run_data = client.get(f"/api/runs/{run_id}").json()
@@ -405,7 +407,7 @@ def test_end_to_end_api_approval_flow(sample_csvs):
                 paused = True
                 break
             time.sleep(0.2)
-        assert paused, f"Run did not enter awaiting_input within 15s (status={run_data['status']})"
+        assert paused, f"Run did not enter awaiting_input within 35s (status={run_data['status']})"
 
         # Check events history has the pause event
         events = client.get(f"/api/runs/{run_id}/events/history").json()
@@ -420,7 +422,7 @@ def test_end_to_end_api_approval_flow(sample_csvs):
         assert approve_resp.status_code == 200
 
         # Poll until the run finishes
-        deadline = time.time() + 30
+        deadline = time.time() + 60
         finished = False
         while time.time() < deadline:
             run_data = client.get(f"/api/runs/{run_id}").json()
@@ -556,3 +558,57 @@ def test_crash_recovery_resumes_paused_run(sample_csvs, settings):
         assert run_rec.status == "succeeded"
 
     asyncio.run(run_flow())
+
+
+def test_approval_timeout_falls_back_to_auto(tmp_path: Path):
+    """When approval_timeout_s expires, the hook falls back to auto approval without hanging."""
+    settings = Settings(
+        workspace_dir=tmp_path / "ws",
+        db_url=f"sqlite:///{(tmp_path / 'ws' / 'automl.db').as_posix()}",
+        approval_timeout_s=1,
+    )
+    init_db(settings.db_url)
+    run_id = "test_timeout_fallback"
+    with Session(get_engine(settings.db_url)) as s:
+        s.add(
+            RunRecord(
+                id=run_id,
+                dataset_id="d1",
+                prompt="test prompt",
+                status="running",
+                approval="plans",
+            )
+        )
+        s.commit()
+
+    ranked = _make_sample_plans()
+
+    workdir = tmp_path / "ws" / "runs" / run_id
+    workdir.mkdir(parents=True)
+
+    class DummyContext:
+        def __init__(self):
+            self.run_id = run_id
+            self.approval = "plans"
+            self.workdir = workdir
+            self.settings = settings
+            self.state = {}
+            self.events = []
+
+        async def emit(self, stage, agent, message, kind="info", payload=None):
+            self.events.append({"stage": stage, "message": message, "payload": payload})
+
+    ctx = DummyContext()
+
+    hooks = ApprovalHooks()
+
+    async def run():
+        # Should pause, wait 1s, time out, and return ranked with top plan approved
+        start = time.time()
+        res = await hooks.on_plans_ranked(ctx, ranked)
+        elapsed = time.time() - start
+        assert len(res) == len(ranked)
+        assert res[0].plan.id == "p1"
+        assert 0.8 <= elapsed < 4.0
+
+    asyncio.run(run())

@@ -112,6 +112,10 @@ class Settings(BaseSettings):
         0, description="Kill a training script above this resident memory (MB); 0 = 80% of system RAM."
     )
     exec_n_jobs: int = Field(-1, description="CPU threads for model training (-1 = all cores).")
+    approval_timeout_s: int = Field(
+        0,
+        description="Seconds to wait in awaiting_input before falling back to auto (0 = wait indefinitely).",
+    )
 
     # ------------------------------------------------------------------ data
     max_upload_mb: int = Field(5120, description="Largest accepted browser upload (MB).")

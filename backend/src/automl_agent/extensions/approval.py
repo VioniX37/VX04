@@ -106,8 +106,21 @@ class ApprovalHooks(PipelineHooks):
         future: asyncio.Future[PlanApprovalRequest] = loop.create_future()
         _pending_approvals[ctx.run_id] = future
 
+        timeout = ctx.settings.approval_timeout_s if ctx.settings.approval_timeout_s > 0 else None
         try:
-            req = await future
+            if timeout:
+                req = await asyncio.wait_for(future, timeout=timeout)
+            else:
+                req = await future
+        except TimeoutError:
+            req = PlanApprovalRequest(action=PlanApprovalAction.approve)
+            await ctx.emit(
+                Stage.select,
+                "manager",
+                f"Approval timed out after {timeout}s; continuing with top ranked plan",
+                kind="warning",
+                payload={"action": "approve", "plan_id": ranked[0].plan.id, "timed_out": True},
+            )
         finally:
             _pending_approvals.pop(ctx.run_id, None)
             if pause_file.exists():
@@ -171,8 +184,21 @@ class ApprovalHooks(PipelineHooks):
         future: asyncio.Future[PlanApprovalRequest] = loop.create_future()
         _pending_approvals[ctx.run_id] = future
 
+        timeout = ctx.settings.approval_timeout_s if ctx.settings.approval_timeout_s > 0 else None
         try:
-            req = await future
+            if timeout:
+                req = await asyncio.wait_for(future, timeout=timeout)
+            else:
+                req = await future
+        except TimeoutError:
+            req = PlanApprovalRequest(action=PlanApprovalAction.approve)
+            await ctx.emit(
+                Stage.implement,
+                "operation",
+                f"Code review timed out after {timeout}s; continuing with generated script",
+                kind="warning",
+                payload={"action": "approve", "timed_out": True},
+            )
         finally:
             _pending_approvals.pop(ctx.run_id, None)
             if pause_file.exists():
