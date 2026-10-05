@@ -436,6 +436,25 @@ class AgentManager(BaseAgent):
                 )
         self.ctx.observations = list(result.observations)
 
+    async def _validated_choice(self, spec: TaskSpec, ranked: list[PlanEvaluation]) -> list[PlanEvaluation]:
+        """Map the chosen plan's model family to a supported one (a human edit may name any model)."""
+        if not ranked:
+            return ranked
+        top = ranked[0]
+        family = normalize_model(spec.task_type, top.model.model_family, self.ctx.train_rows)
+        if family == top.model.model_family:
+            return ranked
+        await self.ctx.emit(
+            Stage.select,
+            self.name,
+            f"Model '{top.model.model_family}' is not supported for this task; using '{family}'",
+            kind="warning",
+            payload={"requested": top.model.model_family, "used": family},
+        )
+        model = top.model.model_copy(update={"model_family": family})
+        plan = top.plan.model_copy(update={"model_family": family})
+        return [top.model_copy(update={"model": model, "plan": plan}), *ranked[1:]]
+
     async def run(self) -> PipelineResult:
         """Execute the pipeline end to end and return its result."""
         ctx = self.ctx
@@ -475,6 +494,7 @@ class AgentManager(BaseAgent):
                 await self.ground(spec, evaluations, revision) if grounded else rank_plans(evaluations, spec)
             )
             ranked = await run_hook("on_plans_ranked", ctx, ranked, hooks=self.hooks)
+            ranked = await self._validated_choice(spec, ranked)
             self._record_observations(result, ranked, spec, revision)
             chosen = ranked[0]
             why = "best observed validation score" if grounded else "best predicted score"

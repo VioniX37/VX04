@@ -604,3 +604,72 @@ def test_approval_timeout_falls_back_to_auto(tmp_path: Path):
         assert 0.8 <= elapsed < 4.0
 
     asyncio.run(run())
+
+
+def test_recovered_decision_applies_to_the_plans_the_user_reviewed(settings, tmp_path):
+    """After a restart, a pick refers to the saved plans, even if re-planning ranks different ones."""
+    init_db(settings.db_url)
+    run_id = "test_recovered_pick"
+    workdir = tmp_path / run_id
+    workdir.mkdir(parents=True)
+    with Session(get_engine(settings.db_url)) as s:
+        s.add(RunRecord(id=run_id, dataset_id="d1", prompt="p", approval="plans", status="running"))
+        s.commit()
+    reviewed = _make_sample_plans()
+    (workdir / "pause_state.json").write_text(
+        json.dumps(
+            {
+                "step": "plans",
+                "run_id": run_id,
+                "ranked": [ev.model_dump(mode="json") for ev in reviewed],
+                "decision": PlanApprovalRequest(action=PlanApprovalAction.pick, plan_id="p2").model_dump(
+                    mode="json"
+                ),
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class Ctx:
+        approval = "plans"
+        state: dict = {}
+
+        def __init__(self):
+            self.run_id, self.workdir, self.settings = run_id, workdir, settings
+
+    replanned = [
+        ev.model_copy(update={"plan": ev.plan.model_copy(update={"id": f"new-{ev.plan.id}"})})
+        for ev in reviewed
+    ]
+    ranked = asyncio.run(ApprovalHooks().on_plans_ranked(Ctx(), replanned))
+    assert ranked[0].plan.id == "p2"
+    assert ranked[0].model.model_family == "random_forest"
+
+
+def test_edit_to_unsupported_model_family_is_normalized(settings):
+    """An edited model name the registry does not know is mapped to a supported family before training."""
+    from automl_agent.agents import AgentManager, RunContext
+    from automl_agent.llm import create_llm
+    from automl_agent.services.event_bus import EventBus
+    from automl_agent.tools import profile_file
+
+    path = Path(__file__).resolve().parents[2] / "data" / "samples" / "customer_churn.csv"
+    ctx = RunContext(
+        run_id="edit_norm",
+        prompt="Predict churn",
+        dataset_path=path,
+        profile=profile_file(path),
+        workdir=settings.runs_dir / "edit_norm",
+        settings=settings,
+        llm=create_llm(settings),
+        bus=EventBus(),
+    )
+    manager = AgentManager(ctx)
+    spec = TaskSpec(task_type=TaskType.tabular_classification, target_column="churn", metric="accuracy")
+    edited = _make_sample_plans()
+    edited[0] = edited[0].model_copy(
+        update={"model": edited[0].model.model_copy(update={"model_family": "LightGBM-DART"})}
+    )
+    ranked = asyncio.run(manager._validated_choice(spec, edited))
+    assert ranked[0].model.model_family == "lightgbm"
+    assert ranked[0].plan.model_family == "lightgbm"

@@ -72,8 +72,11 @@ class ApprovalHooks(PipelineHooks):
                 data = json.loads(pause_file.read_text(encoding="utf-8"))
                 if data.get("step") == "plans" and "decision" in data:
                     req = PlanApprovalRequest.model_validate(data["decision"])
+                    # Apply the decision to the plans the user actually reviewed: re-planning after
+                    # a restart can produce different plans (or the same plans in another order).
+                    saved = [PlanEvaluation.model_validate(ev) for ev in data.get("ranked") or []]
                     pause_file.unlink(missing_ok=True)
-                    return self._apply_plan_decision(ctx, ranked, req)
+                    return self._apply_plan_decision(ctx, saved or ranked, req)
             except Exception:
                 log.exception("Failed reading recovered approval decision from %s", pause_file)
 

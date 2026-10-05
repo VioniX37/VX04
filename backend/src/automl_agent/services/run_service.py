@@ -148,10 +148,11 @@ def create_run(session: Session, dataset: DatasetRecord, prompt: str, approval: 
     """Insert a run and start it in the background (API use)."""
     ref = DatasetRef.from_record(dataset)  # copy before commit() expires the ORM object
     run = new_run(session, dataset.id, prompt, approval=approval)
-    task = asyncio.create_task(execute_run(run.id, ref, prompt, approval=approval))
-    _active_tasks[run.id] = task
+    run_id = run.id
+    task = asyncio.create_task(execute_run(run_id, ref, prompt, approval=approval))
+    _active_tasks[run_id] = task
     _tasks.add(task)
-    task.add_done_callback(lambda t: _active_tasks.pop(run.id, None))
+    task.add_done_callback(lambda t: _active_tasks.pop(run_id, None))
     task.add_done_callback(_tasks.discard)
     return run
 
