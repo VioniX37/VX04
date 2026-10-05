@@ -127,6 +127,35 @@ export function ModelCardPanel({ card }: ModelCardPanelProps) {
                     </tbody>
                   </table>
                 </div>
+                <div className="overflow-x-auto rounded-lg border border-border">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-surface-muted/50 text-muted font-semibold border-b border-border">
+                      <tr>
+                        <th className="py-2 px-3 uppercase">Actual \ predicted</th>
+                        {confusion_matrix.labels.map((lbl) => (
+                          <th key={lbl} className="py-2 px-3 font-mono">
+                            {lbl}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {confusion_matrix.matrix.map((row, i) => (
+                        <tr key={confusion_matrix.labels[i]}>
+                          <td className="py-2 px-3 font-mono font-medium">{confusion_matrix.labels[i]}</td>
+                          {row.map((count, j) => (
+                            <td
+                              key={j}
+                              className={cn("py-2 px-3 font-mono tabular", i === j ? "text-success font-semibold" : "text-muted")}
+                            >
+                              {count}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
 
