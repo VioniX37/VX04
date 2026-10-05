@@ -67,6 +67,7 @@ Settings can also be overridden per command:
 |---|---|---|---|
 | `MAX_UPLOAD_MB` | `int` | `5120` | Largest accepted browser upload (MB). |
 | `ALLOW_PATH_REGISTRATION` | `bool` | `True` | Allow registering datasets by server-side file path (disable on shared servers). |
+| `DATA_AUDIT` | `bool` | `True` | Pre-training data audit: detect target leakage, identifiers, and train/test duplicates. |
 | `SPLIT_VALID_FRACTION` | `float` | `0.15` | Share of rows in the validation split. |
 | `SPLIT_TEST_FRACTION` | `float` | `0.15` | Share of rows in the held-out test split. |
 | `SPLIT_SEED` | `int` | `42` | Seed for the train/valid/test assignment. |

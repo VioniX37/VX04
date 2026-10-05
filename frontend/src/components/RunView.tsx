@@ -9,10 +9,12 @@ import type { AgentEvent, ExecutionMetrics, Run } from "@/lib/types";
 import { useNow } from "@/lib/use-now";
 import { AgentTimeline } from "./AgentTimeline";
 import { ApprovalCard } from "./ApprovalCard";
+import { AuditPanel } from "./AuditPanel";
 import { CodeViewer } from "./CodeViewer";
 import { GroundingPanel } from "./GroundingPanel";
 import { KnowledgePanel } from "./KnowledgePanel";
 import { MetricsPanel } from "./MetricsPanel";
+import { ModelCardPanel } from "./ModelCardPanel";
 import { PlanCards } from "./PlanCards";
 import { Badge, Button, Card, CardTitle, cn, ErrorNote, LiveDot, Spinner, Stat, StatusBadge } from "./ui";
 import { AgentGantt } from "./viz/AgentGantt";
@@ -103,6 +105,7 @@ export function RunView({ runId }: { runId: string }) {
   const peakMb = model.telemetry.length ? Math.max(...model.telemetry.map((p) => p.rssMb)) : null;
   const tokens = model.llmCalls.reduce((s, c) => s + c.inputTokens + c.outputTokens, 0);
   const nPlans = cfg?.n_plans ?? 3;
+  const modelCard = run.metrics?.model_card ?? model.modelCard;
 
   return (
     <div className="space-y-5">
@@ -231,6 +234,10 @@ export function RunView({ runId }: { runId: string }) {
               <MetricsPanel metrics={metrics} spec={spec} />
             </Card>
           )}
+
+          {modelCard && <ModelCardPanel card={modelCard} />}
+
+          {model.audit && <AuditPanel audit={model.audit} />}
 
           {model.grounding && (
             <Card>

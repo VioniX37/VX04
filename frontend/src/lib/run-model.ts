@@ -4,7 +4,7 @@
  * jobs and resource telemetry. Pure functions; memoise the result in components.
  */
 import { STAGES } from "./stages";
-import type { AgentEvent, BudgetSnapshot, KnowledgeRef, PlanEvaluation, RungResult, Stage, TaskSpec } from "./types";
+import type { AgentEvent, AuditReport, BudgetSnapshot, KnowledgeRef, ModelCard, PlanEvaluation, RungResult, Stage, TaskSpec } from "./types";
 
 export type StageStatus = "pending" | "active" | "done" | "failed" | "skipped";
 
@@ -94,6 +94,8 @@ export interface RunModel {
   liveCode?: string;
   budget?: BudgetSnapshot;
   finalProgress?: { stage: string; n_train?: number };
+  audit?: AuditReport;
+  modelCard?: ModelCard;
 }
 
 const AGENT_LANES: Lane[] = ["prompt_agent", "manager", "data_agent", "model_agent", "plan_analyst", "operation_agent"];
@@ -284,6 +286,8 @@ export function buildRunModel(events: AgentEvent[], finished: boolean, failed: b
     liveCode: last<string>(events, "implement", "code"),
     budget: last<BudgetSnapshot>(events, "verify_impl", "budget"),
     finalProgress: finalProgressEvent?.payload?.progress as { stage: string; n_train?: number } | undefined,
+    audit: last<AuditReport>(events, "prepare", "audit"),
+    modelCard: last<ModelCard>(events, "done", "model_card"),
   };
 }
 

@@ -107,6 +107,74 @@ export interface BudgetSnapshot {
   token_budget: number | null;
 }
 
+export type AuditSeverity = "critical" | "high" | "medium" | "low";
+export type AuditAction = "drop" | "flag" | "impute" | "stratify" | "none";
+
+export interface AuditFinding {
+  check: string;
+  severity: AuditSeverity;
+  column: string | null;
+  message: string;
+  suggested_action: AuditAction;
+  metric_name?: string | null;
+  metric_value?: number | null;
+  details?: Record<string, unknown>;
+}
+
+export interface AuditReport {
+  findings: AuditFinding[];
+  dropped_columns: string[];
+  train_test_duplicates: number;
+  duplicate_pct: number;
+  has_leakage: boolean;
+  duration_s: number;
+}
+
+export interface FeatureImportance {
+  feature: string;
+  importance: number;
+  method: "native_gain" | "permutation";
+}
+
+export interface CalibrationPoint {
+  prob_pred: number;
+  prob_true: number;
+}
+
+export interface CalibrationReport {
+  brier_score: number;
+  points: CalibrationPoint[];
+}
+
+export interface ConfusionMatrixData {
+  labels: string[];
+  matrix: number[][];
+  per_class: Record<string, { precision: number; recall: number; "f1-score": number; support: number }>;
+}
+
+export interface ResidualsData {
+  mae: number;
+  rmse: number;
+  r2: number;
+  max_error: number;
+  quantiles: Record<string, number>;
+  sample_residuals: number[];
+}
+
+export interface ModelCard {
+  task_type: TaskType;
+  model_family: string;
+  primary_metric: string;
+  primary_score: number | null;
+  feature_importances: FeatureImportance[];
+  confusion_matrix?: ConfusionMatrixData | null;
+  residuals?: ResidualsData | null;
+  calibration?: CalibrationReport | null;
+  audit_summary: string[];
+  why_this_model: string;
+  metadata?: Record<string, unknown>;
+}
+
 /** Contents of the final `metrics.json` plus run bookkeeping. */
 export interface ExecutionMetrics {
   metric?: string;
@@ -123,6 +191,7 @@ export interface ExecutionMetrics {
   budget?: BudgetSnapshot | null;
   attempts?: { revision: number; plan_id: string; score: number | null; ok: boolean; issues: string[] }[];
   artifact_dir?: string;
+  model_card?: ModelCard | null;
 }
 
 /** Settings that define a run's experimental condition. */
