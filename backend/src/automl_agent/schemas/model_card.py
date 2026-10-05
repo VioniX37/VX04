@@ -14,7 +14,7 @@ class FeatureImportance(BaseModel):
 
     feature: str
     importance: float
-    method: Literal["native_gain", "permutation"] = "native_gain"
+    method: Literal["native_gain", "permutation", "coefficient"] = "native_gain"
 
 
 class CalibrationPoint(BaseModel):

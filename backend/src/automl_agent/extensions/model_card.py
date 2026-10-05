@@ -10,11 +10,12 @@ Generates a comprehensive, diagnostic Model Card in JSON and Markdown after a su
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import joblib
 import numpy as np
 import pandas as pd
 import polars as pl
@@ -30,6 +31,7 @@ from sklearn.metrics import (
     r2_score,
 )
 
+from automl_agent.execution.inference import InferenceError, load_bundle, predict_dataframe, validate_input
 from automl_agent.extensions import PipelineHooks
 from automl_agent.schemas.events import Stage
 from automl_agent.schemas.model_card import (
@@ -40,7 +42,7 @@ from automl_agent.schemas.model_card import (
     ModelCard,
     ResidualsData,
 )
-from automl_agent.schemas.task_spec import TaskType
+from automl_agent.schemas.task_spec import TaskSpec, TaskType
 from automl_agent.tools.splits import SPLIT_COL, TEST
 
 if TYPE_CHECKING:
@@ -48,10 +50,15 @@ if TYPE_CHECKING:
     from automl_agent.agents.manager import PipelineResult
 
 
+log = logging.getLogger(__name__)
+
+MAX_DIAGNOSTIC_ROWS = 50_000
+
+
 def extract_feature_importances(
     model: Any,
     feature_names: list[str],
-    X_sample: np.ndarray | None = None,
+    X_sample: pd.DataFrame | np.ndarray | None = None,
     y_sample: np.ndarray | None = None,
 ) -> list[FeatureImportance]:
     """Extract native gain or fallback permutation importances."""
@@ -118,9 +125,8 @@ def extract_feature_importances(
     if X_sample is not None and y_sample is not None and len(X_sample) >= 10:
         try:
             n_sub = min(len(X_sample), 300)
-            perm = permutation_importance(
-                model, X_sample[:n_sub], y_sample[:n_sub], n_repeats=3, random_state=42
-            )
+            X_sub = X_sample.iloc[:n_sub] if isinstance(X_sample, pd.DataFrame) else X_sample[:n_sub]
+            perm = permutation_importance(model, X_sub, y_sample[:n_sub], n_repeats=3, random_state=42)
             raw = np.maximum(0, perm.importances_mean)
             total = float(np.sum(raw)) or 1.0
             pairs = sorted(
@@ -196,6 +202,131 @@ def format_model_card_markdown(card: ModelCard) -> str:
     return "\n".join(lines)
 
 
+def _test_sample(
+    ctx: RunContext, spec: TaskSpec, bundle: dict[str, Any]
+) -> tuple[pd.DataFrame, pd.Series] | None:
+    """Up to ``MAX_DIAGNOSTIC_ROWS`` rows of the held-out test split, prepared exactly as for serving."""
+    if not (ctx.dataset_path.exists() and ctx.split and ctx.split.path.exists()):
+        return None
+    target = spec.target_column
+    frame = (
+        pl.concat(
+            [pl.scan_parquet(ctx.dataset_path), pl.scan_parquet(ctx.split.path)], how="horizontal_extend"
+        )
+        .filter(pl.col(SPLIT_COL) == TEST)
+        .head(MAX_DIAGNOSTIC_ROWS)
+        .collect()
+        .to_pandas()
+    )
+    frame = frame[frame[target].notna()]
+    if bundle.get("classes") is not None:  # labels unseen in training cannot be scored
+        frame = frame[frame[target].astype(str).isin([str(c) for c in bundle["classes"]])]
+    if len(frame) < 5:
+        return None
+    X = validate_input(frame[[c for c in frame.columns if c in bundle["features"]]], bundle)
+    return X, frame[target]
+
+
+def _text_coefficients(bundle: dict[str, Any], top: int = 20) -> list[FeatureImportance]:
+    """Most influential tokens of a TF-IDF linear text model (hashing models have no token names)."""
+    steps = getattr(bundle["model"], "named_steps", {})
+    vec, clf = steps.get("tfidf"), steps.get("model")
+    coef = getattr(clf, "coef_", None)
+    if vec is None or coef is None:
+        return []
+    weights = np.abs(np.asarray(coef)).max(axis=0)
+    order = np.argsort(weights)[::-1][:top]
+    total = float(weights[order].sum()) or 1.0
+    names = vec.get_feature_names_out()
+    return [
+        FeatureImportance(
+            feature=str(names[i]), importance=round(float(weights[i] / total), 4), method="coefficient"
+        )
+        for i in order
+    ]
+
+
+def _encode(y: pd.Series, bundle: dict[str, Any]) -> np.ndarray:
+    """Training label codes (indices into the bundle's classes) for permutation importance."""
+    classes = bundle.get("classes")
+    lookup = {str(c): i for i, c in enumerate(classes if classes is not None else [])}
+    return y.astype(str).map(lookup).to_numpy(dtype=int)
+
+
+def _diagnose(
+    ctx: RunContext, spec: TaskSpec, bundle: dict[str, Any]
+) -> tuple[
+    list[FeatureImportance], ConfusionMatrixData | None, CalibrationReport | None, ResidualsData | None
+]:
+    """Feature importances and test-split diagnostics for the selected model."""
+    sample = _test_sample(ctx, spec, bundle)
+    model = bundle["model"]
+    if spec.task_type == TaskType.text_classification:
+        fi_list = _text_coefficients(bundle)
+    elif sample is not None:
+        X, y = sample
+        y_fit = (
+            y.to_numpy(dtype=float) if spec.task_type == TaskType.tabular_regression else _encode(y, bundle)
+        )
+        fi_list = extract_feature_importances(model, bundle["features"], X, y_fit)
+    else:
+        fi_list = extract_feature_importances(model, bundle["features"])
+    if sample is None:
+        return fi_list, None, None, None
+
+    X, y = sample
+    out = predict_dataframe(X, bundle)
+    if spec.task_type == TaskType.tabular_regression:
+        y_true = y.to_numpy(dtype=float)
+        y_p = np.asarray(out["predictions"], dtype=float)
+        residuals = y_p - y_true
+        q = np.percentile(residuals, [5, 25, 50, 75, 95])
+        res = ResidualsData(
+            mae=round(float(mean_absolute_error(y_true, y_p)), 4),
+            rmse=round(float(np.sqrt(mean_squared_error(y_true, y_p))), 4),
+            r2=round(float(r2_score(y_true, y_p)), 4),
+            max_error=round(float(max_error(y_true, y_p)), 4),
+            quantiles={
+                k: round(float(v), 4) for k, v in zip(("p5", "p25", "p50", "p75", "p95"), q, strict=True)
+            },
+            sample_residuals=[round(float(val), 4) for val in residuals[:50]],
+        )
+        return fi_list, None, None, res
+
+    y_true = y.astype(str).to_numpy()
+    y_pred = np.asarray(out["predictions"], dtype=object).astype(str)
+    labels = out.get("classes") or sorted(set(y_true) | set(y_pred))
+    rep = classification_report(y_true, y_pred, labels=labels, output_dict=True, zero_division=0)
+    per_class = {
+        lbl: {
+            "precision": round(float(rep[lbl]["precision"]), 4),
+            "recall": round(float(rep[lbl]["recall"]), 4),
+            "f1-score": round(float(rep[lbl]["f1-score"]), 4),
+            "support": int(rep[lbl]["support"]),
+        }
+        for lbl in labels
+        if lbl in rep
+    }
+    cm = ConfusionMatrixData(
+        labels=list(labels),
+        matrix=confusion_matrix(y_true, y_pred, labels=labels).tolist(),
+        per_class=per_class,
+    )
+    cal = None
+    if "probabilities" in out and len(labels) == 2:
+        p_pos = np.asarray(out["probabilities"])[:, 1]
+        y_pos = (y_true == labels[1]).astype(int)
+        prob_true, prob_pred = calibration_curve(y_pos, p_pos, n_bins=10, strategy="uniform")
+        cal = CalibrationReport(
+            brier_score=round(float(brier_score_loss(y_pos, p_pos)), 4),
+            points=[
+                CalibrationPoint(prob_pred=round(float(pp), 4), prob_true=round(float(pt), 4))
+                for pp, pt in zip(prob_pred, prob_true, strict=True)
+            ],
+        )
+    return fi_list, cm, cal, None
+
+
 class ModelCardHook(PipelineHooks):
     """Generates post-training model card artifacts on run completion."""
 
@@ -203,123 +334,39 @@ class ModelCardHook(PipelineHooks):
         """Inspect the winning model, compute diagnostics, and write model card artifacts."""
         if not result.success or not result.task_spec or not result.metrics:
             return
-
-        spec = result.task_spec
         artifact_dir_str = result.metrics.get("artifact_dir")
         if not artifact_dir_str:
             return
-        artifact_dir = Path(artifact_dir_str)
-        model_file = artifact_dir / "model.joblib"
-        if not model_file.exists():
-            return
-
         try:
-            bundle = joblib.load(model_file)
-        except Exception:
+            bundle = load_bundle(Path(artifact_dir_str) / "model.joblib")
+        except InferenceError:
             return
+        try:
+            parts = await asyncio.to_thread(_diagnose, ctx, result.task_spec, bundle)
+        except Exception:  # a model card must never fail a finished run
+            log.warning("model card diagnostics failed", exc_info=True)
+            parts = ([], None, None, None)
+        await self._write_card(ctx, result, Path(artifact_dir_str), *parts)
 
-        model = bundle.get("model")
-        classes = bundle.get("classes")
-        feature_names = bundle.get("features", [])
-
-        # Load held-out test data for diagnostics
-        X_test, y_test = None, None
-        if ctx.dataset_path.exists() and ctx.split and ctx.split.path.exists():
-            try:
-                data_lf = pl.scan_parquet(ctx.dataset_path)
-                split_lf = pl.scan_parquet(ctx.split.path).select(SPLIT_COL)
-                combined = pl.concat([data_lf, split_lf], how="horizontal_extend")
-                test_df = combined.filter(pl.col(SPLIT_COL) == TEST).collect()
-                if len(test_df) > 0 and spec.target_column in test_df.columns:
-                    target_s = test_df[spec.target_column]
-                    avail_features = [f for f in feature_names if f in test_df.columns]
-                    if avail_features:
-                        X_test = test_df.select(avail_features).to_pandas()
-                        if spec.task_type == TaskType.tabular_regression:
-                            y_test = target_s.to_numpy().astype(float)
-                        else:
-                            # Map to encoded class labels if classes provided
-                            y_raw = target_s.cast(pl.String).to_numpy()
-                            if classes is not None and len(classes) > 0:
-                                class_to_idx = {str(c): i for i, c in enumerate(classes)}
-                                y_test = np.array([class_to_idx.get(str(val), 0) for val in y_raw], dtype=int)
-                            else:
-                                _, y_test = np.unique(y_raw, return_inverse=True)
-            except Exception:
-                pass
-
-        # 1. Feature importances
-        X_sample_arr = X_test.to_numpy() if isinstance(X_test, pd.DataFrame) else None
-        fi_list = extract_feature_importances(model, feature_names, X_sample_arr, y_test)
-
-        # 2. Diagnostics
-        cm_data: ConfusionMatrixData | None = None
-        cal_data: CalibrationReport | None = None
-        res_data: ResidualsData | None = None
-
-        if X_test is not None and y_test is not None and len(X_test) > 5:
-            try:
-                preds = model.predict(X_test)
-                if spec.task_type == TaskType.tabular_regression:
-                    y_true = np.asarray(y_test, dtype=float)
-                    y_p = np.asarray(preds, dtype=float)
-                    residuals = y_p - y_true
-                    q = np.percentile(residuals, [5, 25, 50, 75, 95])
-                    res_data = ResidualsData(
-                        mae=round(float(mean_absolute_error(y_true, y_p)), 4),
-                        rmse=round(float(np.sqrt(mean_squared_error(y_true, y_p))), 4),
-                        r2=round(float(r2_score(y_true, y_p)), 4),
-                        max_error=round(float(max_error(y_true, y_p)), 4),
-                        quantiles={
-                            "p5": round(float(q[0]), 4),
-                            "p25": round(float(q[1]), 4),
-                            "p50": round(float(q[2]), 4),
-                            "p75": round(float(q[3]), 4),
-                            "p95": round(float(q[4]), 4),
-                        },
-                        sample_residuals=[round(float(val), 4) for val in residuals[:50]],
-                    )
-                else:
-                    # Classification
-                    lbl_names = [str(c) for c in (classes if classes is not None else np.unique(y_test))]
-                    cm = confusion_matrix(y_test, preds)
-                    rep = classification_report(y_test, preds, output_dict=True, zero_division=0)
-                    per_class_dict = {}
-                    for i, name in enumerate(lbl_names):
-                        sub_rep = rep.get(str(i), rep.get(name, {}))
-                        if isinstance(sub_rep, dict):
-                            per_class_dict[name] = {
-                                "precision": round(float(sub_rep.get("precision", 0.0)), 4),
-                                "recall": round(float(sub_rep.get("recall", 0.0)), 4),
-                                "f1-score": round(float(sub_rep.get("f1-score", 0.0)), 4),
-                                "support": int(sub_rep.get("support", 0)),
-                            }
-                    cm_data = ConfusionMatrixData(
-                        labels=lbl_names, matrix=cm.tolist(), per_class=per_class_dict
-                    )
-
-                    # Calibration
-                    if hasattr(model, "predict_proba"):
-                        probs = model.predict_proba(X_test)
-                        if len(lbl_names) == 2 and probs.shape[1] >= 2:
-                            brier = float(brier_score_loss(y_test, probs[:, 1]))
-                            prob_true, prob_pred = calibration_curve(
-                                y_test, probs[:, 1], n_bins=10, strategy="uniform"
-                            )
-                            cal_points = [
-                                CalibrationPoint(prob_pred=round(float(pp), 4), prob_true=round(float(pt), 4))
-                                for pp, pt in zip(prob_pred, prob_true, strict=False)
-                            ]
-                            cal_data = CalibrationReport(brier_score=round(brier, 4), points=cal_points)
-            except Exception:
-                pass
+    async def _write_card(
+        self,
+        ctx: RunContext,
+        result: PipelineResult,
+        artifact_dir: Path,
+        fi_list: list[FeatureImportance],
+        cm_data: ConfusionMatrixData | None,
+        cal_data: CalibrationReport | None,
+        res_data: ResidualsData | None,
+    ) -> None:
+        spec = result.task_spec
+        assert spec is not None and result.metrics is not None
 
         # 3. Audit summary from context
         audit_report = ctx.state.get("audit_report")
         audit_summary = []
         if audit_report:
             if audit_report.dropped_columns:
-                audit_summary.append(f"Auto-dropped leaky columns: {', '.join(audit_report.dropped_columns)}")
+                audit_summary.append(f"Audit dropped columns: {', '.join(audit_report.dropped_columns)}")
             if audit_report.train_test_duplicates > 0:
                 audit_summary.append(
                     f"Flagged {audit_report.train_test_duplicates:,} train/test duplicate rows "
@@ -336,12 +383,13 @@ class ModelCardHook(PipelineHooks):
         family = result.plan.model_family if result.plan else "best candidate"
 
         narrative = (
-            f"The pipeline selected {family} because it achieved the highest measured {spec.metric} "
-            f"({score_repr}) on the validation split. "
+            f"The pipeline selected {family}, which reached {spec.metric} "
+            f"({score_repr}) on the held-out test split after grounded verification ranked the "
+            "candidates on validation data. "
             f"Key contributing features are {top_fi_str or 'features across the dataset'}. "
         )
         if audit_summary:
-            narrative += f"Pre-training audit verified data cleanliness ({'; '.join(audit_summary)}). "
+            narrative += f"Pre-training audit: {'; '.join(audit_summary)}. "
         if cal_data:
             narrative += f"Probability calibration achieved a Brier score of {cal_data.brier_score:.4f}. "
         if res_data:

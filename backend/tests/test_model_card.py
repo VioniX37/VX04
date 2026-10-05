@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -82,8 +83,7 @@ def test_format_model_card_markdown():
     assert "Why This Model" in md
 
 
-@pytest.mark.asyncio
-async def test_model_card_hook_generates_artifacts(tmp_path: Path):
+def test_model_card_hook_generates_artifacts(tmp_path: Path):
     artifact_dir = tmp_path / "attempt_1"
     artifact_dir.mkdir(parents=True)
 
@@ -92,7 +92,10 @@ async def test_model_card_hook_generates_artifacts(tmp_path: Path):
     y = X[:, 0] * 3.0 + 1.0
     rf.fit(X, y)
 
-    joblib.dump({"model": rf, "classes": None, "features": ["f1", "f2"]}, artifact_dir / "model.joblib")
+    joblib.dump(
+        {"model": rf, "classes": None, "features": ["f1", "f2"], "task_type": "tabular_regression"},
+        artifact_dir / "model.joblib",
+    )
 
     spec = TaskSpec(
         task_type=TaskType.tabular_regression,
@@ -118,7 +121,7 @@ async def test_model_card_hook_generates_artifacts(tmp_path: Path):
     hook = ModelCardHook()
     res = DummyResult()
     ctx = DummyContext()
-    await hook.on_run_finished(ctx, res)
+    asyncio.run(hook.on_run_finished(ctx, res))
 
     assert (artifact_dir / "model_card.json").exists()
     assert (artifact_dir / "model_card.md").exists()
@@ -129,3 +132,38 @@ async def test_model_card_hook_generates_artifacts(tmp_path: Path):
     assert card_data["primary_metric"] == "rmse"
     assert len(card_data["feature_importances"]) == 2
     assert "model_card" in res.metrics
+
+
+@pytest.mark.parametrize(
+    ("sample", "prompt", "section"),
+    [
+        ("customer_churn.csv", "Predict churn", "confusion_matrix"),
+        ("house_prices.csv", "Predict the house price", "residuals"),
+        ("product_reviews.csv", "Classify review sentiment", "confusion_matrix"),
+    ],
+)
+def test_model_card_has_test_diagnostics_for_every_task_type(settings, sample, prompt, section):
+    """Real runs get test-split diagnostics and non-zero importances, not just an empty card."""
+    from automl_agent.agents import AgentManager, RunContext
+    from automl_agent.llm import create_llm
+    from automl_agent.services.event_bus import EventBus
+    from automl_agent.tools import profile_file
+
+    path = Path(__file__).resolve().parents[2] / "data" / "samples" / sample
+    ctx = RunContext(
+        run_id="card",
+        prompt=prompt,
+        dataset_path=path,
+        profile=profile_file(path),
+        workdir=settings.runs_dir / "card",
+        settings=settings,
+        llm=create_llm(settings),
+        bus=EventBus(),
+    )
+    result = asyncio.run(AgentManager(ctx).run())
+    assert result.success, result.error
+    card = result.metrics["model_card"]
+    assert card[section], f"model card has no {section}"
+    assert sum(f["importance"] for f in card["feature_importances"]) > 0
+    if sample == "customer_churn.csv":
+        assert card["calibration"] is not None
