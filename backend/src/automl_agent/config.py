@@ -122,6 +122,10 @@ class Settings(BaseSettings):
     allow_path_registration: bool = Field(
         True, description="Allow registering datasets by server-side file path (disable on shared servers)."
     )
+    data_audit: bool = Field(
+        True,
+        description="Pre-training data audit: detect target leakage, identifiers, and train/test duplicates.",
+    )
     split_valid_fraction: float = Field(0.15, description="Share of rows in the validation split.")
     split_test_fraction: float = Field(0.15, description="Share of rows in the held-out test split.")
     split_seed: int = Field(42, description="Seed for the train/valid/test assignment.")

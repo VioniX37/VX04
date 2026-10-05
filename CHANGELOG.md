@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- **Pre-training data audit.** Deterministic target leakage and quality checks using Polars (single-feature predictive power, identifier detection, target name matching, and high-performance train/test duplicate row detection scaling to 5M rows in seconds). High-severity findings automatically populate `drop_columns`, surface assumptions, and inform planning knowledge. Toggleable via `DATA_AUDIT`.
+- **Post-training model card.** Automated diagnostic model card (`model_card.json` and `model_card.md`) generated via the `on_run_finished` hook. Includes native gain and permutation feature importances, confusion matrix and per-class metrics, residual analysis for regression, probability calibration curves with Brier score, and a measured-evidence "Why this model" narrative.
+- **Web UI audit and model card panels.** Pre-training audit panel displaying leakage alerts and auto-dropped features; post-training model card view with interactive feature importance bars, diagnostic matrices, and reliability tables.
+- **Planted leaky benchmark sample.** Synthetic dataset (`data/samples/customer_churn_leaky.csv`) for leakage detection validation and benchmark ablation tracking.
 - **Gemini-only LLM layer.** Role routing (smart/fast models), native JSON-schema output, a per-model rate limiter, a global concurrency cap, backoff honouring `retryDelay`, an on-disk response cache, startup validation of model ids, and Google Search grounding for knowledge retrieval. Optional fused Data+Model analysis (`AGENT_FUSION`).
 - **Large-data pipeline.** Streaming ingest of CSV/TSV/Parquet/JSONL (including `.gz`) to Parquet; Polars profiling with scale tiers; fixed stratified train/valid/test splits with nested subsampling; LightGBM, XGBoost and HistGB templates with native categoricals and early stopping; an out-of-core hashing text model; a supervised sandbox with memory watchdog and live progress; registration by server path or URL; a 5 GB upload limit.
 - **`automl-agent` CLI** (`ingest`, `run`, `datasets`, `models`) for headless use on Colab and Kaggle.

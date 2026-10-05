@@ -47,7 +47,7 @@ BACKEND = HERE.parent
 RESULT_FIELDS = [
     "kind", "variant", "task", "prompt_kind", "seed", "run_id", "success", "target_met", "sr", "nps", "cs",
     "metric", "score", "model_family", "spec_correct", "revisions", "stop_reason", "wall_s", "llm_calls",
-    "cache_hits", "tokens", "memory_hits", "error",
+    "cache_hits", "tokens", "memory_hits", "audit_dropped", "audit_changed_outcome", "error",
 ]  # fmt: skip
 
 
@@ -120,6 +120,8 @@ async def run_pipeline_task(
     )
     metrics = (result.metrics or {}) if result else {}
     sources = result.knowledge_sources if result else []
+    audit_dropped_cols = [c for c in (spec.drop_columns if spec else []) if c not in truth.drop_columns]
+    audit_changed_outcome = len(audit_dropped_cols) > 0
     row = {
         "kind": "pipeline",
         "run_id": run_id,
@@ -136,6 +138,8 @@ async def run_pipeline_task(
         "cache_hits": usage.get("cache_hits", 0),
         "tokens": usage.get("total_tokens", 0),
         "memory_hits": sum(1 for s in sources if s.startswith("memory:")),
+        "audit_dropped": len(audit_dropped_cols),
+        "audit_changed_outcome": audit_changed_outcome,
         "error": result.error if result else "crashed",
     }
     return _score_row(row, row["metric"], metrics.get("metrics")), obs
@@ -189,6 +193,8 @@ async def run_baseline(
         "revisions": 0,
         "stop_reason": "",
         "memory_hits": 0,
+        "audit_dropped": 0,
+        "audit_changed_outcome": False,
         **out,
     }
     return _score_row(row, truth.metric, out.get("metrics"))
@@ -215,6 +221,9 @@ def summarize(rows: list[dict[str, Any]], observations: list[dict[str, Any]]) ->
             "tokens": mean("tokens"),
             "spec_accuracy": mean("spec_correct"),
             "calibration": calibration(o for o in observations if o.get("variant") == name),
+            "audit_changed_rate": round(
+                sum(1 for r in rs if r.get("audit_changed_outcome")) / max(1, len(rs)), 4
+            ),
         }
     return summary
 

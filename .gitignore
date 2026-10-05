@@ -45,6 +45,7 @@ data/**
 !data/samples/
 !data/samples/*.py
 !data/samples/customer_churn.csv
+!data/samples/customer_churn_leaky.csv
 !data/samples/house_prices.csv
 !data/samples/product_reviews.csv
 *.zip

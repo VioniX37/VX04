@@ -21,6 +21,7 @@ from automl_agent.execution.renderer import render_template
 from automl_agent.execution.sandbox import run_script
 from automl_agent.extensions import PipelineHooks, registered_hooks, run_hook
 from automl_agent.extensions.approval import ApprovalHooks
+from automl_agent.extensions.model_card import ModelCardHook
 from automl_agent.memory import MemoryHooks, MemoryRetriever
 from automl_agent.planning.decomposition import decompose
 from automl_agent.planning.gemini_search import GeminiSearchRetriever
@@ -28,6 +29,7 @@ from automl_agent.planning.retrieval import KnowledgeItem, LocalKnowledgeRetriev
 from automl_agent.schemas.events import Stage
 from automl_agent.schemas.plan import Observation, Plan, PlanEvaluation, PlanSet
 from automl_agent.schemas.task_spec import TaskSpec, TaskType
+from automl_agent.tools.data_audit import apply_audit_to_task_spec, run_data_audit
 from automl_agent.tools.ingest import ingest_to_parquet
 from automl_agent.tools.splits import ensure_split
 from automl_agent.verification import (
@@ -104,6 +106,7 @@ class AgentManager(BaseAgent):
             builtin.append(ApprovalHooks())
         if ctx.settings.memory_enabled:
             builtin.append(MemoryHooks())
+        builtin.append(ModelCardHook())
         return [*builtin, *registered_hooks()]
 
     @staticmethod
@@ -179,11 +182,57 @@ class AgentManager(BaseAgent):
             payload={"split": {"train": split.n_train, "valid": split.n_valid, "test": split.n_test}},
         )
 
+    async def audit_data(self, spec: TaskSpec) -> tuple[TaskSpec, Any]:
+        """Pre-training data audit: detect target leakage, identifiers, and train/test duplicates."""
+        ctx = self.ctx
+        await ctx.emit(
+            Stage.prepare, self.name, "Auditing dataset for target leakage and data quality", kind="status"
+        )
+        report = await asyncio.to_thread(
+            run_data_audit,
+            ctx.dataset_path,
+            spec,
+            ctx.profile,
+            ctx.split.path if ctx.split else None,
+        )
+        ctx.state["audit_report"] = report
+        updated_spec = apply_audit_to_task_spec(report, spec)
+        summary_msg = (
+            f"Data audit: {len(report.dropped_columns)} columns dropped for leakage"
+            if report.dropped_columns
+            else "Data audit: no critical leakage detected"
+        )
+        if report.train_test_duplicates > 0:
+            summary_msg += f", {report.train_test_duplicates:,} train/test duplicate rows"
+        await ctx.emit(
+            Stage.prepare,
+            self.name,
+            summary_msg,
+            kind="artifact" if report.findings else "info",
+            payload={"audit": report.model_dump(mode="json")},
+        )
+        return updated_spec, report
+
     async def retrieve_knowledge(self, spec: TaskSpec) -> list[KnowledgeItem]:
         """Retrieval-augmented planning: gather knowledge from every configured retriever."""
         ctx = self.ctx
         await ctx.emit(Stage.retrieve, self.name, "Retrieving relevant ML knowledge", kind="status")
         items = await retrieve_all(self.retrievers, spec, ctx.profile, ctx.prompt)
+        audit_rep = ctx.state.get("audit_report")
+        if audit_rep and (audit_rep.dropped_columns or audit_rep.has_leakage):
+            items.append(
+                KnowledgeItem(
+                    id="data-audit-findings",
+                    task_types=[spec.task_type.value],
+                    title="Pre-training Data Audit & Leakage Protection",
+                    source="data-audit",
+                    content=(
+                        "Pre-training audit detected potential target leakage. "
+                        f"Columns automatically dropped: {', '.join(audit_rep.dropped_columns)}. "
+                        "Do not use these features in candidate plans."
+                    ),
+                )
+            )
         items = await run_hook("on_knowledge_retrieved", ctx, items, hooks=self.hooks)
         await ctx.emit(
             Stage.retrieve,
@@ -394,6 +443,8 @@ class AgentManager(BaseAgent):
         if spec is None:
             return PipelineResult(success=False, error="request verification failed")
         await self.prepare_data(spec)
+        if ctx.settings.data_audit:
+            spec, _ = await self.audit_data(spec)
         knowledge = await self.retrieve_knowledge(spec)
 
         result = PipelineResult(
