@@ -17,6 +17,7 @@ import { MetricsPanel } from "./MetricsPanel";
 import { ModelCardPanel } from "./ModelCardPanel";
 import { PlanCards } from "./PlanCards";
 import { Badge, Button, Card, CardTitle, cn, ErrorNote, LiveDot, Spinner, Stat, StatusBadge } from "./ui";
+import { UseModelPanel } from "./UseModelPanel";
 import { AgentGantt } from "./viz/AgentGantt";
 import { BudgetGauges, SplitBar } from "./viz/Gauges";
 import { GroundingChart } from "./viz/GroundingChart";
@@ -234,6 +235,8 @@ export function RunView({ runId }: { runId: string }) {
               <MetricsPanel metrics={metrics} spec={spec} />
             </Card>
           )}
+
+          {run.status === "succeeded" && <UseModelPanel run={run} />}
 
           {modelCard && <ModelCardPanel card={modelCard} />}
 

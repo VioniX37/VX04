@@ -64,3 +64,58 @@ data: {"seq":12,"run_id":"…","ts":"…","stage":"ground","agent":"manager","ki
 Events are replayed from the start (or from `after`), then streamed live. When the run ends, the server sends `event: end` and closes the stream. Payload shapes per stage are listed in the [event schema](event-schema.md).
 
 TypeScript mirrors of all schemas are in `frontend/src/lib/types.ts`.
+
+## Inference (model serving)
+
+These endpoints are available for runs that have `status == "succeeded"`.
+
+| Method | Path | Body | Returns |
+|---|---|---|---|
+| POST | `/runs/{id}/predict` | JSON array of row objects | `PredictResult` |
+| POST | `/runs/{id}/predict/batch` | multipart `file` (CSV/TSV/Parquet/JSONL) | scored Parquet (`application/octet-stream`) |
+| GET | `/runs/{id}/artifacts/bundle` | | zip with model, script, requirements, schema, metrics |
+
+### POST `/runs/{id}/predict`
+
+Score one or more rows supplied as a JSON array. Returns predictions and, for classifiers, per-class probabilities.
+
+```json
+// Request
+[{"age": 34, "income": 65000, "tenure": 2}]
+
+// Response
+{
+  "run_id": "8c855bb87153",
+  "n": 1,
+  "predictions": ["yes"],
+  "classes": ["no", "yes"],
+  "probabilities": [[0.27, 0.73]]
+}
+```
+
+### POST `/runs/{id}/predict/batch`
+
+Upload a file to score. The scored result is returned as a Parquet file with a `prediction` column (and `prob_<class>` columns for classifiers). Reuses the Parquet ingest path, so multi-GB files are handled with bounded memory.
+
+### GET `/runs/{id}/artifacts/bundle`
+
+Download a zip with everything needed to run the model in a fresh Python environment:
+
+| File | Contents |
+|---|---|
+| `model.joblib` | Trained model and preprocessing state |
+| `predict.py` | Standalone CLI scoring script |
+| `requirements.txt` | Pinned dependency versions |
+| `schema.json` | Input columns, dtypes, task type, target, drop_columns |
+| `metrics.json` | Test-split performance metrics |
+
+The bundle runs without the AutoML-Agent package: `pip install -r requirements.txt && python predict.py --input new.csv --output scored.parquet`.
+
+### Error codes
+
+All three endpoints return `404` when the run is not found and `422` (never `500`) for:
+
+- Run has not yet succeeded (`status` ≠ `succeeded`)
+- No model saved (run used `save_model=false` or failed mid-training)
+- Schema mismatch (the `422` body is `{"error": "…", "column": "<name>"}`)
+
