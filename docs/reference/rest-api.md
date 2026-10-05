@@ -71,13 +71,31 @@ These endpoints are available for runs that have `status == "succeeded"`.
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
+| GET | `/runs/{id}/schema` | | input columns, their kinds and category levels |
 | POST | `/runs/{id}/predict` | JSON array of row objects | `PredictResult` |
 | POST | `/runs/{id}/predict/batch` | multipart `file` (CSV/TSV/Parquet/JSONL) | scored Parquet (`application/octet-stream`) |
 | GET | `/runs/{id}/artifacts/bundle` | | zip with model, script, requirements, schema, metrics |
 
+### GET `/runs/{id}/schema`
+
+The columns a prediction request must contain. `kind` is `numeric`, `category` or `text`; `categories` lists the levels seen in training (other values are scored as missing). The web UI builds its prediction form from this.
+
+```json
+{
+  "run_id": "8c855bb87153",
+  "task_type": "tabular_classification",
+  "target": "churn",
+  "features": [
+    {"name": "tenure_months", "kind": "numeric", "categories": []},
+    {"name": "contract", "kind": "category", "categories": ["month-to-month", "one-year", "two-year"]}
+  ],
+  "drop_columns": ["customer_id"]
+}
+```
+
 ### POST `/runs/{id}/predict`
 
-Score one or more rows supplied as a JSON array. Returns predictions and, for classifiers, per-class probabilities.
+Score one or more rows supplied as a JSON array. Features are prepared exactly as in training (same dtypes and category levels). The target, excluded columns and training columns the model did not use are ignored; any other missing or unexpected column returns 422 naming the column. Returns predictions and, for classifiers, per-class probabilities.
 
 ```json
 // Request
@@ -95,7 +113,7 @@ Score one or more rows supplied as a JSON array. Returns predictions and, for cl
 
 ### POST `/runs/{id}/predict/batch`
 
-Upload a file to score. The scored result is returned as a Parquet file with a `prediction` column (and `prob_<class>` columns for classifiers). Reuses the Parquet ingest path, so multi-GB files are handled with bounded memory.
+Upload a file to score. The scored result is returned as a Parquet file with a `prediction` column (and `prob_<class>` columns for classifiers), in input row order. The upload is streamed to disk, converted with the Parquet ingest path and scored in 100k-row chunks, so memory stays bounded.
 
 ### GET `/runs/{id}/artifacts/bundle`
 
@@ -103,11 +121,13 @@ Download a zip with everything needed to run the model in a fresh Python environ
 
 | File | Contents |
 |---|---|
-| `model.joblib` | Trained model and preprocessing state |
-| `predict.py` | Standalone CLI scoring script |
-| `requirements.txt` | Pinned dependency versions |
-| `schema.json` | Input columns, dtypes, task type, target, drop_columns |
+| `model.joblib` | Trained model with the dtypes and category levels it was trained on |
+| `automl_inference.py` | The serving module the API itself uses |
+| `predict.py` | Standalone CLI scoring script built on it |
+| `requirements.txt` | Dependencies pinned (`==`) to the training versions |
+| `schema.json` | Same content as `GET /runs/{id}/schema` |
 | `metrics.json` | Test-split performance metrics |
+| `model_card.md`, `model_card.json` | The run's model card, when one was generated |
 
 The bundle runs without the AutoML-Agent package: `pip install -r requirements.txt && python predict.py --input new.csv --output scored.parquet`.
 

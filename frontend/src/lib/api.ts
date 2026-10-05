@@ -1,4 +1,4 @@
-import type { AgentEvent, ApprovalMode, BundleSchema, Dataset, Health, PlanApprovalRequest, PredictResult, Run } from "./types";
+import type { AgentEvent, ApprovalMode, Dataset, Health, ModelSchema, PlanApprovalRequest, PredictResult, Run } from "./types";
 
 /** Base URL of the FastAPI backend (set `NEXT_PUBLIC_API_URL` in `frontend/.env.local`). */
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -16,7 +16,9 @@ export class ApiError extends Error {
 function detailOf(body: unknown, fallback: string): string {
   if (body && typeof body === "object" && "detail" in body) {
     const detail = (body as { detail: unknown }).detail;
-    return typeof detail === "string" ? detail : JSON.stringify(detail);
+    if (typeof detail === "string") return detail;
+    if (detail && typeof detail === "object" && "error" in detail) return String((detail as { error: unknown }).error);
+    return JSON.stringify(detail);
   }
   return fallback;
 }
@@ -98,6 +100,8 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
+  /** Input columns of a finished run's model, with kinds and category levels. */
+  getModelSchema: (runId: string) => request<ModelSchema>(`/runs/${runId}/schema`),
   /** Score JSON records against a finished run's model. */
   predictRecords: (runId: string, records: Record<string, unknown>[]) =>
     request<PredictResult>(`/runs/${runId}/predict`, {

@@ -305,12 +305,20 @@ export interface PredictResult {
   classes?: string[];
 }
 
-/** Contents of schema.json in the deployment bundle. */
-export interface BundleSchema {
-  features: string[];
+/** One input column of a trained model (`GET /runs/{id}/schema`, also `schema.json` in the bundle). */
+export interface ModelInput {
+  name: string;
+  kind: "numeric" | "category" | "text" | "unknown";
+  /** Levels seen in training (categoricals only); other values are scored as missing. */
+  categories: string[];
+}
+
+/** Input schema of a run's model. */
+export interface ModelSchema {
+  run_id: string;
   task_type: string;
   target: string | null;
+  features: ModelInput[];
   drop_columns: string[];
-  dtypes: Record<string, string>;
 }
 

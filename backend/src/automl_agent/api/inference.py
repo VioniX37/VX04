@@ -92,6 +92,34 @@ def _ingest_upload(upload: UploadFile, workdir: Path) -> Path:
     return parquet_path
 
 
+def _input_schema(bundle: dict[str, Any]) -> dict[str, Any]:
+    """Expected input columns, their kinds and (for categoricals) the levels seen in training."""
+    categories = bundle.get("categories") or {}
+    kinds = build_schema(bundle)
+    return {
+        "task_type": bundle.get("task_type"),
+        "target": bundle.get("target"),
+        "features": [
+            {"name": col, "kind": kinds[col], "categories": [str(v) for v in categories.get(col, [])]}
+            for col in bundle["features"]
+        ],
+        "drop_columns": bundle.get("drop_columns", []),
+    }
+
+
+@router.get("/{run_id}/schema", summary="Input schema of the run's model")
+def get_schema(run_id: str, session: Session = Depends(get_session)) -> dict[str, Any]:
+    """Return the columns a prediction request must contain, with their kinds and category levels.
+
+    Raises:
+        404: Run not found.
+        422: Run did not succeed or no model found.
+    """
+    run = _get_run_or_404(run_id, session)
+    _require_succeeded(run)
+    return {"run_id": run_id, **_input_schema(_load_or_error(run))}
+
+
 # --------------------------------------------------------------------------- #
 # Predict (single / small batch via JSON)                                      #
 # --------------------------------------------------------------------------- #
@@ -299,15 +327,7 @@ def download_bundle(
         zf.writestr("automl_inference.py", Path(inference_module.__file__).read_text(encoding="utf-8"))
         zf.writestr("predict.py", _PREDICT_SCRIPT)
         zf.writestr("requirements.txt", _pinned_requirements(bundle))
-        schema = {
-            "features": bundle["features"],
-            "task_type": bundle.get("task_type"),
-            "target": bundle.get("target"),
-            "drop_columns": bundle.get("drop_columns", []),
-            "dtypes": build_schema(bundle),
-            "categories": bundle.get("categories") or {},
-        }
-        zf.writestr("schema.json", json.dumps(schema, indent=2, default=str))
+        zf.writestr("schema.json", json.dumps(_input_schema(bundle), indent=2))
         for name in ("metrics.json", "model_card.md", "model_card.json"):
             path = artifact_dir / name
             if path.exists():

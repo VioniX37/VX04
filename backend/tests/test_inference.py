@@ -322,6 +322,11 @@ def test_bundle_download_on_succeeded_run(sample_csvs):
         if run["status"] != "succeeded":
             pytest.skip("Run failed; skipping bundle download test")
 
+        schema = client.get(f"/api/runs/{run['id']}/schema").json()
+        kinds = {f["name"]: f for f in schema["features"]}
+        assert kinds["contract"]["kind"] == "category"
+        assert "month-to-month" in kinds["contract"]["categories"]
+        assert kinds["tenure_months"]["kind"] == "numeric"
         resp = client.get(f"/api/runs/{run['id']}/artifacts/bundle")
         assert resp.status_code == 200
         assert resp.headers["content-type"] == "application/zip"
@@ -330,7 +335,9 @@ def test_bundle_download_on_succeeded_run(sample_csvs):
         for required in ("model.joblib", "predict.py", "requirements.txt", "schema.json"):
             assert required in names, f"{required} missing from bundle zip"
         schema = json.loads(zf.read("schema.json"))
-        assert "features" in schema and "task_type" in schema and "dtypes" in schema
+        assert schema["task_type"] and all(
+            {"name", "kind", "categories"} <= set(f) for f in schema["features"]
+        )
 
 
 # --------------------------------------------------------------------------- #
@@ -429,6 +436,11 @@ def test_bundle_scores_in_isolation(sample_csvs, tmp_path):
             dataset = client.post("/api/datasets", files={"file": ("churn.csv", f, "text/csv")}).json()
         run = _run_until_done(client, dataset["id"], "Predict churn")
         assert run["status"] == "succeeded", run.get("error")
+        schema = client.get(f"/api/runs/{run['id']}/schema").json()
+        kinds = {f["name"]: f for f in schema["features"]}
+        assert kinds["contract"]["kind"] == "category"
+        assert "month-to-month" in kinds["contract"]["categories"]
+        assert kinds["tenure_months"]["kind"] == "numeric"
         resp = client.get(f"/api/runs/{run['id']}/artifacts/bundle")
         assert resp.status_code == 200
 

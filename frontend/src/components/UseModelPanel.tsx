@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import type { BundleSchema, PredictResult, Run } from "@/lib/types";
-import { Button, Card, CardTitle, ErrorNote, Spinner } from "./ui";
+import type { ModelInput, ModelSchema, PredictResult, Run } from "@/lib/types";
+import { Button, Card, CardTitle, cn, ErrorNote, Spinner } from "./ui";
 
 /** The "Use this model" panel shown on a finished, succeeded run. */
 export function UseModelPanel({ run }: { run: Run }) {
@@ -14,7 +14,7 @@ export function UseModelPanel({ run }: { run: Run }) {
     <Card>
       <CardTitle eyebrow="deployment">Use this model</CardTitle>
       <div className="space-y-6">
-        <SinglePredictSection runId={run.id} run={run} />
+        <SinglePredictSection runId={run.id} />
         <hr className="border-border" />
         <BatchScoreSection runId={run.id} />
         <hr className="border-border" />
@@ -28,58 +28,67 @@ export function UseModelPanel({ run }: { run: Run }) {
 // Single prediction form
 // ─────────────────────────────────────────────────────────────────────────────
 
-function SinglePredictSection({ runId, run }: { runId: string; run: Run }) {
-  const spec = run.task_spec;
-  // Build the list of input fields from the task spec.
-  const target = spec?.target_column ?? null;
-  const drop = new Set(spec?.drop_columns ?? []);
-  const allCols = run.metrics?.artifact_dir
-    ? null // artifact_dir doesn't carry schema; we rely on spec
-    : null;
-
-  // Derive feature list from task spec (may be null if spec absent).
-  const featureCols: string[] = spec
-    ? (spec.feature_columns ?? []).filter((c) => !drop.has(c) && c !== target)
-    : [];
-
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(featureCols.map((c) => [c, ""])),
-  );
+function SinglePredictSection({ runId }: { runId: string }) {
+  // The form is generated from the model's own input schema (the same one shipped in schema.json).
+  const [schema, setSchema] = useState<ModelSchema | null>(null);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+  const [values, setValues] = useState<Record<string, string>>({});
   const [result, setResult] = useState<PredictResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    api.getModelSchema(runId).then(
+      (s) => {
+        if (cancelled) return;
+        setSchema(s);
+        setValues(Object.fromEntries(s.features.map((f) => [f.name, ""])));
+      },
+      (e) => !cancelled && setSchemaError(e instanceof ApiError ? e.message : String(e)),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [runId]);
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
+      if (!schema) return;
       setLoading(true);
       setError(null);
       setResult(null);
       try {
-        // Convert string values to numbers where possible.
+        // Numeric fields are sent as numbers; everything else as entered. Empty fields mean "missing".
         const record: Record<string, unknown> = {};
-        for (const [k, v] of Object.entries(values)) {
-          const num = Number(v);
-          record[k] = v === "" ? null : Number.isNaN(num) ? v : num;
+        for (const f of schema.features) {
+          const v = values[f.name] ?? "";
+          record[f.name] = v === "" ? null : f.kind === "numeric" && !Number.isNaN(Number(v)) ? Number(v) : v;
         }
-        const res = await api.predictRecords(runId, [record]);
-        setResult(res);
+        setResult(await api.predictRecords(runId, [record]));
       } catch (err) {
         setError(err instanceof ApiError ? err.message : String(err));
       } finally {
         setLoading(false);
       }
     },
-    [runId, values],
+    [runId, schema, values],
   );
 
-  if (featureCols.length === 0) {
+  if (schemaError) {
     return (
       <div>
         <SectionHeading>Single prediction</SectionHeading>
-        <p className="text-sm text-muted">
-          Feature columns are not available in the task specification. Use the batch scoring or CLI instead.
-        </p>
+        <ErrorNote>{schemaError}</ErrorNote>
+      </div>
+    );
+  }
+  if (!schema) {
+    return (
+      <div>
+        <SectionHeading>Single prediction</SectionHeading>
+        <Spinner />
       </div>
     );
   }
@@ -88,23 +97,21 @@ function SinglePredictSection({ runId, run }: { runId: string; run: Run }) {
     <div>
       <SectionHeading>Single prediction</SectionHeading>
       <p className="mb-3 text-xs text-muted">
-        Fill in the feature values and get an instant prediction from the model.
+        Fill in the feature values and get an instant prediction from the model. Leave a field empty to treat it as
+        missing.
       </p>
       <form onSubmit={handleSubmit} id={`predict-form-${runId}`} className="space-y-3">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {featureCols.map((col) => (
-            <div key={col} className="flex flex-col gap-1">
-              <label htmlFor={`field-${runId}-${col}`} className="eyebrow truncate">
-                {col}
+          {schema.features.map((f) => (
+            <div key={f.name} className={cn("flex flex-col gap-1", f.kind === "text" && "sm:col-span-2 lg:col-span-3")}>
+              <label htmlFor={`field-${runId}-${f.name}`} className="eyebrow truncate">
+                {f.name}
               </label>
-              <input
-                id={`field-${runId}-${col}`}
-                type="text"
-                value={values[col] ?? ""}
-                onChange={(e) => setValues((prev) => ({ ...prev, [col]: e.target.value }))}
-                placeholder={col}
-                className="rounded-lg border border-border bg-surface-muted/60 px-3 py-1.5 text-sm outline-none
-                           focus:border-accent focus:ring-1 focus:ring-accent/30 placeholder:text-muted"
+              <FieldInput
+                id={`field-${runId}-${f.name}`}
+                input={f}
+                value={values[f.name] ?? ""}
+                onChange={(v) => setValues((prev) => ({ ...prev, [f.name]: v }))}
               />
             </div>
           ))}
@@ -116,10 +123,59 @@ function SinglePredictSection({ runId, run }: { runId: string; run: Run }) {
 
       {error && <ErrorNote>{error}</ErrorNote>}
 
-      {result && (
-        <PredictResultCard result={result} />
-      )}
+      {result && <PredictResultCard result={result} />}
     </div>
+  );
+}
+
+const fieldClass =
+  "rounded-lg border border-border bg-surface-muted/60 px-3 py-1.5 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 placeholder:text-muted";
+
+function FieldInput({
+  id,
+  input,
+  value,
+  onChange,
+}: {
+  id: string;
+  input: ModelInput;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  if (input.kind === "category" && input.categories.length > 0) {
+    return (
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={fieldClass}>
+        <option value="">(missing)</option>
+        {input.categories.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </select>
+    );
+  }
+  if (input.kind === "text") {
+    return (
+      <textarea
+        id={id}
+        rows={3}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Text to classify"
+        className={fieldClass}
+      />
+    );
+  }
+  return (
+    <input
+      id={id}
+      type="text"
+      inputMode={input.kind === "numeric" ? "decimal" : "text"}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={input.kind === "numeric" ? "number" : input.name}
+      className={fieldClass}
+    />
   );
 }
 
