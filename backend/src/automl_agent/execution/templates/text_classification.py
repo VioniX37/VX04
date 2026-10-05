@@ -178,6 +178,10 @@ def main():
         artifact["text_column"] = CONFIG["text_column"]
         artifact["drop_columns"] = CONFIG.get("drop_columns", [])
         artifact["features"] = [CONFIG["text_column"]]  # single text feature
+        artifact["ignored_columns"] = [
+            c for c in pl.scan_parquet(CONFIG["data_path"]).collect_schema().names()
+            if c not in (CONFIG["text_column"], CONFIG["target"])
+        ]
         artifact["config"] = CONFIG
         joblib.dump(artifact, "model.joblib")
     with open("metrics.json", "w") as f:

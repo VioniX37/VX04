@@ -207,6 +207,7 @@ def main():
     X_eval, y_eval = (X_valid, y_valid) if eval_split == "valid" else load_split("test")
     others = [X_valid] if eval_split == "valid" else [X_valid, X_eval]
     align_categories(X_train, others)
+    categories = {c: X_train[c].cat.categories.tolist() for c in X_train.select_dtypes("category").columns}
 
     classes = None
     if IS_CLF:
@@ -258,6 +259,15 @@ def main():
                 "task_type": CONFIG["task_type"],
                 "target": CONFIG["target"],
                 "drop_columns": CONFIG.get("drop_columns", []),
+                # Training-time dtypes and category levels, replayed by inference.prepare_features
+                "dtypes": {c: str(t) for c, t in X_train.dtypes.items()},
+                "categories": categories,
+                "ordinal_columns": [c for c in categories if str(X_train[c].dtype) != "category"],
+                # Columns present in the training data but not used as features: accepted and ignored
+                "ignored_columns": [
+                    c for c in pl.scan_parquet(CONFIG["data_path"]).collect_schema().names()
+                    if c not in X_train.columns and c != CONFIG["target"]
+                ],
                 "config": CONFIG,
             },
             "model.joblib",

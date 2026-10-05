@@ -29,7 +29,6 @@ from automl_agent.execution.inference import (
 )
 from automl_agent.main import create_app
 
-
 # --------------------------------------------------------------------------- #
 # Fixtures                                                                     #
 # --------------------------------------------------------------------------- #
@@ -44,19 +43,23 @@ def _make_tabular_bundle(tmp_path: Path, is_clf: bool = True) -> tuple[Path, dic
     X = pd.DataFrame({"age": [30.0, 45.0, 25.0], "income": [50000.0, 80000.0, 30000.0]})
     if is_clf:
         y = np.array([0, 1, 0])
-        model = Pipeline([
-            ("scale", StandardScaler()),
-            ("clf", LogisticRegression(random_state=42)),
-        ])
+        model = Pipeline(
+            [
+                ("scale", StandardScaler()),
+                ("clf", LogisticRegression(random_state=42)),
+            ]
+        )
         model.fit(X, y)
         classes = np.array(["no", "yes"], dtype=object)
         task_type = "tabular_classification"
     else:
         y = np.array([100.0, 200.0, 80.0])
-        model = Pipeline([
-            ("scale", StandardScaler()),
-            ("reg", Ridge()),
-        ])
+        model = Pipeline(
+            [
+                ("scale", StandardScaler()),
+                ("reg", Ridge()),
+            ]
+        )
         model.fit(X, y)
         classes = None
         task_type = "tabular_regression"
@@ -328,3 +331,124 @@ def test_bundle_download_on_succeeded_run(sample_csvs):
             assert required in names, f"{required} missing from bundle zip"
         schema = json.loads(zf.read("schema.json"))
         assert "features" in schema and "task_type" in schema and "dtypes" in schema
+
+
+# --------------------------------------------------------------------------- #
+# Training/serving parity                                                      #
+# --------------------------------------------------------------------------- #
+
+
+def _metric(name: str, y_true, y_pred) -> float:
+    from sklearn import metrics as m
+
+    if name == "rmse":
+        return float(np.sqrt(m.mean_squared_error(y_true, y_pred)))
+    fns = {
+        "accuracy": m.accuracy_score,
+        "balanced_accuracy": m.balanced_accuracy_score,
+        "f1_macro": lambda a, b: m.f1_score(a, b, average="macro"),
+        "f1_weighted": lambda a, b: m.f1_score(a, b, average="weighted"),
+        "mae": m.mean_absolute_error,
+        "r2": m.r2_score,
+    }
+    return float(fns[name](y_true, y_pred))
+
+
+@pytest.mark.parametrize(
+    ("sample", "prompt"),
+    [
+        ("churn", "Predict churn"),
+        ("houses", "Predict the house price"),
+        ("reviews", "Classify review sentiment"),
+    ],
+)
+def test_endpoint_predictions_reproduce_training_test_score(sample_csvs, sample, prompt):
+    """Scoring the held-out test split through /predict reproduces the score the training script reported."""
+    with TestClient(create_app()) as client:
+        with sample_csvs[sample].open("rb") as f:
+            dataset = client.post("/api/datasets", files={"file": (f"{sample}.csv", f, "text/csv")}).json()
+        run = _run_until_done(client, dataset["id"], prompt)
+        assert run["status"] == "succeeded", run.get("error")
+
+        bundle = joblib.load(Path(run["metrics"]["artifact_dir"]) / "model.joblib")
+        config = bundle["config"]
+        data = pl.concat(
+            [pl.read_parquet(config["data_path"]), pl.read_parquet(config["split_path"])],
+            how="horizontal_extend",
+        )
+        test = data.filter(pl.col("__split") == 2).drop("__split", "__r").to_pandas()
+        target = bundle["target"]
+        if bundle.get("classes") is not None:  # the template scores only labels seen in training
+            test = test[test[target].astype(str).isin([str(c) for c in bundle["classes"]])]
+        records = test.drop(columns=[target]).astype(object).where(test.drop(columns=[target]).notna(), None)
+
+        resp = client.post(f"/api/runs/{run['id']}/predict", json=records.to_dict(orient="records"))
+        assert resp.status_code == 200, resp.text
+        preds = resp.json()["predictions"]
+
+        metric = run["metrics"]["metric"]
+        if bundle["task_type"] == "tabular_regression":
+            served = _metric(metric, test[target].to_numpy(dtype=float), np.asarray(preds, dtype=float))
+        else:
+            served = _metric(metric, test[target].astype(str).to_numpy(), np.asarray(preds))
+        assert served == pytest.approx(run["metrics"]["score"], abs=1e-6)
+
+
+def test_unseen_category_and_numeric_strings_are_handled(sample_csvs):
+    """A category unseen in training is scored as missing; numeric strings from a form are converted."""
+    with TestClient(create_app()) as client:
+        with sample_csvs["churn"].open("rb") as f:
+            dataset = client.post("/api/datasets", files={"file": ("churn.csv", f, "text/csv")}).json()
+        run = _run_until_done(client, dataset["id"], "Predict churn")
+        assert run["status"] == "succeeded", run.get("error")
+        bundle = joblib.load(Path(run["metrics"]["artifact_dir"]) / "model.joblib")
+
+        row = pd.read_csv(sample_csvs["churn"]).head(1)[bundle["features"]].iloc[0].to_dict()
+        for col in bundle.get("categories") or {}:
+            row[col] = "never-seen-before"
+        numeric = [c for c, t in (bundle.get("dtypes") or {}).items() if t != "category"]
+        for col in numeric:
+            row[col] = str(row[col])
+        resp = client.post(f"/api/runs/{run['id']}/predict", json=[row])
+        assert resp.status_code == 200, resp.text
+
+        if numeric:
+            row[numeric[0]] = "not-a-number"
+            resp = client.post(f"/api/runs/{run['id']}/predict", json=[row])
+            assert resp.status_code == 422
+            assert resp.json()["detail"]["column"] == numeric[0]
+
+
+def test_bundle_scores_in_isolation(sample_csvs, tmp_path):
+    """The exported predict.py scores a CSV using only the files inside the bundle."""
+    import subprocess
+    import sys
+
+    with TestClient(create_app()) as client:
+        with sample_csvs["churn"].open("rb") as f:
+            dataset = client.post("/api/datasets", files={"file": ("churn.csv", f, "text/csv")}).json()
+        run = _run_until_done(client, dataset["id"], "Predict churn")
+        assert run["status"] == "succeeded", run.get("error")
+        resp = client.get(f"/api/runs/{run['id']}/artifacts/bundle")
+        assert resp.status_code == 200
+
+    with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
+        zf.extractall(tmp_path / "bundle")
+        names = set(zf.namelist())
+    assert {"model.joblib", "automl_inference.py", "predict.py", "requirements.txt", "schema.json"} <= names
+    assert all(
+        "==" in line for line in (tmp_path / "bundle" / "requirements.txt").read_text().splitlines()[1:]
+    )
+
+    src = tmp_path / "new.csv"
+    pd.read_csv(sample_csvs["churn"]).head(25).to_csv(src, index=False)
+    out = tmp_path / "scored.csv"
+    proc = subprocess.run(
+        [sys.executable, "predict.py", "--input", str(src), "--output", str(out), "--format", "csv"],
+        cwd=tmp_path / "bundle",
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert len(pd.read_csv(out)) == 25

@@ -1,21 +1,24 @@
 """Model-serving counterpart to the training templates.
 
 Loads the bundle written by a template (``{"model", "classes", "features",
-"task_type", "target", "drop_columns", "text_column", "config"}``),
-applies the *same* preprocessing that the training script used, and returns
-predictions (and probabilities for classifiers).
+"task_type", "target", "drop_columns", "text_column", "dtypes", "categories",
+"ordinal_columns", "config"}``), replays the *same* feature preparation the
+training script used, and returns predictions (and probabilities for classifiers).
 
 Design goals
 ------------
-- Training and serving share one code path: the template writes a superset
-  of what this module needs; no duplicate preprocessing logic.
-- Validate inputs early and return structured errors – never 500.
-- Support batch scoring of large files via Polars streaming so memory stays
-  bounded by EXEC_MAX_MEM_MB.
+- Training and serving share one code path: the template records the dtypes and
+  category levels it trained with, and :func:`prepare_features` replays them, so a
+  category is encoded identically at training and serving time.
+- Validate inputs early and return structured errors, never a 500.
+- Score large files in chunks so memory stays bounded.
+- Standalone: this module imports only joblib, numpy, pandas and polars, so it is
+  shipped verbatim inside the exported bundle and used by its ``predict.py``.
 """
 
 from __future__ import annotations
 
+import contextlib
 import io
 from pathlib import Path
 from typing import Any
@@ -25,12 +28,9 @@ import numpy as np
 import pandas as pd
 import polars as pl
 
-# --------------------------------------------------------------------------- #
-# Bundle I/O                                                                   #
-# --------------------------------------------------------------------------- #
-
 BUNDLE_KEYS_REQUIRED = {"model", "features", "task_type"}
 CHUNK_ROWS = 100_000
+_BOOL_STRINGS = {"true": 1, "false": 0, "yes": 1, "no": 0, "1": 1, "0": 0}
 
 
 class InferenceError(ValueError):
@@ -61,7 +61,9 @@ def load_bundle(bundle_path: Path) -> dict[str, Any]:
         InferenceError: If the file is missing or the format is wrong.
     """
     if not bundle_path.exists():
-        raise InferenceError("No trained model found for this run. The run may have failed or not yet saved a model.")
+        raise InferenceError(
+            "No trained model found for this run. The run may have failed or not yet saved a model."
+        )
     try:
         bundle = joblib.load(bundle_path)
     except Exception as exc:
@@ -74,49 +76,94 @@ def load_bundle(bundle_path: Path) -> dict[str, Any]:
     return bundle
 
 
-# --------------------------------------------------------------------------- #
-# Schema / validation                                                          #
-# --------------------------------------------------------------------------- #
+def is_text_bundle(bundle: dict[str, Any]) -> bool:
+    """True for bundles written by the text-classification template."""
+    return bundle.get("task_type") == "text_classification"
+
 
 def build_schema(bundle: dict[str, Any]) -> dict[str, str]:
-    """Return a ``{column_name: dtype_str}`` schema from the bundle.
+    """Return a ``{column_name: kind}`` schema (``numeric``, ``category``, ``text`` or ``unknown``).
 
-    The training templates don't persist column dtypes explicitly, so we
-    reconstruct them from the fitted sklearn ColumnTransformer's named steps
-    when available, and fall back to ``"unknown"`` otherwise.  The schema is
-    used to produce ``schema.json`` and to validate incoming requests.
+    Uses the training dtypes recorded in the bundle; bundles written before those
+    were recorded fall back to the fitted sklearn preprocessor, then to ``unknown``.
     """
     features: list[str] = bundle["features"]
-    dtypes: dict[str, str] = {}
-    model = bundle["model"]
+    if is_text_bundle(bundle):
+        return dict.fromkeys(features, "text")
+    recorded: dict[str, str] = bundle.get("dtypes") or {}
+    kinds: dict[str, str] = {}
+    for col, dtype in recorded.items():
+        kinds[col] = "category" if dtype == "category" else "numeric"
+    if not recorded:
+        try:
+            from sklearn.compose import ColumnTransformer
+            from sklearn.pipeline import Pipeline
 
-    # Try to extract dtype knowledge from a sklearn Pipeline's preprocessor.
+            model = bundle["model"]
+            prep = model.named_steps.get("prep") if isinstance(model, Pipeline) else None
+            if isinstance(prep, ColumnTransformer):
+                for name, _, cols in prep.transformers_:
+                    if name in ("num", "cat"):
+                        for c in cols:
+                            kinds[c] = "numeric" if name == "num" else "category"
+        except Exception:
+            pass
+    return {col: kinds.get(col, "unknown") for col in features}
+
+
+def _to_numeric(s: pd.Series, col: str) -> pd.Series:
+    if pd.api.types.is_bool_dtype(s):
+        return s.astype("float64")
     try:
-        from sklearn.pipeline import Pipeline
-        from sklearn.compose import ColumnTransformer
+        return pd.to_numeric(s, errors="raise")
+    except (ValueError, TypeError):
+        lowered = s.astype(str).str.strip().str.lower()
+        if s.notna().all() and lowered.isin(_BOOL_STRINGS).all():
+            return lowered.map(_BOOL_STRINGS).astype("float64")
+        bad = s[pd.to_numeric(s, errors="coerce").isna() & s.notna()].iloc[0]
+        raise InferenceError(f"Column '{col}' must be numeric; got {bad!r}.", column=col) from None
 
-        prep = model.named_steps.get("prep") if isinstance(model, Pipeline) else None
-        if isinstance(prep, ColumnTransformer):
-            for name, transformer, cols in prep.transformers_:
-                if name == "num":
-                    for c in cols:
-                        dtypes[c] = "float"
-                elif name == "cat":
-                    for c in cols:
-                        dtypes[c] = "category"
-    except Exception:
-        pass
 
-    for col in features:
-        dtypes.setdefault(col, "unknown")
-    return dtypes
+def _as_category(s: pd.Series, levels: list[Any]) -> pd.Categorical:
+    """Encode *s* with the training levels; values unseen in training become missing."""
+    if levels and all(isinstance(v, str) for v in levels):
+        s = s.where(s.isna(), s.astype(str))
+    s = s.astype(object)
+    return pd.Categorical(s.where(s.isin(levels)), categories=levels)
+
+
+def prepare_features(df: pd.DataFrame, bundle: dict[str, Any]) -> pd.DataFrame:
+    """Replay the training script's feature preparation on *df* (feature columns, training order)."""
+    df = df.copy()
+    dtypes: dict[str, str] = bundle.get("dtypes") or {}
+    categories: dict[str, list[Any]] = bundle.get("categories") or {}
+    ordinal = set(bundle.get("ordinal_columns") or [])
+    if not dtypes:  # bundles written before dtypes were recorded
+        for col in df.select_dtypes(include="object").columns:
+            df[col] = df[col].astype("category")
+        return df
+    for col in df.columns:
+        dtype = dtypes.get(col)
+        if col in categories:
+            cat = _as_category(df[col], categories[col])
+            if col in ordinal:  # HistGB fallback: integer codes of the training levels
+                df[col] = pd.Series(cat.codes, index=df.index).replace(-1, np.nan).astype("float32")
+            else:
+                df[col] = pd.Series(cat, index=df.index)
+        elif dtype:
+            values = _to_numeric(df[col], col)
+            if dtype.startswith("float") or values.notna().all():
+                values = values.astype(dtype)
+            df[col] = values
+    return df
 
 
 def validate_input(df: pd.DataFrame, bundle: dict[str, Any]) -> pd.DataFrame:
     """Check that *df* has the required columns and return a frame ready for prediction.
 
-    Applies the same column selection and categorical dtypes that the training
-    script used.
+    The target, the columns the run excluded and the training-data columns the model
+    did not use are dropped silently; any other missing or extra column is rejected so
+    features can never be silently misaligned.
 
     Args:
         df: Raw input dataframe.
@@ -124,160 +171,99 @@ def validate_input(df: pd.DataFrame, bundle: dict[str, Any]) -> pd.DataFrame:
 
     Returns:
         A new dataframe containing only the feature columns in training order,
-        with categorical dtypes restored.
+        prepared exactly as the training script prepared them.
 
     Raises:
-        InferenceError: If a required column is missing or an extra column
-            causes ambiguity (rejected to prevent silent misalignment).
+        InferenceError: If a required column is missing, an unexpected column is
+            present, or a value cannot be converted to the training dtype.
     """
     features: list[str] = bundle["features"]
-    drop_cols: list[str] = bundle.get("drop_columns", [])
-    target: str | None = bundle.get("target")
+    ignorable = {bundle.get("target"), *bundle.get("drop_columns", []), *bundle.get("ignored_columns", [])}
+    df = df.drop(columns=[c for c in df.columns if c in ignorable])
 
-    # Silently drop the target column if present (scoring convenience).
-    if target and target in df.columns:
-        df = df.drop(columns=[target])
-
-    # Silently drop explicitly excluded columns.
-    for col in drop_cols:
-        if col in df.columns:
-            df = df.drop(columns=[col])
-
-    # Check for missing required columns.
     for col in features:
         if col not in df.columns:
             raise InferenceError(
-                f"Required column '{col}' is missing from the input. "
-                f"Expected columns: {features}",
+                f"Required column '{col}' is missing from the input. Expected columns: {features}",
                 column=col,
             )
-
-    # Check for unexpected extra columns.
     extra = sorted(set(df.columns) - set(features))
     if extra:
         raise InferenceError(
-            f"Input contains unexpected columns: {extra}. "
-            f"Expected only: {features}",
+            f"Input contains unexpected columns: {extra}. Expected only: {features}",
             column=extra[0],
         )
-
-    # Reorder to training order and restore categorical dtypes.
-    df = df[features].copy()
-    for col in df.select_dtypes(include="object").columns:
-        df[col] = df[col].astype("category")
-
-    return df
+    df = df[features]
+    if is_text_bundle(bundle):
+        return df
+    return prepare_features(df, bundle)
 
 
-# --------------------------------------------------------------------------- #
-# Prediction                                                                   #
-# --------------------------------------------------------------------------- #
-
-def predict_dataframe(
-    df: pd.DataFrame,
-    bundle: dict[str, Any],
-) -> dict[str, Any]:
-    """Run the model on a validated pandas DataFrame.
-
-    Args:
-        df: A frame already validated by :func:`validate_input` (feature
-            columns only, in training order).
-        bundle: Loaded model bundle.
+def predict_dataframe(df: pd.DataFrame, bundle: dict[str, Any]) -> dict[str, Any]:
+    """Run the model on a frame returned by :func:`validate_input`.
 
     Returns:
         A dict with ``"predictions"`` (list) and, for classifiers,
-        ``"probabilities"`` (list of lists) and ``"classes"`` (list).
+        ``"classes"`` and ``"probabilities"`` (list of lists, in ``classes`` order).
     """
     model = bundle["model"]
-    classes: np.ndarray | None = bundle.get("classes")
-    task_type: str = bundle["task_type"]
-    is_clf = task_type != "tabular_regression"
+    is_clf = bundle["task_type"] != "tabular_regression"
 
-    preds_raw = model.predict(df)
+    if is_text_bundle(bundle):
+        text_col = bundle.get("text_column") or bundle["features"][0]
+        X: Any = df[text_col].fillna("").astype(str).tolist()
+        if bundle.get("vectorizer") is not None:  # sgd_hashing keeps the vectorizer separate
+            X = bundle["vectorizer"].transform(X)
+        preds = model.predict(X)
+        result: dict[str, Any] = {"predictions": [str(p) for p in preds]}
+        if hasattr(model, "predict_proba") and hasattr(model, "classes_"):
+            result["classes"] = [str(c) for c in model.classes_]
+            result["probabilities"] = np.asarray(model.predict_proba(X)).tolist()
+        return result
 
-    result: dict[str, Any] = {}
-    if is_clf and classes is not None:
-        # Map integer indices back to original class labels.
-        pred_labels = [str(classes[int(p)]) for p in preds_raw]
-        result["predictions"] = pred_labels
-        result["classes"] = [str(c) for c in classes]
-        if hasattr(model, "predict_proba"):
-            try:
-                proba = model.predict_proba(df)
-                result["probabilities"] = proba.tolist()
-            except Exception:
-                pass
-    elif is_clf:
-        # Text classification bundles store label strings directly.
-        result["predictions"] = [str(p) for p in preds_raw]
-    else:
-        result["predictions"] = [float(p) for p in preds_raw]
-
+    preds = model.predict(df)
+    if not is_clf:
+        return {"predictions": [float(p) for p in np.asarray(preds).ravel()]}
+    classes = bundle.get("classes")
+    if classes is None:
+        return {"predictions": [str(p) for p in preds]}
+    result = {
+        "predictions": [str(classes[int(p)]) for p in np.asarray(preds).ravel()],
+        "classes": [str(c) for c in classes],
+    }
+    if hasattr(model, "predict_proba"):
+        with contextlib.suppress(Exception):  # e.g. SVC fitted without probability estimates
+            result["probabilities"] = np.asarray(model.predict_proba(df)).tolist()
     return result
 
 
-# --------------------------------------------------------------------------- #
-# Batch (file) scoring                                                         #
-# --------------------------------------------------------------------------- #
+def score_parquet_chunked(src: Path, bundle: dict[str, Any]) -> pl.DataFrame:
+    """Score a Parquet file in ``CHUNK_ROWS`` chunks and return the predictions in row order.
 
-def score_parquet_chunked(
-    src: Path,
-    bundle: dict[str, Any],
-    *,
-    max_mem_mb: int = 0,
-) -> pl.DataFrame:
-    """Score a Parquet file in CHUNK_ROWS chunks and return the full result.
-
-    Memory is bounded by the chunk size plus model overhead.  For huge files
-    the caller should stream the result instead of collecting it in RAM.
-
-    Args:
-        src: Path to the (already-ingested) Parquet file.
-        bundle: Loaded model bundle.
-        max_mem_mb: Not enforced here; the caller's sandbox already enforces
-            EXEC_MAX_MEM_MB for training.  Provided for future watchdog use.
-
-    Returns:
-        A Polars DataFrame with one ``prediction`` column (and optionally
-        probability columns ``prob_<class>``).
+    Only one chunk of input is in memory at a time; the output holds one
+    ``prediction`` column plus a ``prob_<class>`` column per class for classifiers.
 
     Raises:
-        InferenceError: On schema mismatch.
+        InferenceError: On schema mismatch or an unconvertible value.
     """
-    features: list[str] = bundle["features"]
-    classes: list[str] | None = None
-    if bundle.get("classes") is not None:
-        classes = [str(c) for c in bundle["classes"]]
-
-    preds_chunks: list[pl.Series] = []
-    proba_chunks: list[np.ndarray] = []
-    total_rows = pl.scan_parquet(src).select(pl.len()).collect().item()
-
+    frames: list[pl.DataFrame] = []
+    lf = pl.scan_parquet(src)
+    total_rows = lf.select(pl.len()).collect().item()
     for offset in range(0, total_rows, CHUNK_ROWS):
-        chunk_lf = pl.scan_parquet(src).slice(offset, CHUNK_ROWS)
-        chunk_pdf = chunk_lf.collect().to_pandas()
-        chunk_validated = validate_input(chunk_pdf, bundle)
-        result = predict_dataframe(chunk_validated, bundle)
-        preds_chunks.append(pl.Series("prediction", result["predictions"]))
+        chunk = validate_input(lf.slice(offset, CHUNK_ROWS).collect().to_pandas(), bundle)
+        result = predict_dataframe(chunk, bundle)
+        cols: dict[str, Any] = {"prediction": result["predictions"]}
         if "probabilities" in result:
-            proba_chunks.append(np.array(result["probabilities"]))
-
-    predictions = pl.concat(preds_chunks)
-    out = pl.DataFrame({"prediction": predictions})
-    if proba_chunks and classes:
-        proba_all = np.vstack(proba_chunks)
-        for i, cls in enumerate(classes):
-            out = out.with_columns(pl.Series(f"prob_{cls}", proba_all[:, i]))
-
-    return out
+            proba = np.asarray(result["probabilities"])
+            for i, cls in enumerate(result["classes"]):
+                cols[f"prob_{cls}"] = proba[:, i]
+        frames.append(pl.DataFrame(cols))
+    if not frames:
+        return pl.DataFrame({"prediction": []})
+    return pl.concat(frames)
 
 
-def score_file(
-    src: Path,
-    bundle: dict[str, Any],
-    *,
-    output_format: str = "parquet",
-) -> bytes:
+def score_file(src: Path, bundle: dict[str, Any], *, output_format: str = "parquet") -> bytes:
     """Score *src* and return the result as bytes (Parquet or CSV).
 
     Args:

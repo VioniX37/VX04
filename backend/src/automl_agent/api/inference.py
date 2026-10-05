@@ -10,15 +10,19 @@ from __future__ import annotations
 
 import io
 import json
+import shutil
+import uuid
 import zipfile
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import Response
 from sqlmodel import Session
 
 from automl_agent.config import get_settings
+from automl_agent.execution import inference as inference_module
 from automl_agent.execution.inference import (
     InferenceError,
     build_schema,
@@ -30,14 +34,13 @@ from automl_agent.execution.inference import (
 from automl_agent.storage.db import RunRecord, get_session
 from automl_agent.tools.ingest import IngestError, ingest_to_parquet
 
-import pandas as pd
-
 router = APIRouter(prefix="/runs", tags=["inference"])
 
 
 # --------------------------------------------------------------------------- #
 # Helpers                                                                      #
 # --------------------------------------------------------------------------- #
+
 
 def _get_run_or_404(run_id: str, session: Session) -> RunRecord:
     run = session.get(RunRecord, run_id)
@@ -46,28 +49,16 @@ def _get_run_or_404(run_id: str, session: Session) -> RunRecord:
     return run
 
 
-def _model_path(run_id: str) -> Path:
-    """Return the path to model.joblib for a run's most recent attempt."""
-    settings = get_settings()
-    run_dir = settings.runs_dir / run_id
-    # Prefer the latest attempt directory, fall back to the run root.
-    attempt_dirs = sorted(run_dir.glob("attempt_*"), reverse=True)
-    if attempt_dirs:
-        candidate = attempt_dirs[0] / "model.joblib"
-        if candidate.exists():
-            return candidate
-    return run_dir / "model.joblib"
+def _artifact_dir(run: RunRecord) -> Path:
+    """Directory of the attempt that produced the run's selected model.
 
-
-def _metrics_path(run_id: str) -> Path:
-    settings = get_settings()
-    run_dir = settings.runs_dir / run_id
-    attempt_dirs = sorted(run_dir.glob("attempt_*"), reverse=True)
-    if attempt_dirs:
-        candidate = attempt_dirs[0] / "metrics.json"
-        if candidate.exists():
-            return candidate
-    return run_dir / "metrics.json"
+    The Manager records it in the run's metrics; it is not necessarily the latest
+    attempt, because a later revision can score worse than an earlier one.
+    """
+    recorded = (run.metrics or {}).get("artifact_dir")
+    if recorded:
+        return Path(recorded)
+    return get_settings().runs_dir / run.id
 
 
 def _require_succeeded(run: RunRecord) -> None:
@@ -78,31 +69,33 @@ def _require_succeeded(run: RunRecord) -> None:
         )
 
 
-def _load_or_error(run_id: str) -> dict[str, Any]:
+def _load_or_error(run: RunRecord) -> dict[str, Any]:
     try:
-        return load_bundle(_model_path(run_id))
+        return load_bundle(_artifact_dir(run) / "model.joblib")
     except InferenceError as exc:
         raise HTTPException(422, exc.detail()) from exc
 
 
-def _ingest_upload(upload: UploadFile, run_id: str) -> Path:
-    """Save *upload* to the tmp dir and convert it to Parquet, then return the Parquet path."""
-    settings = get_settings()
-    tmp = settings.tmp_dir / "batch_uploads" / run_id
-    tmp.mkdir(parents=True, exist_ok=True)
-    raw_path = tmp / (upload.filename or "upload")
-    raw_path.write_bytes(upload.file.read())
-    parquet_path = tmp / "input.parquet"
+def _ingest_upload(upload: UploadFile, workdir: Path) -> Path:
+    """Stream *upload* to disk inside *workdir*, convert it to Parquet and return the Parquet path."""
+    workdir.mkdir(parents=True, exist_ok=True)
+    raw_path = workdir / Path(upload.filename or "upload.csv").name
+    with raw_path.open("wb") as out:
+        shutil.copyfileobj(upload.file, out, length=1024 * 1024)
+    parquet_path = workdir / "input.parquet"
     try:
         ingest_to_parquet(raw_path, parquet_path)
     except IngestError as exc:
         raise HTTPException(400, str(exc)) from exc
+    finally:
+        raw_path.unlink(missing_ok=True)
     return parquet_path
 
 
 # --------------------------------------------------------------------------- #
 # Predict (single / small batch via JSON)                                      #
 # --------------------------------------------------------------------------- #
+
 
 @router.post("/{run_id}/predict", summary="Score JSON records")
 def predict_json(
@@ -128,7 +121,7 @@ def predict_json(
     _require_succeeded(run)
     if not body:
         raise HTTPException(422, "Request body must be a non-empty list of records.")
-    bundle = _load_or_error(run_id)
+    bundle = _load_or_error(run)
     try:
         df = pd.DataFrame(body)
         validated = validate_input(df, bundle)
@@ -142,8 +135,9 @@ def predict_json(
 # Batch predict (file upload)                                                  #
 # --------------------------------------------------------------------------- #
 
+
 @router.post("/{run_id}/predict/batch", summary="Score a CSV or Parquet file")
-async def predict_batch(
+def predict_batch(
     run_id: str,
     file: UploadFile,
     session: Session = Depends(get_session),
@@ -167,14 +161,15 @@ async def predict_batch(
     """
     run = _get_run_or_404(run_id, session)
     _require_succeeded(run)
-    bundle = _load_or_error(run_id)
-    parquet_path = _ingest_upload(file, run_id)
+    bundle = _load_or_error(run)
+    workdir = get_settings().tmp_dir / "batch_uploads" / uuid.uuid4().hex
     try:
+        parquet_path = _ingest_upload(file, workdir)
         scored_bytes = score_file(parquet_path, bundle, output_format="parquet")
     except InferenceError as exc:
         raise HTTPException(422, exc.detail()) from exc
     finally:
-        parquet_path.unlink(missing_ok=True)
+        shutil.rmtree(workdir, ignore_errors=True)
 
     filename = f"{run_id}_scored.parquet"
     return Response(
@@ -188,8 +183,7 @@ async def predict_batch(
 # Bundle download                                                              #
 # --------------------------------------------------------------------------- #
 
-_PREDICT_SCRIPT = '''\
-#!/usr/bin/env python3
+_PREDICT_SCRIPT = '''#!/usr/bin/env python3
 """Standalone inference script exported by AutoML-Agent.
 
 Usage::
@@ -203,13 +197,15 @@ Requirements::
 """
 
 import argparse
-import io
 import sys
+from pathlib import Path
 
-import joblib
-import pandas as pd
 import polars as pl
-import numpy as np
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+from automl_inference import InferenceError, load_bundle, score_parquet_chunked  # noqa: E402
 
 
 def main():
@@ -219,53 +215,20 @@ def main():
     parser.add_argument("--format", choices=["parquet", "csv"], default="parquet")
     args = parser.parse_args()
 
-    bundle = joblib.load("model.joblib")
-    features = bundle["features"]
-    classes = bundle.get("classes")
-    task_type = bundle.get("task_type", "tabular_classification")
-    is_clf = task_type != "tabular_regression"
-
-    # Load input
-    path = args.input
-    if path.endswith(".parquet") or path.endswith(".pq"):
-        df = pd.read_parquet(path)
+    bundle = load_bundle(HERE / "model.joblib")
+    src = Path(args.input)
+    if src.suffix.lower() in (".parquet", ".pq"):
+        parquet = src
     else:
-        df = pd.read_csv(path)
-
-    # Drop target / drop columns silently
-    target = bundle.get("target")
-    if target and target in df.columns:
-        df = df.drop(columns=[target])
-    for col in bundle.get("drop_columns", []):
-        if col in df.columns:
-            df = df.drop(columns=[col])
-
-    # Validate
-    missing = [c for c in features if c not in df.columns]
-    if missing:
-        sys.exit(f"ERROR: Missing columns: {missing}")
-    df = df[features].copy()
-    for col in df.select_dtypes(include="object").columns:
-        df[col] = df[col].astype("category")
-
-    # Predict
-    model = bundle["model"]
-    preds_raw = model.predict(df)
-    if is_clf and classes is not None:
-        preds = [str(classes[int(p)]) for p in preds_raw]
-    elif is_clf:
-        preds = [str(p) for p in preds_raw]
-    else:
-        preds = [float(p) for p in preds_raw]
-
-    out = pl.DataFrame({"prediction": preds})
-    if is_clf and hasattr(model, "predict_proba") and classes is not None:
-        try:
-            proba = model.predict_proba(df)
-            for i, cls in enumerate(classes):
-                out = out.with_columns(pl.Series(f"prob_{cls}", proba[:, i].tolist()))
-        except Exception:
-            pass
+        parquet = Path(args.output).with_suffix(".input.parquet")
+        pl.scan_csv(src, infer_schema_length=10_000).sink_parquet(parquet)
+    try:
+        out = score_parquet_chunked(parquet, bundle)
+    except InferenceError as exc:
+        sys.exit(f"ERROR: {exc}")
+    finally:
+        if parquet != src:
+            parquet.unlink(missing_ok=True)
 
     if args.format == "csv":
         out.write_csv(args.output)
@@ -278,46 +241,25 @@ if __name__ == "__main__":
     main()
 '''
 
-_REQUIREMENTS_TEMPLATE = """\
-# Requirements for the exported AutoML-Agent model bundle.
-# Install with: pip install -r requirements.txt
-# Pinned versions match those used during training.
-joblib>={joblib_version}
-scikit-learn>={sklearn_version}
-polars>={polars_version}
-pyarrow>={pyarrow_version}
-pandas>={pandas_version}
-numpy>={numpy_version}
-{extra_deps}
-"""
+_BASE_REQUIREMENTS = ("joblib", "scikit-learn", "polars", "pyarrow", "pandas", "numpy")
+_FAMILY_REQUIREMENTS = {"lightgbm": "lightgbm", "xgboost": "xgboost"}
 
 
 def _pinned_requirements(bundle: dict[str, Any]) -> str:
-    """Build a requirements.txt string with versions pinned to what is installed."""
+    """Build a requirements.txt pinned to the exact versions the model was trained with."""
     import importlib.metadata as im
 
-    def ver(pkg: str) -> str:
-        try:
-            return im.version(pkg)
-        except im.PackageNotFoundError:
-            return "0"
-
     family = (bundle.get("config") or {}).get("model_family", "")
-    extra_lines = []
-    if family == "lightgbm":
-        extra_lines.append(f"lightgbm>={ver('lightgbm')}")
-    elif family == "xgboost":
-        extra_lines.append(f"xgboost>={ver('xgboost')}")
-
-    return _REQUIREMENTS_TEMPLATE.format(
-        joblib_version=ver("joblib"),
-        sklearn_version=ver("scikit-learn"),
-        polars_version=ver("polars"),
-        pyarrow_version=ver("pyarrow"),
-        pandas_version=ver("pandas"),
-        numpy_version=ver("numpy"),
-        extra_deps="\n".join(extra_lines),
-    ).rstrip() + "\n"
+    packages = [*_BASE_REQUIREMENTS]
+    if family in _FAMILY_REQUIREMENTS:
+        packages.append(_FAMILY_REQUIREMENTS[family])
+    lines = ["# Requirements for the exported AutoML-Agent model bundle (versions used in training)."]
+    for pkg in packages:
+        try:
+            lines.append(f"{pkg}=={im.version(pkg)}")
+        except im.PackageNotFoundError:
+            lines.append(pkg)
+    return "\n".join(lines) + "\n"
 
 
 @router.get("/{run_id}/artifacts/bundle", summary="Download the deployment bundle")
@@ -329,11 +271,13 @@ def download_bundle(
 
     Contents:
 
-    * ``model.joblib`` – trained model and preprocessing state.
-    * ``predict.py`` – standalone CLI scoring script.
-    * ``requirements.txt`` – pinned dependencies.
-    * ``schema.json`` – expected input columns and dtypes.
-    * ``metrics.json`` – test-split performance metrics (if available).
+    * ``model.joblib`` - trained model and the preprocessing state it was trained with.
+    * ``automl_inference.py`` - the serving module the API itself uses.
+    * ``predict.py`` - standalone CLI scoring script built on it.
+    * ``requirements.txt`` - dependencies pinned to the training versions.
+    * ``schema.json`` - expected input columns and their kinds.
+    * ``metrics.json`` - test-split performance metrics (if available).
+    * ``model_card.md`` / ``model_card.json`` - the run's model card (if generated).
 
     Args:
         run_id: Id of a succeeded run.
@@ -346,40 +290,31 @@ def download_bundle(
     """
     run = _get_run_or_404(run_id, session)
     _require_succeeded(run)
-    bundle = _load_or_error(run_id)
+    bundle = _load_or_error(run)
+    artifact_dir = _artifact_dir(run)
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        # model.joblib (re-serialise to bytes so we don't have a dangling file handle)
-        model_bytes = io.BytesIO()
-        import joblib as _joblib
-        _joblib.dump(bundle, model_bytes)
-        zf.writestr("model.joblib", model_bytes.getvalue())
-
-        # predict.py
+        zf.write(artifact_dir / "model.joblib", "model.joblib")
+        zf.writestr("automl_inference.py", Path(inference_module.__file__).read_text(encoding="utf-8"))
         zf.writestr("predict.py", _PREDICT_SCRIPT)
-
-        # requirements.txt
         zf.writestr("requirements.txt", _pinned_requirements(bundle))
-
-        # schema.json
         schema = {
             "features": bundle["features"],
             "task_type": bundle.get("task_type"),
             "target": bundle.get("target"),
             "drop_columns": bundle.get("drop_columns", []),
             "dtypes": build_schema(bundle),
+            "categories": bundle.get("categories") or {},
         }
-        zf.writestr("schema.json", json.dumps(schema, indent=2))
+        zf.writestr("schema.json", json.dumps(schema, indent=2, default=str))
+        for name in ("metrics.json", "model_card.md", "model_card.json"):
+            path = artifact_dir / name
+            if path.exists():
+                zf.write(path, name)
 
-        # metrics.json (best effort)
-        metrics_file = _metrics_path(run_id)
-        if metrics_file.exists():
-            zf.writestr("metrics.json", metrics_file.read_text(encoding="utf-8"))
-
-    buf.seek(0)
     return Response(
-        content=buf.read(),
+        content=buf.getvalue(),
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="automl-bundle-{run_id}.zip"'},
     )
