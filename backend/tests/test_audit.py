@@ -268,3 +268,61 @@ def test_pipeline_with_planted_leaky_column(settings):
     assert "account_guid" not in feature_names
     assert (ctx.workdir / "attempt_1" / "model_card.json").exists()
     assert (ctx.workdir / "attempt_1" / "model_card.md").exists()
+
+
+def _audit_frame(tmp_path: Path, df: pl.DataFrame, spec: TaskSpec):
+    from automl_agent.tools import profile_file
+
+    path = tmp_path / "audit.parquet"
+    df.write_parquet(path)
+    return run_data_audit(path, spec, profile_file(path))
+
+
+def test_continuous_features_are_not_mistaken_for_identifiers(tmp_path: Path):
+    """A float measurement is unique per row but carries signal; it must not be dropped as an ID."""
+    rng = np.random.default_rng(0)
+    n = 2000
+    income = rng.normal(50_000, 15_000, n)
+    df = pl.DataFrame(
+        {"income": income, "label": np.where(income + rng.normal(0, 20_000, n) > 50_000, "a", "b")}
+    )
+    spec = TaskSpec(task_type=TaskType.tabular_classification, target_column="label", metric="accuracy")
+    report = _audit_frame(tmp_path, df, spec)
+    assert "income" not in report.dropped_columns
+
+
+def test_text_column_is_never_dropped(tmp_path: Path):
+    """The input of a text task is near-unique by nature and must survive the audit."""
+    n = 500
+    df = pl.DataFrame(
+        {
+            "review_id_text": [
+                f"review number {i} says the product was {'good' if i % 2 else 'bad'}" for i in range(n)
+            ],
+            "sentiment": ["pos" if i % 2 else "neg" for i in range(n)],
+        }
+    )
+    spec = TaskSpec(
+        task_type=TaskType.text_classification,
+        target_column="sentiment",
+        text_column="review_id_text",
+        metric="f1_macro",
+    )
+    report = _audit_frame(tmp_path, df, spec)
+    assert "review_id_text" not in report.dropped_columns
+
+
+def test_many_category_leak_is_detected_even_when_sorted_by_target(tmp_path: Path):
+    """A 40-level category that maps to the target is a leak, also when the file is sorted by target."""
+    rng = np.random.default_rng(1)
+    n = 4000
+    status = rng.integers(0, 40, n)
+    label = np.where(status < 20, "churned", "stayed")
+    df = pl.DataFrame(
+        {"status_code": [f"S{s:02d}" for s in status], "noise": rng.normal(size=n), "label": label}
+    )
+    df = df.sort("label")
+    spec = TaskSpec(task_type=TaskType.tabular_classification, target_column="label", metric="accuracy")
+    report = _audit_frame(tmp_path, df, spec)
+    assert "status_code" in report.dropped_columns
+    assert "noise" not in report.dropped_columns

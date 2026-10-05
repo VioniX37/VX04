@@ -15,6 +15,7 @@ Performs deterministic, fast checks using Polars' lazy engine:
 
 from __future__ import annotations
 
+import logging
 import re
 import time
 from pathlib import Path
@@ -29,6 +30,8 @@ from automl_agent.schemas.dataset import DatasetProfile
 from automl_agent.schemas.task_spec import TaskSpec, TaskType
 from automl_agent.tools.dataset_profiler import scan_table
 from automl_agent.tools.splits import SPLIT_COL, TEST, TRAIN
+
+log = logging.getLogger(__name__)
 
 _ID_PATTERNS = re.compile(r"(^|_)(id|uuid|guid|key|index|hash|token|code|pk)($|_)", re.IGNORECASE)
 PREDICTIVE_SAMPLE_ROWS = 10_000
@@ -80,15 +83,14 @@ def _evaluate_univariate_power(
     if len(sub) < 50:
         return 0.0, "insufficient_data"
 
+    # Shuffle so the 80/20 holdout is not an artefact of the file's row order (e.g. sorted by target).
+    sub = sub.sample(fraction=1.0, shuffle=True, seed=42)
     target_s = sub[target]
     feat_s = sub[feature]
 
-    # Convert feature to numeric array
-    if feat_s.dtype in (pl.String, pl.Categorical):
-        # Quick frequency or ordinal encoding
-        val_map = {v: i for i, v in enumerate(feat_s.unique().to_list())}
-        X = np.array([val_map.get(v, -1) for v in feat_s.to_list()], dtype=np.float32).reshape(-1, 1)
-    elif feat_s.dtype == pl.Boolean:
+    if feat_s.dtype in (pl.String, pl.Categorical, pl.Enum):
+        return _evaluate_categorical_power(feat_s.cast(pl.String), target_s, task_type)
+    if feat_s.dtype == pl.Boolean:
         X = feat_s.to_numpy().astype(np.float32).reshape(-1, 1)
     elif feat_s.dtype.is_numeric():
         X = feat_s.to_numpy().astype(np.float32).reshape(-1, 1)
@@ -140,6 +142,51 @@ def _evaluate_univariate_power(
             preds = tree.predict(X_val)
             score = float(accuracy_score(y_val, preds))
             return score, "accuracy"
+
+
+def _evaluate_categorical_power(
+    feat_s: pl.Series, target_s: pl.Series, task_type: TaskType
+) -> tuple[float, str]:
+    """Score a categorical feature by predicting each holdout row from its category's training rows.
+
+    A per-category lookup captures any mapping from category to target, which an
+    ordinal encoding with a depth-2 tree cannot when there are more than a few categories.
+    """
+    split_idx = int(len(feat_s) * 0.8)
+    x_tr, x_val = feat_s[:split_idx].to_list(), feat_s[split_idx:].to_list()
+    if task_type == TaskType.tabular_regression:
+        y = target_s.cast(pl.Float64).to_numpy()
+        y_tr, y_val = y[:split_idx], y[split_idx:]
+        if len(y_val) < 10 or np.std(y_val) < 1e-9:
+            return 0.0, "insufficient_eval"
+        means = pl.DataFrame({"x": x_tr, "y": y_tr}).group_by("x").agg(pl.col("y").mean())
+        lookup = dict(zip(means["x"].to_list(), means["y"].to_list(), strict=True))
+        prior = float(np.mean(y_tr))
+        preds = np.array([lookup.get(v, prior) for v in x_val], dtype=np.float64)
+        return max(0.0, float(r2_score(y_val, preds))), "r2"
+
+    classes, y = np.unique(target_s.cast(pl.String).to_numpy(), return_inverse=True)
+    if len(classes) < 2:
+        return 0.0, "single_class"
+    y_tr, y_val = y[:split_idx], y[split_idx:]
+    if len(np.unique(y_val)) < 2:
+        return 0.0, "single_class_eval"
+    counts = np.zeros((0, len(classes)))
+    index: dict[object, int] = {}
+    rows = []
+    for v, label in zip(x_tr, y_tr, strict=True):
+        if v not in index:
+            index[v] = len(rows)
+            rows.append(np.zeros(len(classes)))
+        rows[index[v]][label] += 1
+    counts = np.vstack(rows) if rows else counts
+    prior = np.bincount(y_tr, minlength=len(classes)) / max(len(y_tr), 1)
+    proba = np.array(
+        [counts[index[v]] / counts[index[v]].sum() if v in index else prior for v in x_val], dtype=np.float64
+    )
+    if len(classes) == 2:
+        return float(roc_auc_score(y_val, proba[:, 1])), "auc"
+    return float(accuracy_score(y_val, proba.argmax(axis=1))), "accuracy"
 
 
 def check_train_test_duplicates(
@@ -195,17 +242,22 @@ def run_data_audit(
     n_rows = profile.n_rows
     target_col = spec.target_column
 
-    # Candidate feature columns to examine (exclude target)
+    # Candidate feature columns to examine (exclude target); the text input of a text task is never dropped
     all_col_names = [c.name for c in profile.columns if c.name != target_col]
     already_dropped = set(spec.drop_columns)
+    protected = {target_col, spec.text_column} - {None}
 
     # 1. Check ID-like and near-unique columns
     for col_prof in profile.columns:
-        if col_prof.name == target_col or col_prof.name in already_dropped:
+        if col_prof.name in protected or col_prof.name in already_dropped:
             continue
         cname = col_prof.name
         n_unique = col_prof.n_unique
         unique_ratio = n_unique / max(n_rows, 1)
+        # Continuous measurements are naturally near-unique; only discrete values can be identifiers.
+        is_continuous = col_prof.kind == "numeric" and not col_prof.dtype.lower().startswith(("int", "uint"))
+        if is_continuous:
+            continue
 
         is_id_name = bool(_ID_PATTERNS.search(cname))
         if is_id_name and unique_ratio >= 0.90:
@@ -221,7 +273,7 @@ def run_data_audit(
                 )
             )
             dropped_cols.add(cname)
-        elif unique_ratio > 0.99 and n_rows > 100 and col_prof.kind != "text":
+        elif unique_ratio > 0.99 and n_rows > 100 and col_prof.kind in ("identifier", "categorical"):
             findings.append(
                 AuditFinding(
                     check="id_leakage",
@@ -239,7 +291,7 @@ def run_data_audit(
 
     # 2. Check target name matching
     for col_prof in profile.columns:
-        if col_prof.name == target_col or col_prof.name in already_dropped or col_prof.name in dropped_cols:
+        if col_prof.name in protected or col_prof.name in already_dropped or col_prof.name in dropped_cols:
             continue
         cname = col_prof.name
         if _is_suspicious_target_name(cname, target_col):
@@ -258,7 +310,7 @@ def run_data_audit(
 
     # 3. Check constant, near-constant, high-missing and high-cardinality columns
     for col_prof in profile.columns:
-        if col_prof.name == target_col:
+        if col_prof.name in protected:
             continue
         cname = col_prof.name
         n_unique = col_prof.n_unique
@@ -371,7 +423,9 @@ def run_data_audit(
                     )
 
     # 5. Check univariate predictive power (near-perfect predictor leakage)
-    candidates_for_power = [c for c in all_col_names if c not in dropped_cols and c not in already_dropped]
+    candidates_for_power = [
+        c for c in all_col_names if c not in dropped_cols and c not in already_dropped and c not in protected
+    ]
     if candidates_for_power and data_path.exists():
         try:
             lf = scan_table(data_path)
@@ -398,14 +452,13 @@ def run_data_audit(
                         )
                     )
                     dropped_cols.add(cname)
-        except Exception:
-            # Profiling error should not crash the pipeline
-            pass
+        except Exception:  # the audit must never crash the pipeline
+            log.warning("univariate leakage check failed", exc_info=True)
 
     # 6. Check train/test duplicate rows across splits
     n_dups, dup_pct = 0, 0.0
     if split_path and split_path.exists() and data_path.exists():
-        clean_features = [c for c in all_col_names if c not in dropped_cols]
+        clean_features = [c for c in all_col_names if c not in dropped_cols and c not in already_dropped]
         if clean_features:
             n_dups, dup_pct = check_train_test_duplicates(data_path, split_path, clean_features)
             if n_dups > 0:
