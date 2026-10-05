@@ -20,6 +20,7 @@ import argparse
 import asyncio
 import json
 import sys
+import uuid
 from pathlib import Path
 
 from sqlmodel import Session, select
@@ -29,7 +30,7 @@ from automl_agent.schemas.events import AgentEvent
 from automl_agent.services.dataset_service import DatasetError, register_path, register_url
 from automl_agent.services.event_bus import EventBus
 from automl_agent.services.run_service import DatasetRef, execute_run, new_run
-from automl_agent.storage.db import DatasetRecord, get_engine, init_db
+from automl_agent.storage.db import DatasetRecord, RunRecord, get_engine, init_db
 
 
 def _settings_with(overrides: list[str]) -> Settings:
@@ -180,29 +181,27 @@ def cmd_predict(args: argparse.Namespace) -> int:
     Finds the model.joblib for the specified run, validates the input schema,
     and writes a Parquet (default) or CSV file with a ``prediction`` column.
     """
-    from pathlib import Path as _Path
-
     from automl_agent.execution.inference import InferenceError, load_bundle, score_file
     from automl_agent.tools.ingest import IngestError, ingest_to_parquet
 
     settings = _settings_with(args.set)
-    run_dir = settings.runs_dir / args.run
-
-    # Find model.joblib (prefer latest attempt, fall back to run root).
-    attempt_dirs = sorted(run_dir.glob("attempt_*"), reverse=True)
-    model_path = None
-    for attempt in attempt_dirs:
-        candidate = attempt / "model.joblib"
-        if candidate.exists():
-            model_path = candidate
-            break
-    if model_path is None:
-        candidate = run_dir / "model.joblib"
-        if candidate.exists():
-            model_path = candidate
-    if model_path is None:
-        print(f"error: no model.joblib found for run '{args.run}'", file=sys.stderr)
+    init_db(settings.db_url)
+    with Session(get_engine(settings.db_url)) as session:
+        run = session.get(RunRecord, args.run)
+    if run is None:
+        print(f"error: run '{args.run}' not found", file=sys.stderr)
         return 2
+    if run.status != "succeeded":
+        print(
+            f"error: run '{args.run}' has status '{run.status}'; only succeeded runs have a model",
+            file=sys.stderr,
+        )
+        return 2
+    # The attempt that produced the selected model (not necessarily the latest attempt).
+    artifact_dir = (run.metrics or {}).get("artifact_dir")
+    model_path = (
+        Path(artifact_dir) / "model.joblib" if artifact_dir else settings.runs_dir / args.run / "model.joblib"
+    )
 
     try:
         bundle = load_bundle(model_path)
@@ -211,8 +210,9 @@ def cmd_predict(args: argparse.Namespace) -> int:
         return 2
 
     # Ingest input to Parquet.
-    src = _Path(args.data)
-    tmp_parquet = src.parent / f"_cli_infer_{src.stem}.parquet"
+    src = Path(args.data)
+    settings.tmp_dir.mkdir(parents=True, exist_ok=True)
+    tmp_parquet = settings.tmp_dir / f"_cli_infer_{uuid.uuid4().hex}.parquet"
     try:
         ingest_to_parquet(src, tmp_parquet)
     except IngestError as exc:
@@ -232,7 +232,7 @@ def cmd_predict(args: argparse.Namespace) -> int:
     finally:
         tmp_parquet.unlink(missing_ok=True)
 
-    _Path(args.out).write_bytes(out_bytes)
+    Path(args.out).write_bytes(out_bytes)
     print(f"Scored output written to {args.out}", flush=True)
     return 0
 

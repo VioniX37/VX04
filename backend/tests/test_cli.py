@@ -21,5 +21,29 @@ def test_cli_ingest_and_run(sample_csvs, tmp_path, capsys, monkeypatch):
 
         assert main(["datasets"]) == 0
         assert dataset_id in capsys.readouterr().out
+
+        scored = tmp_path / "scored.csv"
+        assert (
+            main(
+                [
+                    "predict",
+                    "--run",
+                    summary["run_id"],
+                    "--data",
+                    str(sample_csvs["churn"]),
+                    "--out",
+                    str(scored),
+                ]
+            )
+            == 0
+        )
+        assert scored.read_text().splitlines()[0].startswith("prediction")
+        assert len(scored.read_text().splitlines()) == 401
+        assert (
+            main(
+                ["predict", "--run", "no-such-run", "--data", str(sample_csvs["churn"]), "--out", str(scored)]
+            )
+            == 2
+        )
     finally:
         get_settings.cache_clear()
