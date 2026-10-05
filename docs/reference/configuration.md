@@ -59,7 +59,7 @@ Settings can also be overridden per command:
 | `BUDGET_TOKENS` | `int` | `0` | LLM token budget per run (0 = unlimited). |
 | `EXEC_MAX_MEM_MB` | `int` | `0` | Kill a training script above this resident memory (MB); 0 = 80% of system RAM. |
 | `EXEC_N_JOBS` | `int` | `-1` | CPU threads for model training (-1 = all cores). |
-| `APPROVAL_TIMEOUT_S` | `int` | `0` | Seconds to wait in awaiting_input before falling back to auto (0 = wait indefinitely). |
+| `APPROVAL_TIMEOUT_S` | `int` | `3600` | Seconds a run waits in awaiting_input before continuing with the top-ranked plan (0 = wait indefinitely). |
 
 ## Data
 

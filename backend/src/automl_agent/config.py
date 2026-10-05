@@ -113,8 +113,11 @@ class Settings(BaseSettings):
     )
     exec_n_jobs: int = Field(-1, description="CPU threads for model training (-1 = all cores).")
     approval_timeout_s: int = Field(
-        0,
-        description="Seconds to wait in awaiting_input before falling back to auto (0 = wait indefinitely).",
+        3600,
+        description=(
+            "Seconds a run waits in awaiting_input before continuing with the top-ranked plan "
+            "(0 = wait indefinitely)."
+        ),
     )
 
     # ------------------------------------------------------------------ data
