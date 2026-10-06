@@ -210,9 +210,9 @@ class AgentManager(BaseAgent):
         ctx.state["audit_report"] = report
         updated_spec = apply_audit_to_task_spec(report, spec)
         summary_msg = (
-            f"Data audit: {len(report.dropped_columns)} columns dropped for leakage"
+            f"Data audit: dropped {len(report.dropped_columns)} columns ({', '.join(report.dropped_columns)})"
             if report.dropped_columns
-            else "Data audit: no critical leakage detected"
+            else "Data audit: no columns dropped"
         )
         if report.train_test_duplicates > 0:
             summary_msg += f", {report.train_test_duplicates:,} train/test duplicate rows"

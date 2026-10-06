@@ -1,0 +1,29 @@
+{
+  "name": "local_large",
+  "description": "Large-data study on locally available data (no downloads): the Microsoft Malware Prediction training set (8.9M rows, 83 columns; Kaggle 'microsoft-malware-prediction', converted to Parquet once with automl_agent.tools.ingest) and the synthetic 5M-row conversion set (data/samples/generate_large.py). The conversion task runs first so the memory variant can recall it for the malware task (leave-one-dataset-out).",
+  "seeds": [0],
+  "settings": {"MEMORY_EXCLUDE_SAME_DATASET": true, "N_PLANS": 3, "MAX_REVISIONS": 1, "BUDGET_WALL_S": 1800, "AGENT_FUSION": true},
+  "baseline_budget_s": 900,
+  "variants": [
+    {"name": "paper", "settings": {"VERIFICATION_MODE": "pseudo", "MEMORY_ENABLED": false}},
+    {"name": "grounded", "settings": {"VERIFICATION_MODE": "grounded", "MEMORY_ENABLED": false}},
+    {"name": "full", "settings": {"VERIFICATION_MODE": "grounded", "MEMORY_ENABLED": true}}
+  ],
+  "baselines": ["zero_shot", "optuna_lgbm"],
+  "datasets": [
+    {
+      "name": "synthetic_conversion_5m",
+      "path": "../../../data/samples/large_conversion.parquet",
+      "truth": {"task_type": "tabular_classification", "target_column": "converted", "metric": "roc_auc",
+                "drop_columns": ["row_id"]},
+      "prompts": {"free": "Predict whether a customer converts. Optimise ROC AUC."}
+    },
+    {
+      "name": "microsoft_malware",
+      "path": "../../../data/benchmarks/microsoft_malware/data.parquet",
+      "truth": {"task_type": "tabular_classification", "target_column": "HasDetections", "metric": "roc_auc",
+                "drop_columns": ["MachineIdentifier"]},
+      "prompts": {"free": "Predict whether a Windows machine will be infected by malware (the HasDetections column). Optimise ROC AUC."}
+    }
+  ]
+}
