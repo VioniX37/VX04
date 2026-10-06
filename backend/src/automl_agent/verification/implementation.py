@@ -23,9 +23,7 @@ def verify_implementation(spec: TaskSpec, result: ExecutionResult) -> Verificati
         and not result.metrics["beats_seasonal_naive"]
     ):
         base_score = result.metrics.get("seasonal_naive_score", "N/A")
-        issues.append(
-            f"model score ({score:.4f}) did not beat seasonal-naive baseline ({base_score})"
-        )
+        issues.append(f"model score ({score:.4f}) did not beat seasonal-naive baseline ({base_score})")
     if not spec.meets_target(score):
         direction = ">=" if spec.higher_is_better else "<="
         issues.append(f"{spec.metric}={score:.4f} does not meet the target {direction} {spec.metric_target}")

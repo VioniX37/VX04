@@ -36,10 +36,10 @@ def verify_request(spec: TaskSpec, profile: DatasetProfile) -> VerificationResul
             and target.kind != "numeric"
         ):
             issues.append(f"{spec.task_type.value} target '{target.name}' is not numeric")
-        if (
-            spec.task_type not in (TaskType.tabular_regression, TaskType.time_series_forecasting)
-            and target.n_unique > max(50, profile.n_rows // 2)
-        ):
+        if spec.task_type not in (
+            TaskType.tabular_regression,
+            TaskType.time_series_forecasting,
+        ) and target.n_unique > max(50, profile.n_rows // 2):
             issues.append(
                 f"classification target '{target.name}' has {target.n_unique} classes - "
                 "is this a regression task?"

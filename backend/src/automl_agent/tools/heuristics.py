@@ -81,9 +81,7 @@ def guess_task_spec(prompt: str, profile: DatasetProfile) -> TaskSpec:
     if is_forecast:
         task_type = TaskType.time_series_forecasting
         # Extract horizon & frequency from "next 14 days" or "14 days"
-        h_m = re.search(
-            r"(?:next\s+)?(\d+)\s*(days?|hours?|weeks?|months?|minutes?|steps?|periods?)", p
-        )
+        h_m = re.search(r"(?:next\s+)?(\d+)\s*(days?|hours?|weeks?|months?|minutes?|steps?|periods?)", p)
         if h_m:
             horizon = int(h_m.group(1))
             unit = h_m.group(2).lower()
