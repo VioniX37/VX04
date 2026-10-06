@@ -1,8 +1,10 @@
-"""Benchmark harness: run the ablation matrix of a config and record the paper's metrics.
+r"""Benchmark harness: run the ablation matrix of a config and record the paper's metrics.
 
     cd backend
     python -m evaluation.run_benchmark --config evaluation/configs/smoke.json
     python -m evaluation.run_benchmark --config evaluation/configs/paper_tabular.json --variants grounded,full
+    python -m evaluation.run_benchmark --config evaluation/configs/local_large.json --baselines zero_shot \
+        --variants none
 
 A config lists datasets (with ground-truth task specs and one or more prompts),
 pipeline variants (setting overrides such as VERIFICATION_MODE / MEMORY_ENABLED),
@@ -285,7 +287,8 @@ async def main_async(args: argparse.Namespace) -> Path:
                     observations.extend(obs)
                     record(row, variant=variant["name"], task=task["name"], prompt_kind=kind, seed=seed)
 
-    for name in [] if args.no_baselines else config.get("baselines", []):
+    baselines = [] if args.no_baselines else config.get("baselines", [])
+    for name in [b for b in baselines if not args.baselines or b in args.baselines]:
         for seed in seeds:
             workspace = out / "workspaces" / f"baseline-{name}" / f"seed{seed}"
             settings = _variant_settings(base, global_overrides, workspace, cache_root, seed)
@@ -326,6 +329,7 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--tasks", type=lambda s: s.split(","), help="comma-separated subset of tasks")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="global setting override")
     ap.add_argument("--no-baselines", action="store_true")
+    ap.add_argument("--baselines", type=lambda s: s.split(","), help="comma-separated subset of baselines")
     ap.add_argument("--isolated-cache", action="store_true", help="do not reuse the shared LLM cache")
     return ap
 

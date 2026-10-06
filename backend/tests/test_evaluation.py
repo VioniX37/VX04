@@ -71,3 +71,14 @@ def test_benchmark_smoke(tmp_path, monkeypatch):
     assert analysis.main([str(out)]) == 0
     assert (out / "figures" / "fig_cs_by_variant.png").exists()
     assert (out / "figures" / "fig_calibration.png").exists()
+
+
+def test_zero_shot_config_is_replaced_with_a_python_literal():
+    """Models copy CONFIG from their JSON context as JSON (null/true); the runner must fix that."""
+    from evaluation.baselines.runners import _with_config
+
+    code = 'import json\n\nCONFIG = {\n    "text_column": null,\n    "flag": true\n}\n\nprint(CONFIG)\n'
+    out = _with_config(code, {"text_column": None, "flag": True})
+    namespace: dict = {}
+    exec(compile(out, "train.py", "exec"), namespace)
+    assert namespace["CONFIG"] == {"text_column": None, "flag": True}

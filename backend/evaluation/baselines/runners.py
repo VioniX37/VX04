@@ -12,6 +12,7 @@ Both use the same Parquet data, the same train/valid/test split and the same
 
 from __future__ import annotations
 
+import ast
 import pprint
 import time
 from pathlib import Path
@@ -53,6 +54,26 @@ def _data_config(spec: TaskSpec, data_path: Path, split: SplitInfo) -> dict[str,
     }
 
 
+def _with_config(code: str, config: dict[str, Any]) -> str:
+    """Replace the script's ``CONFIG = {...}`` with the exact Python literal.
+
+    The model sees CONFIG as JSON in its context and tends to copy it as JSON (``null``,
+    ``true``), which is not valid Python at run time. The data paths must not be at the
+    model's discretion anyway.
+    """
+    literal = "CONFIG = " + pprint.pformat(config, indent=4, sort_dicts=False)
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return code
+    for node in tree.body:
+        targets = node.targets if isinstance(node, ast.Assign) else []
+        if any(isinstance(t, ast.Name) and t.id == "CONFIG" for t in targets):
+            lines = code.splitlines()
+            return "\n".join([*lines[: node.lineno - 1], literal, *lines[node.end_lineno :]]) + "\n"
+    return f"{literal}\n{code}"
+
+
 async def run_zero_shot(
     settings: Settings,
     *,
@@ -81,7 +102,9 @@ async def run_zero_shot(
              {"role": "user", "content": f"Write the script.\n\n{render_context(context)}"}],
             CodeDraft,
         )  # fmt: skip
-        result = await run_script(draft.code, workdir, timeout_s=settings.exec_timeout_s)
+        result = await run_script(
+            _with_config(draft.code, config), workdir, timeout_s=settings.exec_timeout_s
+        )
     except LLMError as e:
         return {"success": False, "error": str(e), "llm_calls": llm.usage.calls, "wall_s": 0.0}
     metrics = result.metrics or {}
