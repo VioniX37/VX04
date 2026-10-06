@@ -37,6 +37,8 @@ _PRIOR = {
     "ridge": 0.78,
     "lasso": 0.76,
     "knn": 0.78,
+    "seasonal_naive": 0.70,
+    "ets": 0.75,
 }
 
 
@@ -98,12 +100,25 @@ class FakeLLM(LLMClient):
             steps = (
                 ["clean text (lowercase, strip)", "TF-IDF word 1-2 grams"]
                 if task_type == TaskType.text_classification
-                else [
-                    "drop identifier columns",
-                    "impute missing values",
-                    "one-hot encode categoricals",
-                    "standardize numeric features",
-                ]
+                else (
+                    [
+                        "extract calendar features",
+                        "build direct lag and rolling-window features strictly from past",
+                        "direct multi-horizon forecasting",
+                    ]
+                    if task_type == TaskType.time_series_forecasting
+                    else [
+                        "drop identifier columns",
+                        "impute missing values",
+                        "one-hot encode categoricals",
+                        "standardize numeric features",
+                    ]
+                )
+            )
+            val_strat = (
+                "contiguous temporal split (no shuffle, suffix window)"
+                if task_type == TaskType.time_series_forecasting
+                else "stratified 80/20 hold-out"
             )
             plans.append(
                 {
@@ -113,7 +128,7 @@ class FakeLLM(LLMClient):
                     "preprocessing": steps,
                     "model_family": fam,
                     "hyperparameters": {},
-                    "validation": "stratified 80/20 hold-out",
+                    "validation": val_strat,
                 }
             )
         return {"plans": plans}

@@ -20,6 +20,7 @@ The Prompt Agent turns your request into a structured [task specification](../re
 | `tabular_classification` | The target is a label or category | `accuracy`, `f1_macro`, `f1_weighted`, `roc_auc`, `balanced_accuracy` |
 | `tabular_regression` | The target is a continuous quantity | `rmse`, `mae`, `r2`, `mape` (RMSLE is also reported when the target is non-negative) |
 | `text_classification` | The signal lives in a free-text column | Classification metrics |
+| `time_series_forecasting` | Forecasting future values over time (single or multi-series panel) | `smape` (default), `mae`, `rmse`, `mape` |
 
 ## Examples
 
@@ -33,6 +34,10 @@ Estimate the sale price of a house from its features. RMSE must be below 30,000.
 
 ```text
 Classify support tickets (column "body") into their category with at least 90% accuracy.
+```
+
+```text
+Forecast next 14 days of store sales per store. Optimise sMAPE.
 ```
 
 !!! tip "Check the assumptions"

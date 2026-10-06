@@ -31,9 +31,15 @@ def verify_request(spec: TaskSpec, profile: DatasetProfile) -> VerificationResul
     else:
         if target.n_unique < 2:
             issues.append(f"target '{target.name}' has fewer than 2 distinct values")
-        if spec.task_type == TaskType.tabular_regression and target.kind != "numeric":
-            issues.append(f"regression target '{target.name}' is not numeric")
-        if spec.task_type != TaskType.tabular_regression and target.n_unique > max(50, profile.n_rows // 2):
+        if (
+            spec.task_type in (TaskType.tabular_regression, TaskType.time_series_forecasting)
+            and target.kind != "numeric"
+        ):
+            issues.append(f"{spec.task_type.value} target '{target.name}' is not numeric")
+        if (
+            spec.task_type not in (TaskType.tabular_regression, TaskType.time_series_forecasting)
+            and target.n_unique > max(50, profile.n_rows // 2)
+        ):
             issues.append(
                 f"classification target '{target.name}' has {target.n_unique} classes - "
                 "is this a regression task?"
@@ -44,6 +50,12 @@ def verify_request(spec: TaskSpec, profile: DatasetProfile) -> VerificationResul
             issues.append("text_classification requires text_column")
         elif spec.text_column not in names:
             issues.append(f"text_column '{spec.text_column}' is not a column of the dataset")
+    elif spec.task_type == TaskType.time_series_forecasting:
+        if spec.time_column and spec.time_column not in names:
+            issues.append(f"time_column '{spec.time_column}' is not a column of the dataset")
+        for s_col in spec.series_id_columns:
+            if s_col not in names:
+                issues.append(f"series_id_column '{s_col}' is not a column of the dataset")
 
     for col in [*(spec.feature_columns or []), *spec.drop_columns]:
         if col not in names:

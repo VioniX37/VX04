@@ -17,7 +17,7 @@ This project was written from the paper; no code from the official repository (C
 | Implementation verification | LLM judges the executed results | Checks `metrics.json` from the **held-out test split** against targets and time limits | `verification/implementation.py` |
 | Data handling | In-memory, small benchmark datasets; 8×A100 | Parquet ingest, Polars profiling, fixed stratified splits, LightGBM/XGBoost, out-of-core text; 5M rows on a laptop CPU | `tools/`, `execution/` |
 | Execution | Subprocess | Supervised subprocess with memory watchdog, timeout and live progress | `execution/sandbox.py` |
-| Modalities | Image, text, tabular (classification/regression/clustering), time series, graph | Tabular classification/regression, text classification | `execution/model_registry.py` |
+| Modalities | Image, text, tabular (classification/regression/clustering), time series, graph | Tabular classification/regression, text classification, **time-series forecasting** | `execution/model_registry.py` |
 | Deployment | Deployment-ready code + inference endpoint | Standalone bundle (`predict.py`, `requirements.txt`, `schema.json`), in-process `InferenceEngine`, REST endpoints (`/predict`, `/predict/batch`, `/bundle`), CLI `automl-agent predict`, interactive Web UI panel | `execution/inference.py`, `api/server.py`, `cli.py`, `frontend/src/components/UseModelPanel.tsx` |
 | Interface | Python API | Web UI with live event stream, REST API, CLI | `frontend/`, `api/`, `cli.py` |
 | Reproducibility | — | Seeded splits, on-disk LLM response cache, per-run configuration and observation logs | `llm/cache.py`, `storage/db.py` |
@@ -26,5 +26,5 @@ This project was written from the paper; no code from the official repository (C
 ## What we deliberately did not reproduce
 
 - **Fine-tuning the Prompt Agent.** A strong instruction-following model with a strict JSON schema makes fine-tuning unnecessary for our task set, and the free tier does not allow fine-tuning.
-- **Image, graph and time-series tasks.** Scope was traded for scale. The template/registry design makes adding a modality a local change (see [ADR 0004](../development/adr/0004-template-grounded-codegen.md)).
+- **Image and graph tasks.** Scope was traded for scale. The template/registry design makes adding a modality a local change (see [ADR 0004](../development/adr/0004-template-grounded-codegen.md)); time-series forecasting is natively implemented with contiguous temporal splits, suffix-window grounding, and global direct LightGBM models.
 - **LLM-judged verification.** Where a measurable check exists (columns exist, metrics met on test data), we use the measurement instead of asking the model.

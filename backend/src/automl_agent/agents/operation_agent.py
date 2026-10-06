@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -16,6 +17,8 @@ from automl_agent.schemas.task_spec import TaskSpec
 
 from .base import BaseAgent
 from .context import RunContext
+
+log = logging.getLogger(__name__)
 
 
 def error_signature(stderr: str) -> str:
@@ -120,13 +123,23 @@ class OperationAgent(BaseAgent):
         use_llm = settings.codegen_mode == "llm"
         code = base
         if use_llm:
-            draft = await self.ask_json(
-                Stage.implement,
-                "Write the training script for this plan.",
-                {**context, "base_code": base},
-                CodeDraft,
-            )
-            code = draft.code
+            try:
+                draft = await self.ask_json(
+                    Stage.implement,
+                    "Write the training script for this plan.",
+                    {**context, "base_code": base},
+                    CodeDraft,
+                )
+                code = draft.code
+            except Exception as e:
+                log.warning("LLM code generation failed (%s); falling back to verified base template", e)
+                await self.ctx.emit(
+                    Stage.implement,
+                    self.name,
+                    f"LLM codegen unavailable ({e}); falling back to verified template",
+                    kind="warning",
+                )
+                code = base
 
         code = await run_hook("on_code_generated", self.ctx, code, base, plan, hooks=self.hooks)
 
@@ -163,14 +176,24 @@ class OperationAgent(BaseAgent):
             fix_context = {**context, "base_code": code, "error": result.stderr[-4000:]}
             if hints:
                 fix_context["past_fixes"] = hints[:3]
-            draft = await self.ask_json(
-                Stage.implement,
-                "The script failed. Fix it and return the full corrected script.",
-                fix_context,
-                CodeDraft,
-            )
-            last_fix = {"error": signature, "fix": draft.explanation or "rewrote the failing section"}
-            code = draft.code
+            try:
+                draft = await self.ask_json(
+                    Stage.implement,
+                    "The script failed. Fix it and return the full corrected script.",
+                    fix_context,
+                    CodeDraft,
+                )
+                last_fix = {"error": signature, "fix": draft.explanation or "rewrote the failing section"}
+                code = draft.code
+            except Exception as e:
+                log.warning("LLM script repair failed (%s)", e)
+                await self.ctx.emit(
+                    Stage.implement,
+                    self.name,
+                    f"LLM script repair unavailable ({e})",
+                    kind="warning",
+                )
+                break
 
         if not outcome.result.ok and code != base:
             # Safety net: the template alone is known to satisfy the contract.

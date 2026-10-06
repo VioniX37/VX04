@@ -167,9 +167,38 @@ def churn_leaky(n: int = 1500) -> pd.DataFrame:
     return pd.concat([df, dup_rows], ignore_index=True)
 
 
+def store_sales(n_stores: int = 5, n_days: int = 180) -> pd.DataFrame:
+    """Multi-store daily sales with weekly seasonality, store-level baselines, and promotions."""
+    dates = pd.date_range("2024-01-01", periods=n_days, freq="D")
+    rows = []
+    store_baselines = [100.0, 150.0, 220.0, 80.0, 180.0]
+    for s_idx in range(n_stores):
+        store_id = f"store_{s_idx + 1}"
+        base = store_baselines[s_idx % len(store_baselines)]
+        for d_idx, dt in enumerate(dates):
+            dow = dt.dayofweek
+            seasonal = 25.0 * np.sin(2 * np.pi * dow / 7.0) + (35.0 if dow in (4, 5) else 0.0)
+            trend = 0.1 * d_idx
+            promo = 1 if rng.random() < 0.15 else 0
+            promo_boost = 40.0 * promo
+            noise = rng.normal(0, 8.0)
+            sales = max(5.0, round(base + seasonal + trend + promo_boost + noise, 2))
+            rows.append(
+                {
+                    "date": dt.strftime("%Y-%m-%d"),
+                    "store_id": store_id,
+                    "sales": sales,
+                    "promo": promo,
+                    "day_of_week": dt.strftime("%A"),
+                }
+            )
+    return pd.DataFrame(rows)
+
+
 if __name__ == "__main__":
     churn().to_csv(OUT / "customer_churn.csv", index=False)
     churn_leaky().to_csv(OUT / "customer_churn_leaky.csv", index=False)
     houses().to_csv(OUT / "house_prices.csv", index=False)
     reviews().to_csv(OUT / "product_reviews.csv", index=False)
+    store_sales().to_csv(OUT / "store_sales.csv", index=False)
     print("wrote samples to", OUT)

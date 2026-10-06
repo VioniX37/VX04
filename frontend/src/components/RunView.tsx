@@ -82,7 +82,8 @@ export function RunView({ runId }: { runId: string }) {
   }, [run?.status, events]);
 
   const finished = run?.status === "succeeded" || run?.status === "failed" || run?.status === "cancelled";
-  const model = useMemo(() => buildRunModel(events, finished, run?.status === "failed"), [events, finished, run?.status]);
+  const isUnsuccessful = run?.status === "failed" || run?.status === "cancelled";
+  const model = useMemo(() => buildRunModel(events, finished, isUnsuccessful), [events, finished, isUnsuccessful]);
   const nowMs = useNow(!finished && !!run);
   const nowSec = finished ? model.now : Math.max(model.now, (nowMs - model.t0) / 1000);
 
@@ -305,6 +306,12 @@ export function RunView({ runId }: { runId: string }) {
               <dl className="space-y-2 text-sm">
                 <Row label="Task" value={spec.task_type.replaceAll("_", " ")} />
                 <Row label="Target" value={spec.target_column} mono />
+                {spec.time_column && <Row label="Time column" value={spec.time_column} mono />}
+                {spec.horizon != null && <Row label="Horizon" value={`${spec.horizon} steps`} />}
+                {spec.frequency && <Row label="Frequency" value={spec.frequency} mono />}
+                {spec.series_id_columns && spec.series_id_columns.length > 0 && (
+                  <Row label="Series IDs" value={spec.series_id_columns.join(", ")} mono />
+                )}
                 {spec.text_column && <Row label="Text column" value={spec.text_column} mono />}
                 <Row label="Metric" value={spec.metric} mono />
                 {spec.metric_target != null && <Row label="Target value" value={String(spec.metric_target)} />}

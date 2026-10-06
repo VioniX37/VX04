@@ -114,6 +114,7 @@ function last<T>(events: AgentEvent[], stage: Stage, key: string): T | undefined
 
 /** Build the run model. `finished`/`failed` come from the run record. */
 export function buildRunModel(events: AgentEvent[], finished: boolean, failed: boolean): RunModel {
+  const isFailedOrCancelled = failed || events.some((e) => e.payload && (e.payload as Record<string, unknown>).cancelled === true);
   const t0 = events.length ? Date.parse(events[0].ts) : Date.now();
   const nonTelemetry = events.filter((e) => e.kind !== "telemetry");
 
@@ -133,7 +134,7 @@ export function buildRunModel(events: AgentEvent[], finished: boolean, failed: b
     let status: StageStatus = "pending";
     if (start !== null) status = "done";
     if (s.id === current && !finished) status = "active";
-    if (s.id === current && failed) status = "failed";
+    if (s.id === current && isFailedOrCancelled) status = "failed";
     if (start === null && currentIdx > i) status = "skipped"; // e.g. grounding in paper (pseudo) mode
     const nextStart = STAGES.slice(i + 1)
       .map((n) => firstSeen.get(n.id))

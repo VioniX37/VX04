@@ -68,5 +68,19 @@
     "title": "Validation strategy",
     "content": "Use a stratified 80/20 hold-out for quick evaluation and 5-fold cross-validation when data is small (<2k rows). Fix random seeds for reproducibility and never fit preprocessing on the test split (wrap everything in a Pipeline).",
     "tags": ["validation", "cross-validation", "leakage", "pipeline"]
+  },
+  {
+    "id": "ts-lgbm-baselines",
+    "task_types": ["time_series_forecasting"],
+    "title": "Time-series forecasting with LightGBM and statistical baselines",
+    "content": "For time-series forecasting, always compare machine learning models against statistical baselines like Seasonal Naive and Exponential Smoothing (ETS), which act as performance floors. A global LightGBM model trained across all series using lag features, rolling statistics (mean, std), and calendar features (day of week, month) forms a strong baseline. Use direct multi-horizon forecasting to avoid recursive error accumulation, and evaluate using sMAPE, MAE, or RMSE.",
+    "tags": ["time_series", "forecasting", "lightgbm", "seasonal_naive", "ets", "lags", "smape"]
+  },
+  {
+    "id": "ts-temporal-splits",
+    "task_types": ["time_series_forecasting"],
+    "title": "Temporal splits and leakage prevention for time series",
+    "content": "Time-series data must always be partitioned using contiguous temporal splits (train -> validation -> test) without shuffling. Lag features and rolling statistics must be built strictly from the past relative to the forecast origin to prevent look-ahead target leakage. For successive-halving grounded verification, use suffix windows (most recent data) so low-fidelity rungs remain representative.",
+    "tags": ["time_series", "validation", "temporal_split", "leakage", "suffix_window"]
   }
 ]

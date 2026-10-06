@@ -14,6 +14,7 @@ const EXAMPLES = [
   "Predict whether a customer will churn. The classes are imbalanced, so optimise macro F1.",
   "Predict the house price from its features and report RMSE.",
   "Classify the sentiment of product reviews with at least 85% accuracy.",
+  "Forecast the next 14 days of store sales per store. Optimise sMAPE.",
 ];
 
 type SourceTab = "upload" | "register" | "existing";
