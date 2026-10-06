@@ -1,4 +1,8 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-\todo{Summarise findings for RQ1--RQ4 and the practical takeaway: measure, don't predict, when compute allows it; and let the system remember what it measured.}
+We set out to check the assumption at the heart of AutoML-Agent's efficiency: that an LLM can predict how well a plan will perform. On two large tabular tasks, it could not. Every prediction was optimistic by about $0.10$ ROC AUC, and within a task the predictions did not rank the plans (RQ1). Replacing prediction with budget-aware successive halving on nested subsamples corrected the choice in two of four runs. It cost 6--30\% of one full-data training run, and a second rung overturned a misleading first-rung ranking (RQ2). On these tasks the obvious family, gradient boosting, was also the best, so the final scores of all variants were close. The calibration results show that pseudo-execution would not have noticed otherwise. Experience memory worked mechanically, but two tasks were too few to measure its benefit (RQ3). The whole system ran end to end on 8.9M rows with a free-tier backbone on a laptop, within 0.001--0.006 ROC AUC of a tuned baseline (RQ4).
+
+The practical lesson is broader than plan selection. Once a system selects on measurements, the measurements must be protected. That means removing leaking columns before training, never letting the test split take part in selection, replaying the exact training-time feature preparation when serving, and checking that LLM-written code actually trains on the data it was given. In our runs, an LLM-edited script discarded most of the training data twice, once silently and once as its fix for a timeout.
+
+\emph{Measure, don't predict, when compute allows it; protect what you measure; and let the system remember what it measured.} The immediate next steps are the paper's own benchmark datasets with three seeds, a longer task sequence for the memory, and a sweep of the grounding schedule.

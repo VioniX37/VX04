@@ -23,7 +23,7 @@ backend/src/automl_agent/
   extensions/                       Hook interface, approval (human in the loop), model card
   knowledge/ml_practices.json       Curated planning knowledge
 backend/evaluation/                 Benchmark harness, baselines, metrics, analysis, dataset fetcher
-backend/tests/                      Offline test suite (fake LLM), 150 tests
+backend/tests/                      Offline test suite (fake LLM), 153 tests
 frontend/src/                       Next.js 16 app: pages, components, run model, API client
 docs/                               This site (MkDocs Material)
 paper/                              LaTeX paper

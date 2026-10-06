@@ -20,7 +20,9 @@ All notable changes to this project are documented here. The format follows [Kee
 - **Evaluation harness.** Config-driven ablation matrix; SR/NPS/CS as in the paper; calibration of pseudo-execution (Spearman ρ, top-1 hit, MAE); zero-shot Gemini and Optuna+LightGBM baselines; dataset fetcher; analysis script producing tables and figures.
 - **Web UI.** Upload progress; register-by-path/URL and registered-dataset tabs; scale tier and size in the profile; grounded-verification table; budget meters; planning knowledge with memory recalls and web sources; run configuration chips; live training progress.
 - **Inference endpoints & deployment bundle (paper parity).** A serving module (`execution/inference.py`) that replays the training dtypes and category levels recorded in `model.joblib`, so served predictions reproduce the training script's test score; REST endpoints `GET /runs/{id}/schema`, `POST /runs/{id}/predict`, `POST /runs/{id}/predict/batch` and `GET /runs/{id}/artifacts/bundle`; a deployment zip (`model.joblib`, `automl_inference.py`, `predict.py`, `requirements.txt` pinned with `==`, `schema.json`, `metrics.json`, model card) that runs in a clean Python environment; CLI `automl-agent predict`; and a "Use this model" panel with a schema-generated prediction form, batch file scoring and bundle download.
-- **Documentation.** MkDocs Material site with getting-started guides, user guide, concepts, generated configuration and Python API references, research pages and decision records; Google-style docstrings enforced by Ruff; a LaTeX paper skeleton; CI workflow; contribution guide and templates.
+- **Large-data study with Gemini** on the Microsoft Malware Prediction set (8.9M rows) and a synthetic 5M-row task (`evaluation/configs/local_large.json`, results in `evaluation/results/local_large` with provenance), plus `evaluation.audit_ablation`, `evaluation.forecasting_benchmark` and `evaluation.merge_results`.
+- **Paper** completed: results, calibration figure, ablations, related work, appendix and authors.
+- **Documentation.** MkDocs Material site with an implementation guide, a project timeline, getting-started guides, user guide, concepts (including the data audit, human in the loop, model serving and forecasting), generated configuration and Python API references, research pages and decision records; Google-style docstrings enforced by Ruff; a LaTeX paper skeleton; CI workflow; contribution guide and templates.
 
 ### Changed
 
@@ -28,6 +30,18 @@ All notable changes to this project are documented here. The format follows [Kee
 - The default LLM provider is now `gemini`; `fake` remains for offline use.
 - Final scores are computed on a held-out test split that is never used for selection.
 - Default execution timeout raised to 30 minutes for full-data training.
+
+### Fixed
+
+- **Selection never uses the test split.** When a revision runs, attempts are compared on validation scores; only the chosen attempt's test score is reported.
+- **LLM-written scripts must train on all the data.** A final run that trains on less than 99% of the training split fails with a contract-violation message, is repaired, and otherwise falls back to the unmodified template. This happened twice in the large-data study, once silently.
+- **Dropped connections to Gemini are retried** instead of crashing the run.
+- **Serving reproduces training.** Category levels and dtypes are replayed, text models are served correctly, and the selected attempt's model is served (API and CLI).
+- **The data audit** no longer drops continuous features or the text column, and it catches multi-level categorical leaks.
+- **The model card** computes its diagnostics on correctly prepared test data.
+- **Human in the loop:** a decision made after a restart applies to the plans that were reviewed; edited model families are validated; unattended approvals time out after an hour.
+- **Forecasting:** rolling-origin backtests, forecasts served from each series' recent history, portable bundles, and date-aligned temporal splits.
+- **Evaluation:** zero-shot scripts get a valid Python CONFIG; `--baselines` runs a subset of baselines.
 
 ### Removed
 

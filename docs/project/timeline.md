@@ -33,7 +33,7 @@ gantt
     Integration and fixes                      :done, i1, 2026-10-05, 1d
     Time-series forecasting (Pranav)           :done, t4, 2026-10-06, 1d
     section Release
-    Forecasting fixes, experiments, paper      :active, r1, 2026-10-06, 1d
+    Forecasting fixes, experiments, paper      :done, r1, 2026-10-06, 1d
 ```
 
 ## Phase 0: paper re-implementation (24 September)
@@ -103,7 +103,19 @@ Each track was merged with its authors' commits preserved, then reviewed on real
 
 ## Phase 6: experiments and paper (6 October)
 
-The large-data experiments were run with Gemini on this machine (12th-gen Intel Core i5-1235U, 16 GB RAM) on two datasets: the Microsoft Malware Prediction training set (8.9M rows, 83 columns) and the synthetic 5M-row conversion set. The results are in [Results](../research/results.md) and the paper.
+The large-data study ran with Gemini on this machine (12th-gen Intel Core i5-1235U, 16 GB RAM), on two locally available datasets: the Microsoft Malware Prediction training set (8.9M rows, 83 columns, a 4.4 GB CSV converted to Parquet in 18 s) and the synthetic 5M-row conversion set.
+
+| Time (IST) | Event |
+|---|---|
+| 13:33–13:39 | Offline dry run on all 8.9M rows: 6 min end to end, test ROC AUC 0.716; the experiment fits on a 16 GB laptop |
+| 13:38 | Review before the experiment: revision attempts are now compared on validation, not test, scores (`8455617`) |
+| 13:41 | First run (v1) started; a transient `httpx.ReadError` crashed one run, so the client was fixed to retry dropped connections (`082e1b4`) and v1 restarted |
+| 13:44–16:17 | v1: 6 pipeline runs and 4 baseline runs. Finding: Gemini's code edit had subsampled the grounded malware run to 20% of the training rows. The zero-shot baseline failed on a harness bug (JSON `null` copied into Python) |
+| 14:54 | Fixes: final models must train on the full split (`9a69185`); zero-shot scripts get a valid Python CONFIG (`9c682bd`) |
+| 16:18–18:44 | v2 on the fixed code. The full-data check fired in production (a timed-out script's repair subsampled to 2.0M rows and was rejected). The free-tier daily quota ran out during the last pipeline run and the zero-shot baseline |
+| 18:50 | Final result set merged with provenance (`backend/evaluation/results/local_large`); paper results, ablations, abstract and conclusion written from it |
+
+Results: [Results](../research/results.md) and the paper (`paper/`).
 
 ## Test suite over time
 
@@ -112,3 +124,4 @@ The large-data experiments were run with Gemini on this machine (12th-gen Intel 
 | Before the feature tracks (`820f84e`) | 82 |
 | After HITL, serving and audit were integrated (`5bf7687`) | 141 |
 | After forecasting was integrated and fixed (`0dda386`) | 149 |
+| After the experiment-driven fixes (submission) | 153 |

@@ -1,59 +1,66 @@
 \section{Results}
 \label{sec:results}
 
-\paragraph{RQ1: Calibration of pseudo-execution.} \todo{Report $\rho$, top-1 hit rate and MAE (Table~\ref{tab:calibration}); discuss Figure~\ref{fig:calibration}.}
+All numbers come from \texttt{backend/evaluation/results/local\_large} (one seed per configuration). \Cref{tab:main} lists every run.
+
+\begin{table}[t]
+  \centering
+  \caption{Test ROC AUC on the held-out 15\% test split, with LLM cost per run (requests include cache hits). All pipeline runs succeeded (SR $= 1$) and selected LightGBM. The zero-shot baseline produced no valid result (\cref{sec:results-other}).}
+  \label{tab:main}
+  \small
+  \begin{tabular}{lcccc}
+    \toprule
+     & \multicolumn{2}{c}{Test ROC AUC} & \multicolumn{2}{c}{LLM cost (malware / conversion)} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-5}
+    Variant & Malware (8.9M) & Conversion (5M) & Requests & Tokens \\
+    \midrule
+    \texttt{paper} (pseudo-execution) & 0.7288 & 0.7772 & 8 / 6 & 65.1k / 26.1k \\
+    \texttt{grounded} & \textbf{0.7302} & 0.7771 & 6 / 6 & 42.5k / 26.4k \\
+    \texttt{full} (grounded + memory) & 0.7293 & \textbf{0.7775} & 6 / 5 & 42.9k / 16.7k \\
+    \midrule
+    Optuna + LightGBM (no LLM) & 0.7360 & 0.7784 & 0 / 0 & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\paragraph{RQ1: Pseudo-execution is miscalibrated.} At the first grounding rung (20k training rows), we compare each plan's predicted validation ROC AUC with the one measured (\Cref{fig:calibration}, \Cref{tab:calibration}). All 12 predictions over-estimate the measured score, by $+0.104$ on average (MAE $0.104$). The pooled rank correlation is high ($\rho = 0.77$), but it comes almost entirely from separating the two datasets: the model knows that malware detection is harder than the conversion task. \emph{Within} a task, where the choice is actually made, the ranking carries little signal (mean $\rho = 0.00$ and $0.07$), and the plan predicted best was the measured best in only one of four runs. It sometimes cannot separate plans at all: in one run, two plans were both predicted at exactly $0.885$.
 
 \begin{figure}[t]
   \centering
-  \resultfigure{fig_calibration}{0.45\linewidth}
-  \caption{Predicted vs.\ observed validation scores at the first grounding rung.}
+  \resultfigure{fig_calibration}{0.42\linewidth}
+  \caption{Predicted vs.\ observed validation ROC AUC at the first grounding rung, for every plan of every grounded run. All points lie below the diagonal.}
   \label{fig:calibration}
 \end{figure}
 
 \begin{table}[t]
   \centering
-  \caption{Calibration of pseudo-execution predictions. \todo{fill from \texttt{table\_calibration.md}.}}
+  \caption{Calibration of pseudo-execution at the first grounding rung (3 plans per group).}
   \label{tab:calibration}
-  \begin{tabular}{lrrrr}
-    \toprule
-    Variant & Groups & Spearman $\rho$ & Top-1 hit & MAE \\
-    \midrule
-    \todo{grounded} & & & & \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-\paragraph{RQ2 and RQ4: Grounding and backbone.} \todo{Main table: SR/NPS/CS/time/calls per variant and baseline (Table~\ref{tab:main}); Figure~\ref{fig:cs}.}
-
-\begin{table}[t]
-  \centering
-  \caption{Main results (mean over datasets, prompts and seeds). \todo{fill from \texttt{table\_main.md}.}}
-  \label{tab:main}
+  \small
   \begin{tabular}{lrrrrr}
     \toprule
-    Variant & SR & NPS & CS & Wall (s) & LLM calls \\
+    Run & Plans & Spearman $\rho$ & Top-1 hit & MAE & Bias \\
     \midrule
-    paper & & & & & \\
-    grounded & & & & & \\
-    full & & & & & \\
-    zero-shot & & & & & \\
-    Optuna+LightGBM & & & & & \\
+    \texttt{grounded} (2 tasks) & 6 & 0.000 & 0/2 & 0.100 & $+0.100$ \\
+    \texttt{full} (2 tasks) & 6 & 0.067 & 1/2 & 0.107 & $+0.107$ \\
+    Pooled & 12 & 0.769 & 1/4 & 0.104 & $+0.104$ \\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\begin{figure}[t]
-  \centering
-  \resultfigure{fig_cs_by_variant}{0.6\linewidth}
-  \caption{Comprehensive score by variant; dots are individual tasks.}
-  \label{fig:cs}
-\end{figure}
+\paragraph{RQ2: Grounding corrects the choice at a small cost.} In both \texttt{grounded} runs, pseudo-execution ranked XGBoost first; grounding measured it $0.017$ (malware, 80k rows) and $0.028$ (conversion, 20k rows) ROC AUC below LightGBM and selected LightGBM instead. The \texttt{paper} runs, sampling their own predictions, happened to rank LightGBM first, so on these two tasks all variants reach the same family and the same test score (within $0.002$; \Cref{tab:main}). Grounding is cheap: its five subsample runs took 22--63\,s of compute in total, 6--30\% of one full-data training run of the winner (73--1{,}001\,s), whereas evaluating all three plans on the full data would cost about three such runs. The extra LLM cost of \texttt{paper} on the malware task (8 requests, 65.1k tokens) is not due to selection but to a repaired implementation (\cref{sec:results-other}). We read these two tasks as a case where the ``obvious'' family is also the best; the calibration results show that pseudo-execution would not have detected otherwise.
 
-\paragraph{RQ3: Experience memory.} \todo{LLM calls and CS over the task sequence (Figure~\ref{fig:memory}).}
+\paragraph{RQ3: Experience memory.} With the conversion task first, the \texttt{full} variant recalled its record when planning the malware task (one memory hit, leave-one-dataset-out). With only two tasks in the sequence, we observe no measurable effect on score (0.7293 vs.\ 0.7302 for \texttt{grounded}) or cost (6 requests each). A task sequence long enough to measure RQ3 remains future work, so we omit the memory curve.
 
-\begin{figure}[t]
-  \centering
-  \resultfigure{fig_memory_curve}{0.55\linewidth}
-  \caption{LLM calls per run over the task sequence, without (dashed) and with (solid) memory.}
-  \label{fig:memory}
-\end{figure}
+\paragraph{RQ4: Free-tier agentic AutoML at scale on a laptop.} Every pipeline run succeeded end to end on 5M and 8.9M rows, on a 16\,GB laptop, with 5--8 LLM requests per run and despite the free tier repeatedly overloading (HTTP 503) and exhausting quota (HTTP 429) during our runs; the client fell back across four model versions. The agents' best test ROC AUC is within $0.001$ (conversion) and $0.006$ (malware) of an Optuna-tuned LightGBM baseline. That baseline uses no LLM but needed 30--57 minutes of tuning and fitting, against 1--17 minutes for the agents' final full-data runs.
+
+\subsection{Other findings}
+\label{sec:results-other}
+
+\paragraph{An LLM-edited script silently discarded 80\% of the data.} In a first run of this experiment, the Operation Agent's edit of the training template added ``subsample 20\% if the dataset is large''. The \texttt{grounded} variant had selected the right plan, but its final model trained on 1.25M of the 6.2M training rows and scored $0.7164$ instead of $\approx 0.730$. Implementation verification passed, because it only checked the score against the target. We now treat a final run that trains on less than 99\% of the training split as a failed run: the debug loop repairs it, and if that fails, the unmodified template runs on all rows. The check fired in the rerun reported in \Cref{tab:main}: in the \texttt{paper} variant on malware, the LLM's first script exceeded the 30-minute limit (peak 11.5\,GB); its repair ``fixed'' the timeout by training on 2.0M of the 6.2M rows; the check rejected it; and the next repair trained on all rows within the limit. Every model in \Cref{tab:main} trained on the full training split. Grounding verifies the \emph{plan}; the \emph{implementation} needs its own checks.
+
+\paragraph{Leakage defeats measurement-based selection unless it is removed first.} On a churn dataset with a planted column that equals the label, the selected model scores test ROC AUC $1.000$ with the audit off, with 93.6\% of its importance on the leaking column. With the audit on, the column is dropped and the honest score is $0.761$. On the malware data, the audit drops four columns that are 83--99.97\% empty and flags 1{,}074 test rows that duplicate training rows.
+
+\paragraph{Forecasting.} On the \texttt{store\_sales} panel (5 stores, horizon 14), the direct global LightGBM forecaster reaches 8.57\% sMAPE, against 8.59\% for ETS and 9.79\% for seasonal-naive, under the rolling-origin backtest. An earlier evaluation, which wrapped the horizon over a long test block, had reported 7.95\% vs.\ 13.89\%: evaluation protocol matters as much as the model.
+
+\paragraph{Zero-shot baseline.} The single-call Gemini baseline produced no valid result. In the first run, every script failed because the harness passed the configuration as JSON and the model copied \texttt{null} into Python (now fixed). In the rerun, the free-tier daily quota was exhausted. We do not report a number for it.

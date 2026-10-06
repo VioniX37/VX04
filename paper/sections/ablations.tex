@@ -1,4 +1,14 @@
 \section{Ablations and Analysis}
 \label{sec:ablations}
 
-\todo{Grounding schedule sensitivity ($r_0$, $g$, $\eta$); effect of \texttt{AGENT\_FUSION} on quality and cost; single vs.\ role-split backbone; template-fallback rate; scaling of wall time with dataset size; cost of grounding relative to full training of every plan.}
+\paragraph{Cost of grounding.} On both datasets the default schedule ($r_0 = 20$k, $g = 4$, $\eta = 2$) runs three plans at 20k rows and two at 80k rows. These five runs used 22--63\,s of compute, against 73--1{,}001\,s for the single full-data run of the winner, so grounding adds 6--30\% to the training compute of a run, while full evaluation of all three plans would triple it. Most of each run's wall time was spent waiting on the LLM (under free-tier overload, up to tens of minutes per run), not on grounding.
+
+\paragraph{Fidelity agreement.} The ranking of the two plans that reached the 80k rung matched their 20k ranking in three of the four grounded runs. In the fourth (\texttt{full}, conversion), SGD led LightGBM by $0.0006$ at 20k rows, and the 80k rung reversed this decisively ($0.748$ vs.\ $0.734$). Selecting on a single small rung would have chosen the linear model there, which is exactly what successive halving guards against. Absolute scores at the low rungs were 0.03--0.05 below the full-data validation scores, so low-fidelity runs are useful for ranking, not for predicting the final score.
+
+\paragraph{Agent fusion.} All runs used one fused analysis call per plan (\texttt{AGENT\_FUSION}), so each pipeline run needed only 5--6 LLM requests in the normal case: one to parse the request, one to plan, three to analyse the plans, and one for the code. Each repair of a failed script adds one request.
+
+\paragraph{Data audit.} With the audit off, a planted leaking column dominates the selected model (93.6\% of its importance) and inflates the test ROC AUC from $0.761$ to $1.000$ (\cref{sec:results-other}). With the audit on, the pipeline drops it before any plan is trained. On real data, the audit costs about 25\,s on 8.9M rows.
+
+\paragraph{Implementation checks.} Across both runs of the experiment, the Operation Agent subsampled the training data twice: once unprompted, and once as its repair for a script that had hit the time limit. The minimum-data check turns both into recoverable failures. Without it, the first incident cost $0.014$ test ROC AUC, and nothing in the run reported it.
+
+\paragraph{Not measured.} We did not vary the grounding schedule, the backbone (one model for both roles vs.\ the smart/fast split), or the number of seeds, and our memory sequence has only two tasks. These are the main experiments that remain.
