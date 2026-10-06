@@ -86,6 +86,9 @@ nav:
       - Installation: getting-started/installation.md
       - Quickstart: getting-started/quickstart.md
       - Colab and Kaggle: getting-started/colab-kaggle.md
+  - Project:
+      - Implementation guide: project/implementation.md
+      - Timeline and team: project/timeline.md
   - User guide:
       - Writing requests: user-guide/writing-requests.md
       - Datasets: user-guide/datasets.md
@@ -98,6 +101,10 @@ nav:
       - Experience memory: concepts/experience-memory.md
       - Large data: concepts/large-data.md
       - LLM layer: concepts/llm-layer.md
+      - Data audit and model card: concepts/data-audit.md
+      - Human in the loop: concepts/human-in-the-loop.md
+      - Model serving: concepts/model-serving.md
+      - Time-series forecasting: concepts/forecasting.md
   - Reference:
       - Configuration: reference/configuration.md
       - REST API: reference/rest-api.md
@@ -120,4 +127,6 @@ nav:
           - "ADR 0003: Grounded verification": development/adr/0003-grounded-verification.md
           - "ADR 0004: Template-grounded code generation": development/adr/0004-template-grounded-codegen.md
           - "ADR 0005: Experience memory": development/adr/0005-experience-memory.md
+          - "ADR 0006: Serving replays training preparation": development/adr/0006-serving-replays-training-preparation.md
+          - "ADR 0007: Forecasting core": development/adr/0007-forecasting-core.md
       - Changelog: development/changelog.md

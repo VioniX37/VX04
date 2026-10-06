@@ -2,10 +2,42 @@
 \label{sec:method}
 
 \subsection{Pipeline overview}
-The pipeline follows AutoML-Agent: a Prompt Agent parses the request into a task specification, which is verified against a statistical profile of the data. The Manager retrieves knowledge and proposes $P$ candidate plans; Data and Model agents analyse each plan and predict its score $\hat{s}_p$. An Operation Agent implements the selected plan, and implementation verification checks the requirements on a held-out test split, triggering revisions if needed. \todo{Pipeline figure.}
+The pipeline follows AutoML-Agent (\Cref{fig:pipeline}). A Prompt Agent parses the request into a task specification, which is verified against a statistical profile of the data. The data is converted to Parquet, split once into fixed train/validation/test partitions and audited. The Manager retrieves knowledge and proposes $P$ candidate plans; Data and Model agents analyse each plan and predict its score $\hat{s}_p$. Where AutoML-Agent selects the plan with the best \emph{predicted} score, we select on \emph{observed} scores (grounded verification). An optional human gate can approve, pick or edit the selected plan. An Operation Agent implements it from a working template, and implementation verification checks the requirements on the held-out test split, triggering revisions if needed. Finished runs produce a model card, a memory record and a servable model.
+
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}[
+      node distance=4mm and 5mm,
+      box/.style={draw, rounded corners=2pt, align=center, font=\scriptsize, minimum height=7mm, inner sep=2pt},
+      new/.style={box, fill=blue!8},
+      arr/.style={-{Latex[length=1.6mm]}}]
+    \node[box] (req) {Request\\+ data};
+    \node[box, right=of req] (parse) {Prompt Agent\\$\to$ task spec};
+    \node[box, right=of parse] (prep) {Parquet, fixed\\splits, profile};
+    \node[new, right=of prep] (audit) {Data\\audit};
+    \node[box, right=of audit] (ret) {Retrieve: KB,\\web, \textbf{memory}};
+    \node[box, below=of ret] (plan) {Manager:\\$P$ plans};
+    \node[box, left=of plan] (agents) {Data + Model\\agents ($\hat{s}_p$)};
+    \node[new, left=of agents] (ground) {\textbf{Grounded}\\\textbf{verification}};
+    \node[new, left=of ground] (human) {Human gate\\(optional)};
+    \node[box, left=of human] (op) {Operation Agent:\\template, run, debug};
+    \node[box, below=of op] (verify) {Implementation\\verification};
+    \node[new, right=of verify] (card) {Model card};
+    \node[new, right=of card] (mem) {\textbf{Experience}\\\textbf{memory}};
+    \node[new, right=of mem] (serve) {Serving: API,\\UI, bundle};
+    \draw[arr] (req) -- (parse); \draw[arr] (parse) -- (prep); \draw[arr] (prep) -- (audit);
+    \draw[arr] (audit) -- (ret); \draw[arr] (ret) -- (plan); \draw[arr] (plan) -- (agents);
+    \draw[arr] (agents) -- (ground); \draw[arr] (ground) -- (human); \draw[arr] (human) -- (op);
+    \draw[arr] (op) -- (verify); \draw[arr] (verify) -- (card); \draw[arr] (card) -- (mem);
+    \draw[arr] (mem) -- (serve);
+    \draw[arr, dashed] (verify.south) -- ++(0,-3mm) -| node[pos=0.25, below, font=\scriptsize] {revise} (plan.south);
+  \end{tikzpicture}
+  \caption{Pipeline. White: stages inherited from AutoML-Agent. Shaded: our additions. Bold: the two research contributions.}
+  \label{fig:pipeline}
+\end{figure}
 
 \subsection{Grounded verification}
-Let $\mathcal{D}_\text{train}$ have $n$ rows, each with an independent draw $u_i \sim \mathcal{U}[0,1)$. The subsample at fidelity $r$ is $S_r = \{i : u_i < r/n\}$, so $S_r \subseteq S_{r'}$ for $r \le r'$. Rung $k$ trains every surviving plan on $S_{r_k}$ with $r_k = \min(r_0 g^k, n)$ and scores it on a fixed validation slice, keeping the best $\lceil P_k/\eta \rceil$ plans.
+Let $\mathcal{D}_\text{train}$ have $n$ rows, each with an independent draw $u_i \sim \mathcal{U}[0,1)$. The subsample at fidelity $r$ is $S_r = \{i : u_i < r/n\}$, so $S_r \subseteq S_{r'}$ for $r \le r'$. Rung $k$ trains every surviving plan on $S_{r_k}$ with $r_k = \min(r_0 g^k, n)$ and scores it on a fixed validation slice, keeping the best $\lceil P_k/\eta \rceil$ plans (\Cref{alg:grounding}). The test split is never used for selection: when implementation verification triggers a revision, attempts are also compared on validation scores, and only the chosen attempt's test score is reported.
 
 \begin{algorithm}[t]
 \caption{Budget-aware grounded verification}
@@ -25,7 +57,18 @@ Let $\mathcal{D}_\text{train}$ have $n$ rows, each with an independent draw $u_i
 \end{algorithm}
 
 \subsection{Experience memory}
-Each run stores dataset meta-features $m \in \mathbb{R}^d$ (size, column-type mix, missingness, class count and imbalance), all candidate plans with predicted and observed scores, the selected plan's test score, and error$\to$fix pairs. For a new task, the $k$ nearest runs of the same task type under a weighted Euclidean distance are rendered as planning knowledge; matching error signatures surface past fixes to the Operation Agent.
+Each run stores dataset meta-features $m \in \mathbb{R}^d$ (size, column-type mix, missingness, class count and imbalance), all candidate plans with predicted and observed scores, the selected plan's test score, error$\to$fix pairs, and whether a human overrode the agents' choice. For a new task, the $k$ nearest runs of the same task type under a weighted Euclidean distance are rendered as planning knowledge, in the spirit of meta-learning warm starts \citep{feurer2015autosklearn}; matching error signatures surface past fixes to the Operation Agent.
 
 \subsection{Scalable execution substrate}
-Datasets are converted once to Parquet; profiling uses a lazy engine with approximate distinct counts; a fixed stratified train/valid/test split per target is shared by all plans, fidelities and baselines. Training templates use gradient-boosted trees with native categoricals and early stopping, and out-of-core hashing models for large text corpora. Scripts run under time and memory limits.
+Datasets are converted once to Parquet; profiling uses a lazy engine with approximate distinct counts; a fixed stratified train/validation/test split per target is shared by all plans, fidelities and baselines. Training templates use gradient-boosted trees with native categoricals and early stopping \citep{ke2017lightgbm}, and out-of-core hashing models for large text corpora. Scripts run in a supervised subprocess with time and memory limits.
+
+\subsection{Platform extensions}
+Four extensions turn the research prototype into a usable system; they are not part of the comparison with the paper but are evaluated by the test suite.
+
+\paragraph{Data audit and model card.} Selecting on measured scores makes target leakage \citep{kaufman2012leakage} more dangerous: a leaking column always wins. Before planning, a deterministic audit drops identifier-like discrete columns, columns whose names echo the target, mostly-empty and constant columns, and any single feature that predicts the target with AUC, accuracy or $R^2 \ge 0.98$ on a shuffled holdout; it also counts exact train/test duplicates by row hashing. After training, a model card \citep{mitchell2019modelcards} reports feature importances, per-class metrics, calibration or residuals, computed through the serving code path.
+
+\paragraph{Human in the loop.} Runs can pause after grounded verification so a user can approve, pick or edit a plan (and optionally the script), with a timeout fallback, cancellation that kills the training process tree, and resumption after a server restart onto the plans the user reviewed.
+
+\paragraph{Model serving.} Training templates record their feature preparation (dtypes, category levels, column roles) in the model bundle, and one standalone module replays it for the REST API, the CLI, the model card and an exported bundle, avoiding training/serving skew \citep{sculley2015debt}; a test checks that served predictions reproduce the training script's test score.
+
+\paragraph{Time-series forecasting.} A forecasting task type uses date-aligned temporal splits whose grounding rungs are suffix windows (the most recent data), a global direct multi-horizon LightGBM model on lag, rolling and calendar features computed strictly from the past, and seasonal-naive and ETS baselines; every model is scored with a rolling-origin backtest \citep{hyndman2021fpp3}, and served forecasts start from each series' recent history.

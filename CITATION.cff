@@ -3,7 +3,21 @@ message: "If you use this software, please cite it and the original AutoML-Agent
 title: "Grounded AutoML-Agent: budget-aware multi-fidelity verification and experience memory for scalable LLM-driven AutoML"
 type: software
 authors:
-  - name: "Grounded AutoML-Agent contributors"
+  - given-names: Abhinandh
+    family-names: A
+    affiliation: "Indian Institute of Information Technology Kottayam"
+  - given-names: Jason
+    family-names: Bobby
+    affiliation: "Indian Institute of Information Technology Kottayam"
+  - given-names: Pranav
+    family-names: Hariharan
+    affiliation: "Indian Institute of Information Technology Kottayam"
+  - given-names: Sajish Sajan
+    family-names: Varghese
+    affiliation: "Indian Institute of Information Technology Kottayam"
+  - given-names: Aniketh
+    family-names: S
+    affiliation: "Indian Institute of Information Technology Kottayam"
 repository-code: "https://github.com/VioniX37/VX04"
 version: 0.2.0-dev
 keywords:

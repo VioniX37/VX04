@@ -1,10 +1,26 @@
 \section{Experimental Setup}
 \label{sec:setup}
 
-\paragraph{Datasets.} The tabular and text datasets of \citet{trirat2025automlagent} (Banana Quality, Software Defects, Crab Age, Ecommerce Text), each with a constraint-free and a constraint-aware instruction, and large-scale datasets: a synthetic 5M-row conversion task, HIGGS (11M), NYC Taxi fares and Amazon Polarity. \todo{Table of dataset statistics.}
+\paragraph{Datasets.} We study the large-data regime, where pseudo-execution is cheapest relative to real training and therefore most tempting, on two binary classification tasks (\Cref{tab:datasets}). \emph{Microsoft Malware Prediction} is the training set of the Kaggle competition of the same name: telemetry of Windows machines, predicting whether a machine was infected (\texttt{HasDetections}). \emph{Synthetic conversion} is a generated customer-conversion task (\texttt{data/samples/generate\_large.py}) with known structure. The forecasting module is evaluated separately on \texttt{store\_sales}, a synthetic panel of 5 stores over 180 days with weekly seasonality, promotions and trend.
 
-\paragraph{Metrics.} Success rate (SR, graded 0/0.5/1), normalized performance score (NPS; RMSLE for regression) and comprehensive score $\text{CS} = 0.5\,\text{SR} + 0.5\,\text{NPS}$, as in the original paper; calibration by Spearman $\rho$, top-1 hit rate and MAE between predicted and observed scores; cost as wall time, LLM calls and tokens.
+\begin{table}[t]
+  \centering
+  \caption{Datasets. Splits are 70/15/15; classification splits are stratified.}
+  \label{tab:datasets}
+  \small
+  \begin{tabular}{lrrlll}
+    \toprule
+    Dataset & Rows & Columns & Target & Metric & Notes \\
+    \midrule
+    Microsoft Malware Prediction & 8{,}921{,}483 & 83 & \texttt{HasDetections} (50.1\% positive) & ROC AUC & 29 categorical, 53 numeric, 1 id; 4.4\,GB CSV \\
+    Synthetic conversion & 5{,}000{,}000 & 18 & \texttt{converted} & ROC AUC & 12 numeric, 3 categorical, tenure, row id \\
+    \texttt{store\_sales} (forecasting) & 900 & 5 & \texttt{sales} & sMAPE & 5 series, daily, horizon 14 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
-\paragraph{Variants and baselines.} \texttt{paper} (pseudo verification, no memory), \texttt{grounded}, \texttt{memory}, \texttt{full} (both), and \texttt{full\_fused} (single analysis call per plan). Baselines: Gemini zero-shot single script, and Optuna + LightGBM with the same wall-clock budget.
+\paragraph{Metrics.} Success rate (SR, graded 0/0.5/1), normalized performance score (NPS) and comprehensive score $\text{CS} = 0.5\,\text{SR} + 0.5\,\text{NPS}$, as in the original paper. We also report the test ROC AUC directly. Calibration is measured by Spearman $\rho$, top-1 hit rate and MAE between predicted and observed validation scores, and cost as wall time, LLM calls and tokens.
 
-\paragraph{Protocol.} Fixed seeded 70/15/15 splits; three seeds; leave-one-dataset-out memory; equal budgets per comparison. Backbone: \todo{Gemini model ids per role}. Hardware: \todo{CPU, RAM}.
+\paragraph{Variants and baselines.} \texttt{paper}: pseudo-execution selects the plan (AutoML-Agent behaviour), no memory. \texttt{grounded}: successive-halving grounding selects the plan. \texttt{full}: grounding plus experience memory, with the conversion task run first so its record can be recalled for the malware task (leave-one-dataset-out). All variants use the fused per-plan analysis call (\texttt{AGENT\_FUSION}), $P = 3$ plans, at most one revision and a 30-minute wall-clock budget per run. Baselines: a Gemini zero-shot single script, and Optuna + LightGBM with a 15-minute budget.
+
+\paragraph{Protocol.} Fixed seeded splits shared by every variant and baseline; one seed per configuration (\texttt{backend/evaluation/configs/local\_large.json}). Backbone: \texttt{gemini-3.8-flash} for the smart role with automatic fallback to \texttt{gemini-3.7/3.6/3.5-flash} under overload, \texttt{gemini-3.1-flash-lite} for the fast role (\Cref{app:implementation}). Hardware: a laptop with a 12th-generation Intel Core i5-1235U (10 cores, 12 threads) and 16\,GB RAM; no GPU.

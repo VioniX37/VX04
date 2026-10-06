@@ -10,5 +10,5 @@ A key design choice of AutoML-Agent is \emph{pseudo-execution}. Data and Model a
   \item We measure, for the first time, the calibration of LLM pseudo-execution in agentic AutoML (RQ1).
   \item We introduce \emph{grounded verification}: budget-aware successive halving over nested data subsamples, which selects plans on observed rather than predicted performance (RQ2).
   \item We add an \emph{experience memory} that recalls measured outcomes and bug fixes from similar past runs (RQ3).
-  \item We show that the combined system runs on large datasets with a free-tier model on commodity hardware, and we compare it with published results (RQ4). Code, UI and evaluation harness are open source.
+  \item We show that the combined system runs end to end on a real 8.9M-row dataset with a free-tier model on a laptop (RQ4), and we harden it into a usable system: a pre-training data audit, human-in-the-loop control, skew-free model serving and time-series forecasting. Code, web UI and evaluation harness accompany the paper.
 \end{itemize}

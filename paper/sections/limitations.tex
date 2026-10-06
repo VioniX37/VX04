@@ -1,4 +1,10 @@
 \section{Limitations}
 \label{sec:limitations}
 
-Grounding adds training cost, which is bounded by the schedule and the budget but not negligible on very large data. The memory benefits only related tasks and could propagate past mistakes, although records carry observed failures. We cover tabular and text tasks only; image, time-series and graph modalities are left to future work. Hosted LLMs evolve, so exact numbers may drift; we mitigate this by logging model ids and caching all responses. Public benchmark datasets may appear in pre-training data.
+\paragraph{Scope of the evaluation.} Our experiments use two large tabular datasets, one real (Microsoft Malware Prediction) and one synthetic, with a single seed per configuration, on one laptop and a free-tier backbone. This is enough to characterise behaviour at scale, but not to make statistically strong claims across task families; the paper's own benchmark datasets (Kaggle) and three seeds remain to be run with the provided configuration (\texttt{paper\_tabular.json}).
+
+\paragraph{Method.} Grounding adds training cost, which is bounded by the schedule and the budget but not negligible on very large data. The memory benefits only related tasks and could propagate past mistakes, although records carry observed failures. The data audit uses fixed thresholds; a feature that is legitimately almost deterministic of the target would be dropped.
+
+\paragraph{Modalities.} We cover tabular classification and regression, text classification and time-series forecasting; image and graph tasks are left to future work.
+
+\paragraph{Backbone drift.} Hosted LLMs evolve and free-tier quotas fluctuate (our runs met overload and quota errors and fell back across model versions), so exact numbers may drift. We mitigate this by logging the model used for every call and caching all responses. Public benchmark datasets may appear in pre-training data.

@@ -1,9 +1,34 @@
 \section{Implementation Details}
 \label{app:implementation}
 
-\todo{Agent prompts (from \texttt{backend/src/automl\_agent/prompts}), model registry with scale limits, grounding defaults ($r_0 = 20{,}000$, $g = 4$, $\eta = 2$, validation cap $100{,}000$), rate-limit settings, and the full configuration used per experiment (recorded in each run's \texttt{config}).}
+\paragraph{Agents and prompts.} Six system prompts live in \texttt{backend/src/automl\_agent/prompts}: Prompt Agent (request $\to$ task specification), Manager (retrieval-augmented planning of $P$ plans in one structured call), Data Agent and Model Agent (per-plan analysis with a predicted score), Plan Analyst (both analyses in one call when \texttt{AGENT\_FUSION} is on) and Operation Agent (edits a rendered working template; repairs failures given the error and past fixes). Every response is constrained by a JSON schema derived from the corresponding Pydantic model.
+
+\paragraph{Backbone and rate limits.} The \emph{smart} role (Manager planning and Operation Agent code) uses \texttt{gemini-3.8-flash} with fallbacks \texttt{gemini-3.7-flash}, \texttt{gemini-3.6-flash}, \texttt{gemini-3.5-flash} on overload (HTTP 503) or quota errors; the \emph{fast} role (Prompt Agent parsing and the per-plan Data/Model/Plan-Analyst analysis) uses \texttt{gemini-3.1-flash-lite}. Requests are limited to 5 (smart) and 15 (fast) per minute with at most 2 in flight, retried with exponential backoff that honours the server's \texttt{retryDelay}, and cached on disk keyed by model, prompt and seed. Web knowledge comes from Gemini's Google Search grounding when quota allows.
+
+\paragraph{Model registry.} Plans must choose a family from a per-task registry, filtered by training-set size:
+\begin{center}
+\small
+\begin{tabular}{ll}
+\toprule
+Task & Families (row limit) \\
+\midrule
+Tabular (both) & LightGBM, XGBoost, HistGradientBoosting, SGD (any size); random forest, extra trees ($\le$1M); \\
+ & gradient boosting ($\le$200k); $k$-NN ($\le$100k); RBF SVM ($\le$20k) \\
+Classification & + logistic regression ($\le$2M) \\
+Regression & + ridge (any size), lasso ($\le$2M) \\
+Text & TF-IDF + logistic regression / linear SVM / complement NB / SGD ($\le$1M); hashing + SGD (any size) \\
+Forecasting & direct global LightGBM; seasonal-naive; ETS \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Grounding defaults.} $r_0 = 20{,}000$ rows, growth $g = 4$, keep ratio $\eta = 2$, validation cap $100{,}000$ rows; with $P = 3$ plans and millions of training rows this gives rungs of 20k (3 plans) and 80k rows (2 plans) before the full-data run of the winner.
+
+\paragraph{Splits and audit.} 70/15/15 train/validation/test, stratified for classification and contiguous date blocks for forecasting, seeded and cached per target. The audit drops discrete columns that are $\ge 90\%$ unique with an identifier-like name or $\ge 99\%$ unique otherwise, columns whose names echo the target, constant columns and columns $\ge 80\%$ missing, and single features reaching AUC, accuracy or $R^2 \ge 0.98$ on a shuffled 80/20 holdout of up to 10k rows.
+
+\paragraph{Execution.} Scripts run in a subprocess with a 30-minute timeout and a memory watchdog at 80\% of physical RAM; on repeated failure (3 debug attempts) the unmodified template runs as a safety net. Every run records its full configuration, including model ids and all settings, in the run's \texttt{config}.
 
 \section{Reproducibility}
 \label{app:reproducibility}
 
-All experiments are produced by \texttt{python -m evaluation.run\_benchmark} with the configs in \texttt{backend/evaluation/configs}; tables and figures by \texttt{python -m evaluation.analysis}. LLM responses are cached per seed, so re-running a config reproduces the same outputs.
+All experiments are produced by \texttt{python -m evaluation.run\_benchmark} with the configs in \texttt{backend/evaluation/configs} (\texttt{local\_large.json} for the results in this paper); tables and figures by \texttt{python -m evaluation.analysis}; forecasting numbers by \texttt{python -m evaluation.forecasting\_benchmark}. LLM responses are cached per seed, so re-running a config reproduces the same LLM outputs. The Microsoft Malware Prediction training set is the Kaggle competition file \texttt{train.csv} (8{,}921{,}483 rows), converted once to Parquet with \texttt{automl\_agent.tools.ingest}.
