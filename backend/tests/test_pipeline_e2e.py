@@ -137,3 +137,29 @@ def test_attempts_are_compared_on_validation_not_test(settings, sample_csvs, mon
     assert len(result.attempts) == 2
     assert result.metrics["score"] == 0.70  # attempt 1: better on validation
     assert result.metrics["artifact_dir"].endswith("attempt_1")
+
+
+def test_subsampled_final_training_falls_back_to_the_template(settings, sample_csvs, monkeypatch):
+    """An edited script that trains on part of the data (as Gemini once did: "use 20% if large")
+    must not become the final model: the run falls back to the template, which uses all rows."""
+    from automl_agent.agents.operation_agent import OperationAgent
+    from automl_agent.schemas.plan import CodeDraft
+
+    original_ask = OperationAgent.ask_json
+
+    async def subsampling_codegen(self, stage, instruction, context, schema):
+        if schema is CodeDraft:
+            code = context["base_code"].replace(
+                'X_train, y_train = load_split("train", CONFIG.get("fidelity_rows"))',
+                'X_train, y_train = load_split("train", 100)',
+            )
+            assert code != context["base_code"]
+            return CodeDraft(code=code, explanation="subsample for speed")
+        return await original_ask(self, stage, instruction, context, schema)
+
+    monkeypatch.setattr(OperationAgent, "ask_json", subsampling_codegen)
+    result, events, ctx = _run(settings, sample_csvs["churn"], "Predict churn")
+    assert result.success
+    assert result.metrics["n_train"] == ctx.split.n_train
+    assert any("Contract violation" in e.message for e in events)
+    assert result.attempts[-1]["template_fallback"]

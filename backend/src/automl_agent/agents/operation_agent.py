@@ -96,6 +96,23 @@ class OperationAgent(BaseAgent):
             run_id=ctx.run_id,
         )
 
+    def _enforce_full_data(self, result: ExecutionResult) -> ExecutionResult:
+        """Fail a run that trained the final model on a subsample of the training split.
+
+        An LLM edit can quietly subsample the data (e.g. "use 20% if the dataset is large"),
+        which silently undoes the plan grounding selected. The debug loop then repairs the
+        script, and if that fails the unmodified template runs on all rows.
+        """
+        expected = self.ctx.split.n_train if self.ctx.split else None
+        n_train = (result.metrics or {}).get("n_train")
+        if not result.ok or not expected or not isinstance(n_train, int) or n_train >= 0.99 * expected:
+            return result
+        message = (
+            f"Contract violation: the script trained the final model on {n_train:,} of the "
+            f"{expected:,} training rows. Train on the full training split; do not subsample."
+        )
+        return result.model_copy(update={"ok": False, "stderr": f"{result.stderr}\n{message}".strip()})
+
     async def implement(
         self,
         spec: TaskSpec,
@@ -156,7 +173,7 @@ class OperationAgent(BaseAgent):
                 kind="status",
                 payload={"attempt": attempt, "code": code},
             )
-            result = await self._run(code, workdir, attempt)
+            result = self._enforce_full_data(await self._run(code, workdir, attempt))
             outcome.code, outcome.result = code, result
             await self.ctx.emit(
                 Stage.implement,
