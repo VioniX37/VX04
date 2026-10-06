@@ -1,0 +1,9 @@
+kind,variant,task,prompt_kind,seed,run_id,success,target_met,sr,nps,cs,metric,score,model_family,spec_correct,revisions,stop_reason,wall_s,llm_calls,cache_hits,tokens,memory_hits,audit_dropped,audit_changed_outcome,error,source
+pipeline,paper,synthetic_conversion_5m,free,0,ff46450ddf87,True,True,1.0,0.7772030436801777,0.8886015218400889,roc_auc,0.7772030436801777,lightgbm,True,1,target_met,191.57,5,1,26113,0,0,False,,local_large_v2
+pipeline,paper,microsoft_malware,free,0,0c625e68845a,True,True,1.0,0.7288818397833684,0.8644409198916843,roc_auc,0.7288818397833684,lightgbm,True,1,target_met,2735.5,7,1,65050,0,4,True,,local_large_v2
+pipeline,grounded,synthetic_conversion_5m,free,0,ea0e76bdd4af,True,True,1.0,0.777148610344969,0.8885743051724845,roc_auc,0.777148610344969,lightgbm,True,1,target_met,285.45,5,1,26351,0,0,False,,local_large_v2
+pipeline,grounded,microsoft_malware,free,0,7882d12d52f0,True,True,1.0,0.7302445232998682,0.8651222616499341,roc_auc,0.7302445232998682,lightgbm,True,1,target_met,1212.44,5,1,42530,0,4,True,,local_large_v2
+pipeline,full,synthetic_conversion_5m,free,0,fc4727858fdf,True,True,1.0,0.7775075572418795,0.8887537786209397,roc_auc,0.7775075572418795,lightgbm,True,1,target_met,2374.34,4,1,16707,0,0,False,,local_large_v2
+pipeline,full,microsoft_malware,free,0,3e03ef96156a,True,True,1.0,0.7293636068837664,0.8646818034418833,roc_auc,0.7293636068837664,lightgbm,True,1,target_met,837.89,5,1,42874,1,4,True,,local_large
+baseline,baseline:optuna_lgbm,synthetic_conversion_5m,free,0,,True,True,1.0,0.7784762812021842,0.8892381406010921,roc_auc,0.7784762812021842,lightgbm (optuna),True,0,,1814.363,0,0,0,0,0,False,,local_large
+baseline,baseline:optuna_lgbm,microsoft_malware,free,0,,True,True,1.0,0.7360313872576476,0.8680156936288238,roc_auc,0.7360313872576476,lightgbm (optuna),True,0,,3437.545,0,0,0,0,0,False,,local_large
