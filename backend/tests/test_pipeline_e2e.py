@@ -115,3 +115,25 @@ def test_events_carry_llm_metadata_and_grounding_progress(settings, sample_csvs)
     assert llm and all({"role", "duration_s", "calls", "input_tokens"} <= set(e.payload["meta"]) for e in llm)
     ground_progress = [e for e in events if e.stage == Stage.ground and e.kind == "telemetry"]
     assert {e.payload["plan_id"] for e in ground_progress} == {"r1p1", "r1p2", "r1p3"}
+
+
+def test_attempts_are_compared_on_validation_not_test(settings, sample_csvs, monkeypatch):
+    """A revision with a better test score but a worse validation score must not replace the first attempt."""
+    from automl_agent.agents.operation_agent import ImplementationOutcome, OperationAgent
+    from automl_agent.schemas.plan import ExecutionResult
+
+    scores = iter([(0.80, 0.70), (0.75, 0.90)])  # (valid, test) per attempt
+
+    async def fake_implement(self, spec, chosen, workdir, past_fixes=None):
+        valid, test = next(scores)
+        metrics = {"score": test, "metric": spec.metric, "metrics_valid": {spec.metric: valid}}
+        return ImplementationOutcome(
+            code="# stub", result=ExecutionResult(ok=True, returncode=0, duration_s=0.1, metrics=metrics)
+        )
+
+    monkeypatch.setattr(OperationAgent, "implement", fake_implement)
+    settings.max_revisions = 1
+    result, _, _ = _run(settings, sample_csvs["churn"], "Predict churn with 99.9% accuracy")
+    assert len(result.attempts) == 2
+    assert result.metrics["score"] == 0.70  # attempt 1: better on validation
+    assert result.metrics["artifact_dir"].endswith("attempt_1")

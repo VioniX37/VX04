@@ -108,6 +108,7 @@ def main():
         baseline = fc.fit(name, train, horizon=HORIZON, freq=FREQ)
         baselines[name] = evaluate(baseline, history, eval_block)[0]
     score = metrics.get(metric, metrics["smape"])
+    metrics_valid = evaluate(model, train, valid)[0] if eval_split == "test" and valid else None
     naive_score = baselines["seasonal_naive"].get(metric, baselines["seasonal_naive"]["smape"])
 
     result = {
@@ -123,6 +124,7 @@ def main():
         "horizon": HORIZON,
         "frequency": FREQ,
         "evaluation": "rolling-origin backtest, one forecast of up to `horizon` steps per window",
+        "metrics_valid": metrics_valid,
         "baseline_scores": {name: m.get(metric, m["smape"]) for name, m in baselines.items()},
         "seasonal_naive_score": naive_score,
         "beats_seasonal_naive": family == "seasonal_naive" or bool(score < naive_score),

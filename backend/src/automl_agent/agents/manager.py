@@ -577,10 +577,14 @@ class AgentManager(BaseAgent):
                 }
             )
 
+            # Attempts are compared on validation data: the test split only reports the chosen
+            # attempt's score and is never used to choose between attempts.
+            select_on = valid_score if isinstance(valid_score, int | float) else score
             if isinstance(score, int | float) and (
-                best_score is None or (score > best_score if spec.higher_is_better else score < best_score)
+                best_score is None
+                or (select_on > best_score if spec.higher_is_better else select_on < best_score)
             ):
-                best_score = score
+                best_score = select_on
                 result.success = True
                 result.plan = chosen.plan.model_copy(
                     update={
