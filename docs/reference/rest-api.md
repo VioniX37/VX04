@@ -111,6 +111,18 @@ Score one or more rows supplied as a JSON array. Features are prepared exactly a
 }
 ```
 
+#### Forecasting runs
+
+For a time-series run the inputs are the series id columns (if any) and `horizon_step` (1 to the run's horizon). The model forecasts that many steps past the last date in the data, from each series' own recent history; the response adds `forecast_dates`. An unknown series or a step outside the horizon returns 422.
+
+```json
+// Request
+[{"store_id": "store_3", "horizon_step": 1}, {"store_id": "store_3", "horizon_step": 2}]
+
+// Response
+{"run_id": "4f1c2a9e0b7d", "n": 2, "predictions": [262.7, 243.1], "forecast_dates": ["2024-06-29T00:00:00", "2024-06-30T00:00:00"]}
+```
+
 ### POST `/runs/{id}/predict/batch`
 
 Upload a file to score. The scored result is returned as a Parquet file with a `prediction` column (and `prob_<class>` columns for classifiers), in input row order. The upload is streamed to disk, converted with the Parquet ingest path and scored in 100k-row chunks, so memory stays bounded.

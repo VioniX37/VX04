@@ -30,6 +30,10 @@ This project re-implements, and extends:
 | **Knowledge** | Static retrieval | **Experience memory**: plans, observed scores and bug fixes from past runs on similar datasets |
 | **Scale** | Small benchmark datasets, 8×A100 | **Large data** on one CPU machine: Parquet ingest, fixed splits, LightGBM/XGBoost, out-of-core text; 5M rows end to end in ~1.5 min |
 | **Backbone** | GPT-4o (+ fine-tuned Mixtral) | **Gemini free tier**: role-routed models, structured output, rate limiting, response cache, Google Search grounding |
+| **Tasks** | Tabular, text, time series, image, graph | Tabular classification/regression, text classification and **time-series forecasting** (direct multi-horizon LightGBM, seasonal-naive and ETS baselines, rolling-origin backtests) |
+| **Trust** | — | **Data audit** before training (target leakage, identifier columns, train/test duplicates) and a **model card** after it (importances, per-class metrics, calibration, residuals) |
+| **Control** | Fully automatic | **Human in the loop**: approve, pick or edit a plan and review the generated script; cancel a run; paused runs survive restarts |
+| **Deployment** | Inference endpoint | **Model serving** with the training feature preparation: REST predict and batch scoring, a prediction form in the UI, and a standalone bundle (`predict.py`, pinned requirements, schema, model card) |
 | **Interface** | Python | Web UI with live event stream, REST API and CLI (Colab/Kaggle friendly) |
 | **Evaluation** | SR / NPS / CS | The same metrics, plus calibration of LLM predictions, cost, baselines and an ablation harness |
 
@@ -65,11 +69,12 @@ Full instructions: [Installation](docs/getting-started/installation.md) · [Quic
 ```mermaid
 flowchart LR
     U[Request + dataset] --> P[Prompt Agent] --> V{Request<br/>verification} --> PR[Prepare<br/>Parquet + splits]
-    PR --> R[Retrieve<br/>KB · web · memory] --> PL[Manager<br/>N plans] --> A[Data + Model<br/>agents]
-    A --> G[Grounded verification<br/>successive halving] --> O[Operation Agent<br/>code · run · debug]
+    PR --> DA[Data audit<br/>leakage · quality] --> R[Retrieve<br/>KB · web · memory] --> PL[Manager<br/>N plans] --> A[Data + Model<br/>agents]
+    A --> G[Grounded verification<br/>successive halving] --> H{Human approval<br/>optional} --> O[Operation Agent<br/>code · run · debug]
     O --> V3{Implementation<br/>verification}
     V3 -- revise --> PL
-    V3 -- done --> M[(Experience memory)]
+    V3 -- done --> MC[Model card] --> M[(Experience memory)]
+    MC --> S[Serving<br/>API · UI · bundle]
 ```
 
 ## Repository layout
