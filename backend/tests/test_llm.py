@@ -238,3 +238,16 @@ def test_gemini_gives_up_after_the_overload_window(monkeypatch):
     with pytest.raises(LLMError) as exc:
         asyncio.run(llm.complete([{"role": "user", "content": "hi"}]))
     assert exc.value.code == 503 and len(models.models_called) == 6
+
+
+def test_gemini_retries_dropped_connections(monkeypatch):
+    """A transient transport error (seen as httpx.ReadError mid-experiment) is retried, not fatal."""
+    import httpx
+
+    async def no_sleep(_):
+        return None
+
+    monkeypatch.setattr("automl_agent.llm.gemini.asyncio.sleep", no_sleep)
+    llm, models = _gemini([httpx.ReadError("connection reset"), '{"code": "z"}'])
+    draft = asyncio.run(llm.complete_json([{"role": "user", "content": "hi"}], CodeDraft))
+    assert draft.code == "z" and len(models.calls) == 2

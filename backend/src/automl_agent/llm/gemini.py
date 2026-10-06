@@ -17,6 +17,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+import httpx
+
 from .base import LLMClient, LLMError, LLMResponse, Message, split_system
 from .cache import ResponseCache
 from .rate_limit import concurrency_slot, get_limiter
@@ -129,6 +131,15 @@ class GeminiClient(LLMClient):
                     await asyncio.sleep(min(60.0, 2.0 * 2**attempt) + random.uniform(0, 1))
                     continue
                 raise LLMError(f"gemini {model}: request timed out after 180s", code=408) from timeout_err
+            except (httpx.TransportError, ConnectionError) as net_err:
+                # Dropped connections and read errors are transient: retry, then let the caller
+                # treat the model as unavailable (503) so it falls back or waits.
+                if attempt < attempts - 1:
+                    await asyncio.sleep(min(60.0, 2.0 * 2**attempt) + random.uniform(0, 1))
+                    continue
+                raise LLMError(
+                    f"gemini {model}: network error {type(net_err).__name__}", code=503
+                ) from net_err
             except self._errors.APIError as e:
                 server_delay = retry_delay_from_error(e)
                 # If server requests a delay > 60s (e.g. daily quota reset in hours),
