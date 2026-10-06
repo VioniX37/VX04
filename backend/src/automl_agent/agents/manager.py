@@ -163,14 +163,26 @@ class AgentManager(BaseAgent):
             ctx.dataset_path = await asyncio.to_thread(
                 ingest_to_parquet, ctx.dataset_path, ctx.workdir / "data" / "data.parquet"
             )
+        if spec.task_type == TaskType.time_series_forecasting and not spec.time_column:
+            ts_prof = getattr(ctx.profile, "time_series", None)
+            if ts_prof and ts_prof.time_column:
+                spec.time_column = ts_prof.time_column
+            else:
+                dt_cols = [c.name for c in ctx.profile.columns if c.kind == "datetime"]
+                if dt_cols:
+                    spec.time_column = dt_cols[0]
+
         ctx.split = await asyncio.to_thread(
             ensure_split,
             ctx.dataset_path,
             spec.target_column,
-            stratify=spec.task_type != TaskType.tabular_regression,
+            stratify=spec.task_type not in (TaskType.tabular_regression, TaskType.time_series_forecasting),
             valid_fraction=ctx.settings.split_valid_fraction,
             test_fraction=ctx.settings.split_test_fraction,
             seed=ctx.settings.split_seed,
+            temporal=spec.task_type == TaskType.time_series_forecasting,
+            time_column=spec.time_column,
+            series_id_columns=spec.series_id_columns,
         )
         split = ctx.split
         await ctx.emit(

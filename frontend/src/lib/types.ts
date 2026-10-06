@@ -45,12 +45,20 @@ export interface Dataset {
   profile: DatasetProfile;
 }
 
-export type TaskType = "tabular_classification" | "tabular_regression" | "text_classification";
+export type TaskType =
+  | "tabular_classification"
+  | "tabular_regression"
+  | "text_classification"
+  | "time_series_forecasting";
 
 /** Structured task produced by the Prompt Agent. */
 export interface TaskSpec {
   task_type: TaskType;
   target_column: string;
+  time_column?: string | null;
+  horizon?: number | null;
+  frequency?: string | null;
+  series_id_columns?: string[];
   text_column: string | null;
   feature_columns: string[] | null;
   drop_columns: string[];

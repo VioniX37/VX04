@@ -36,6 +36,20 @@ class ColumnProfile(BaseModel):
     )
 
 
+class TimeSeriesProfile(BaseModel):
+    """Statistics for time-series datasets (frequency, gaps, series count and lengths)."""
+
+    time_column: str
+    frequency: str | None = None
+    has_gaps: bool = False
+    gap_count: int = 0
+    n_series: int = 1
+    series_lengths: dict[str, int] = Field(default_factory=dict)
+    min_series_length: int = 0
+    max_series_length: int = 0
+    series_id_columns: list[str] = Field(default_factory=list)
+
+
 class DatasetProfile(BaseModel):
     """Summary of a dataset; never contains raw rows beyond a few sample values."""
 
@@ -44,6 +58,7 @@ class DatasetProfile(BaseModel):
     columns: list[ColumnProfile]
     guessed_target: str | None = None
     text_columns: list[str] = Field(default_factory=list)
+    time_series: TimeSeriesProfile | None = None
     size_bytes: int = 0
     memory_estimate_mb: float = 0.0
     scale_tier: ScaleTier = "small"
@@ -62,6 +77,7 @@ class DatasetProfile(BaseModel):
             "memory_estimate_mb": round(self.memory_estimate_mb, 1),
             "guessed_target": self.guessed_target,
             "text_columns": self.text_columns,
+            **({"time_series": self.time_series.model_dump()} if self.time_series else {}),
             "columns": [
                 {
                     "name": c.name,

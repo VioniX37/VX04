@@ -156,6 +156,8 @@ def predict_json(
         result = predict_dataframe(validated, bundle)
     except InferenceError as exc:
         raise HTTPException(422, exc.detail()) from exc
+    except Exception as exc:
+        raise HTTPException(422, {"error": f"Prediction failed: {exc}"}) from exc
     return {"run_id": run_id, "n": len(body), **result}
 
 
@@ -196,6 +198,8 @@ def predict_batch(
         scored_bytes = score_file(parquet_path, bundle, output_format="parquet")
     except InferenceError as exc:
         raise HTTPException(422, exc.detail()) from exc
+    except Exception as exc:
+        raise HTTPException(422, {"error": f"Batch scoring failed: {exc}"}) from exc
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
 

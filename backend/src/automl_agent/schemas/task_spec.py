@@ -19,21 +19,26 @@ class TaskType(StrEnum):
     tabular_classification = "tabular_classification"
     tabular_regression = "tabular_regression"
     text_classification = "text_classification"
+    time_series_forecasting = "time_series_forecasting"
 
 
 CLASSIFICATION_METRICS = {"accuracy", "f1_macro", "f1_weighted", "roc_auc", "balanced_accuracy"}
 REGRESSION_METRICS = {"rmse", "mae", "r2", "mape"}
-LOWER_IS_BETTER = {"rmse", "mae", "mape"}
+FORECASTING_METRICS = {"mae", "rmse", "mape", "smape"}
+LOWER_IS_BETTER = {"rmse", "mae", "mape", "smape"}
 
 DEFAULT_METRIC = {
     TaskType.tabular_classification: "accuracy",
     TaskType.tabular_regression: "rmse",
     TaskType.text_classification: "f1_macro",
+    TaskType.time_series_forecasting: "smape",
 }
 
 
 def allowed_metrics(task_type: TaskType) -> set[str]:
     """Metrics valid for a task type."""
+    if task_type == TaskType.time_series_forecasting:
+        return FORECASTING_METRICS
     return REGRESSION_METRICS if task_type == TaskType.tabular_regression else CLASSIFICATION_METRICS
 
 
@@ -42,6 +47,16 @@ class TaskSpec(BaseModel):
 
     task_type: TaskType
     target_column: str = Field(description="Column to predict")
+    time_column: str | None = Field(
+        default=None, description="Datetime or timestamp column for time-series forecasting"
+    )
+    horizon: int | None = Field(default=None, description="Forecast horizon steps")
+    frequency: str | None = Field(
+        default=None, description="Inferred or requested frequency of the series (e.g. D, H, W)"
+    )
+    series_id_columns: list[str] = Field(
+        default_factory=list, description="Optional columns identifying individual series in panel data"
+    )
     text_column: str | None = Field(default=None, description="Free-text input column (text tasks only)")
     feature_columns: list[str] | None = Field(
         default=None, description="Columns to use as features; null means all except target"

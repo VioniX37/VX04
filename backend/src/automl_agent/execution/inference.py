@@ -18,8 +18,13 @@ Design goals
 
 from __future__ import annotations
 
+import ast
 import contextlib
 import io
+import json
+import re
+import sys
+import types
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +36,24 @@ import polars as pl
 BUNDLE_KEYS_REQUIRED = {"model", "features", "task_type"}
 CHUNK_ROWS = 100_000
 _BOOL_STRINGS = {"true": 1, "false": 0, "yes": 1, "no": 0, "1": 1, "0": 0}
+
+
+def _register_time_series_classes() -> None:
+    """Ensure time-series classes can be unpickled even if dumped from __main__ or __mp_main__."""
+    try:
+        from automl_agent.execution.templates import time_series
+    except ImportError:
+        return
+
+    if "__mp_main__" not in sys.modules:
+        sys.modules["__mp_main__"] = types.ModuleType("__mp_main__")
+
+    for mod_name in ("__main__", "__mp_main__"):
+        mod = sys.modules.get(mod_name)
+        if mod is not None:
+            for cls_name in ("DirectLGBMForecaster", "SeasonalNaiveModel", "ETSModel"):
+                if not hasattr(mod, cls_name) and hasattr(time_series, cls_name):
+                    setattr(mod, cls_name, getattr(time_series, cls_name))
 
 
 class InferenceError(ValueError):
@@ -64,12 +87,57 @@ def load_bundle(bundle_path: Path) -> dict[str, Any]:
         raise InferenceError(
             "No trained model found for this run. The run may have failed or not yet saved a model."
         )
+    _register_time_series_classes()
     try:
         bundle = joblib.load(bundle_path)
     except Exception as exc:
         raise InferenceError(f"Could not load model bundle: {exc}") from exc
     if not isinstance(bundle, dict):
-        raise InferenceError("Model bundle has unexpected format (not a dict).")
+        metrics_file = bundle_path.parent / "metrics.json"
+        if not hasattr(bundle, "predict") or not metrics_file.exists():
+            raise InferenceError("Model bundle has unexpected format (not a dict).")
+        # Support time-series models saved directly as model instances
+        meta: dict[str, Any] = {}
+        if metrics_file.exists():
+            with contextlib.suppress(Exception):
+                meta = json.loads(metrics_file.read_text(encoding="utf-8"))
+
+        train_py = bundle_path.parent / "train.py"
+        target_name = meta.get("target") or "target"
+        time_col = meta.get("time_column") or "date"
+        series_cols = meta.get("series_id_columns") or []
+        if train_py.exists():
+            with contextlib.suppress(Exception):
+                text = train_py.read_text(encoding="utf-8")
+                t_match = re.search(r"'target':\s*'([^']+)'", text)
+                if t_match:
+                    target_name = t_match.group(1)
+                tc_match = re.search(r"'time_column':\s*'([^']+)'", text)
+                if tc_match:
+                    time_col = tc_match.group(1)
+                s_match = re.search(r"'series_id_columns':\s*(\[[^\]]*\])", text)
+                if s_match:
+                    series_cols = ast.literal_eval(s_match.group(1))
+
+        encoder = getattr(bundle, "encoder", None)
+        categories = {}
+        if encoder and hasattr(encoder, "categories_") and series_cols:
+            categories[series_cols[0]] = [str(c) for c in encoder.categories_[0]]
+
+        user_features = [*series_cols, "horizon_step"] if series_cols else [time_col, "horizon_step"]
+        bundle = {
+            "model": bundle,
+            "task_type": "time_series_forecasting",
+            "target": target_name,
+            "features": user_features,
+            "time_column": time_col,
+            "series_id_columns": series_cols,
+            "horizon": meta.get("horizon", 14),
+            "frequency": meta.get("frequency", "D"),
+            "dtypes": {f: "numeric" if f == "horizon_step" else "category" for f in user_features},
+            "categories": categories,
+            "config": meta,
+        }
     missing = BUNDLE_KEYS_REQUIRED - bundle.keys()
     if missing:
         raise InferenceError(f"Model bundle is missing keys: {', '.join(sorted(missing))}")
@@ -81,6 +149,11 @@ def is_text_bundle(bundle: dict[str, Any]) -> bool:
     return bundle.get("task_type") == "text_classification"
 
 
+def is_time_series_bundle(bundle: dict[str, Any]) -> bool:
+    """True for bundles written by the time-series forecasting template."""
+    return bundle.get("task_type") == "time_series_forecasting"
+
+
 def build_schema(bundle: dict[str, Any]) -> dict[str, str]:
     """Return a ``{column_name: kind}`` schema (``numeric``, ``category``, ``text`` or ``unknown``).
 
@@ -90,7 +163,13 @@ def build_schema(bundle: dict[str, Any]) -> dict[str, str]:
     features: list[str] = bundle["features"]
     if is_text_bundle(bundle):
         return dict.fromkeys(features, "text")
-    recorded: dict[str, str] = bundle.get("dtypes") or {}
+    if is_time_series_bundle(bundle):
+        recorded: dict[str, str] = bundle.get("dtypes") or {}
+        return {
+            col: recorded.get(col, "numeric" if col == "horizon_step" else "category")
+            for col in features
+        }
+    recorded = bundle.get("dtypes") or {}
     kinds: dict[str, str] = {}
     for col, dtype in recorded.items():
         kinds[col] = "category" if dtype == "category" else "numeric"
@@ -181,6 +260,14 @@ def validate_input(df: pd.DataFrame, bundle: dict[str, Any]) -> pd.DataFrame:
     ignorable = {bundle.get("target"), *bundle.get("drop_columns", []), *bundle.get("ignored_columns", [])}
     df = df.drop(columns=[c for c in df.columns if c in ignorable])
 
+    if is_time_series_bundle(bundle):
+        ignorable = {
+            bundle.get("target"),
+            *bundle.get("drop_columns", []),
+            *bundle.get("ignored_columns", []),
+        }
+        return df.drop(columns=[c for c in df.columns if c in ignorable], errors="ignore")
+
     for col in features:
         if col not in df.columns:
             raise InferenceError(
@@ -199,6 +286,89 @@ def validate_input(df: pd.DataFrame, bundle: dict[str, Any]) -> pd.DataFrame:
     return prepare_features(df, bundle)
 
 
+def _predict_time_series(df: pd.DataFrame, bundle: dict[str, Any]) -> np.ndarray:
+    """Produce forecasts for time-series models across DirectLGBM, SeasonalNaive, and ETS."""
+    model = bundle["model"]
+    # 1. Direct call if model handles df directly
+    try:
+        res = model.predict(df)
+        if isinstance(res, np.ndarray) and len(res) == len(df):
+            return np.asarray(res).ravel()
+    except Exception:
+        pass
+
+    # 2. DirectLGBMForecaster
+    inner_model = getattr(model, "model", None)
+    encoder = getattr(model, "encoder", None)
+    if inner_model is not None and hasattr(inner_model, "predict"):
+        df_eval = df.copy()
+        feature_names = getattr(inner_model, "feature_name_", [])
+        series_cols = bundle.get("series_id_columns") or []
+        candidate_cols = [*series_cols, "__series", "store_id", "store", "series_id", "id"]
+        s_col = next((c for c in candidate_cols if c in df_eval.columns), None)
+        if s_col:
+            df_eval["__series"] = df_eval[s_col].astype(str)
+        else:
+            df_eval["__series"] = "series_0"
+
+        if encoder and hasattr(encoder, "transform"):
+            try:
+                df_eval["__series"] = encoder.transform(df_eval[["__series"]]).astype(int)
+            except Exception:
+                df_eval["__series"] = 0
+
+        # LightGBM may have trained with __series as categorical
+        booster = getattr(inner_model, "_Booster", None)
+        is_series_cat = False
+        if booster:
+            with contextlib.suppress(Exception):
+                f_infos = booster.dump_model().get("feature_infos", {})
+                if "__series" in f_infos and f_infos["__series"].get("values"):
+                    is_series_cat = True
+        if is_series_cat:
+            df_eval["__series"] = df_eval["__series"].astype("category")
+
+        time_col = bundle.get("time_column") or "date"
+        if time_col in df_eval.columns:
+            dt = pd.to_datetime(df_eval[time_col], errors="coerce")
+            df_eval["dayofweek"] = dt.dt.dayofweek.fillna(0).astype(int)
+            df_eval["month"] = dt.dt.month.fillna(1).astype(int)
+            df_eval["day"] = dt.dt.day.fillna(1).astype(int)
+            df_eval["is_weekend"] = (df_eval["dayofweek"] >= 5).astype(int)
+
+        for f in feature_names:
+            if f not in df_eval.columns:
+                df_eval[f] = 1.0 if f == "horizon_step" else 0.0
+
+        X_mat = df_eval[feature_names] if feature_names else df_eval
+        try:
+            return np.asarray(inner_model.predict(X_mat)).ravel()
+        except ValueError as val_err:
+            if "categorical_feature do not match" in str(val_err) and "__series" in X_mat.columns:
+                X_mat_alt = X_mat.copy()
+                if pd.api.types.is_categorical_dtype(X_mat_alt["__series"]):
+                    X_mat_alt["__series"] = X_mat_alt["__series"].astype(int)
+                else:
+                    X_mat_alt["__series"] = X_mat_alt["__series"].astype("category")
+                return np.asarray(inner_model.predict(X_mat_alt)).ravel()
+            raise
+
+    # 3. SeasonalNaiveModel / ETSModel
+    if hasattr(model, "predict"):
+        series_cols = bundle.get("series_id_columns") or []
+        candidate_cols = [*series_cols, "__series", "store_id", "store", "series_id", "id"]
+        s_col = next((c for c in candidate_cols if c in df.columns), None)
+        s_ids = df[s_col].astype(str).tolist() if s_col else ["series_0"] * len(df)
+        h_steps = (
+            df["horizon_step"].astype(int).tolist()
+            if "horizon_step" in df.columns
+            else list(range(1, len(df) + 1))
+        )
+        return np.asarray(model.predict(s_ids, h_steps)).ravel()
+
+    return np.zeros(len(df))
+
+
 def predict_dataframe(df: pd.DataFrame, bundle: dict[str, Any]) -> dict[str, Any]:
     """Run the model on a frame returned by :func:`validate_input`.
 
@@ -207,7 +377,7 @@ def predict_dataframe(df: pd.DataFrame, bundle: dict[str, Any]) -> dict[str, Any
         ``"classes"`` and ``"probabilities"`` (list of lists, in ``classes`` order).
     """
     model = bundle["model"]
-    is_clf = bundle["task_type"] != "tabular_regression"
+    is_clf = bundle["task_type"] not in ("tabular_regression", "time_series_forecasting")
 
     if is_text_bundle(bundle):
         text_col = bundle.get("text_column") or bundle["features"][0]
@@ -220,6 +390,10 @@ def predict_dataframe(df: pd.DataFrame, bundle: dict[str, Any]) -> dict[str, Any
             result["classes"] = [str(c) for c in model.classes_]
             result["probabilities"] = np.asarray(model.predict_proba(X)).tolist()
         return result
+
+    if is_time_series_bundle(bundle):
+        preds = _predict_time_series(df, bundle)
+        return {"predictions": [float(p) for p in np.asarray(preds).ravel()]}
 
     preds = model.predict(df)
     if not is_clf:

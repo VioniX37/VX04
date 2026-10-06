@@ -53,12 +53,18 @@ SUPPORTED_MODELS: dict[TaskType, dict[str, ModelFamily]] = {
         "sgd": ModelFamily("TF-IDF + SGD classifier", max_rows=1_000_000),
         "sgd_hashing": ModelFamily("Streaming hashing vectorizer + SGD (out-of-core, any size)"),
     },
+    TaskType.time_series_forecasting: {
+        "lightgbm": ModelFamily("LightGBM on lag, rolling-window and calendar features (global model)"),
+        "seasonal_naive": ModelFamily("Seasonal-naive baseline (repeats observed seasonal cycle)"),
+        "ets": ModelFamily("Exponential smoothing baseline (ETS with level, trend and seasonality)"),
+    },
 }
 
 TEMPLATE_FOR_TASK: dict[TaskType, str] = {
     TaskType.tabular_classification: "tabular.py",
     TaskType.tabular_regression: "tabular.py",
     TaskType.text_classification: "text_classification.py",
+    TaskType.time_series_forecasting: "time_series.py",
 }
 
 

@@ -23,7 +23,7 @@ from .rate_limit import concurrency_slot, get_limiter
 
 RETRYABLE_CODES = {408, 429, 500, 502, 503, 504}
 # Errors that are specific to one model (overload, per-model quota): worth trying another model.
-FALLBACK_CODES = {429, 500, 503, 504}
+FALLBACK_CODES = {408, 429, 500, 503, 504}
 # Attempts on a model before moving to the next one in the fallback chain.
 ATTEMPTS_BEFORE_FALLBACK = 3
 # Waits between rounds through the whole chain while every model is busy (capped by overload_wait_s).
@@ -118,12 +118,30 @@ class GeminiClient(LLMClient):
             await limiter.acquire()
             try:
                 async with concurrency_slot(self.max_concurrency):
-                    return await self._client.aio.models.generate_content(
-                        model=model, contents=contents, config=config
+                    return await asyncio.wait_for(
+                        self._client.aio.models.generate_content(
+                            model=model, contents=contents, config=config
+                        ),
+                        timeout=180.0,
                     )
+            except TimeoutError as timeout_err:
+                if attempt < attempts - 1:
+                    await asyncio.sleep(min(60.0, 2.0 * 2**attempt) + random.uniform(0, 1))
+                    continue
+                raise LLMError(f"gemini {model}: request timed out after 180s", code=408) from timeout_err
             except self._errors.APIError as e:
+                server_delay = retry_delay_from_error(e)
+                # If server requests a delay > 60s (e.g. daily quota reset in hours),
+                # do not sleep for hours. Immediately raise LLMError to trigger fallback.
+                if server_delay is not None and server_delay > 60.0:
+                    err_msg = (
+                        f"gemini {model}: {e.code} {e.message or e} "
+                        f"(quota retryDelay {server_delay}s exceeds 60s cap)"
+                    )
+                    raise LLMError(err_msg, code=e.code) from e
+
                 if e.code in RETRYABLE_CODES and attempt < attempts - 1:
-                    delay = retry_delay_from_error(e) or min(60.0, 2.0 * 2**attempt)
+                    delay = min(60.0, server_delay or (2.0 * 2**attempt))
                     await asyncio.sleep(delay + random.uniform(0, 1))
                     continue
                 raise LLMError(f"gemini {model}: {e.code} {e.message or e}", code=e.code) from e

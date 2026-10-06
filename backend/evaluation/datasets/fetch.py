@@ -58,11 +58,16 @@ SOURCES = [
     Source("amazon_polarity", "large", "url",
            "https://huggingface.co/datasets/fancyzhx/amazon_polarity/resolve/main/amazon_polarity/train-00000-of-00004.parquet",
            "train-00000-of-00004.parquet", output="data.parquet", license="Apache 2.0 (per dataset card)"),
+    Source("air_passengers", "forecasting", "url",
+           "https://raw.githubusercontent.com/jbrownlee/Datasets/master/airline-passengers.csv",
+           "airline-passengers.csv", output="data.csv", rename={"Month": "date", "Passengers": "passengers"},
+           license="Public domain"),
 ]  # fmt: skip
 
 
 def _download(url: str, dest: Path) -> None:
-    with httpx.stream("GET", url, follow_redirects=True, timeout=120) as resp:
+    headers = {"User-Agent": "curl/7.68.0"}
+    with httpx.stream("GET", url, headers=headers, follow_redirects=True, timeout=120) as resp:
         resp.raise_for_status()
         with dest.open("wb") as out:
             for chunk in resp.iter_bytes(8 * 1024 * 1024):

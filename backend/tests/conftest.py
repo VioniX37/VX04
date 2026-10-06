@@ -34,10 +34,12 @@ def sample_csvs(tmp_path_factory) -> dict[str, Path]:
         "churn": out / "customer_churn.csv",
         "houses": out / "house_prices.csv",
         "reviews": out / "product_reviews.csv",
+        "stores": out / "store_sales.csv",
     }
     gen.churn(400).to_csv(paths["churn"], index=False)
     gen.houses(400).to_csv(paths["houses"], index=False)
     gen.reviews(500).to_csv(paths["reviews"], index=False)
+    gen.store_sales(3, 90).to_csv(paths["stores"], index=False)
     return paths
 
 
