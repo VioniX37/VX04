@@ -185,8 +185,10 @@ function PredictResultCard({ result }: { result: PredictResult }) {
 
   return (
     <div className="mt-3 rounded-xl border border-success/25 bg-success-soft p-4">
-      <p className="eyebrow mb-1">prediction</p>
-      <p className="text-xl font-semibold text-success">{String(pred)}</p>
+      <p className="eyebrow mb-1">{result.forecast_dates ? `forecast for ${result.forecast_dates[0].slice(0, 10)}` : "prediction"}</p>
+      <p className="text-xl font-semibold text-success">
+        {typeof pred === "number" ? Number(pred.toFixed(4)) : String(pred)}
+      </p>
       {isClf && result.probabilities && result.classes && (
         <div className="mt-3 space-y-1.5">
           <p className="eyebrow">class probabilities</p>

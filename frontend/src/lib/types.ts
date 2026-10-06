@@ -311,6 +311,8 @@ export interface PredictResult {
   probabilities?: number[][];
   /** Class labels in the same order as the probabilities columns. */
   classes?: string[];
+  /** Forecasting models only: the date each prediction is for (ISO 8601). */
+  forecast_dates?: string[];
 }
 
 /** One input column of a trained model (`GET /runs/{id}/schema`, also `schema.json` in the bundle). */
