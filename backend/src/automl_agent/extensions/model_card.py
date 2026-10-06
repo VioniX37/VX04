@@ -253,12 +253,42 @@ def _encode(y: pd.Series, bundle: dict[str, Any]) -> np.ndarray:
     return y.astype(str).map(lookup).to_numpy(dtype=int)
 
 
-def _diagnose(
-    ctx: RunContext, spec: TaskSpec, bundle: dict[str, Any]
-) -> tuple[
+Diagnostics = tuple[
     list[FeatureImportance], ConfusionMatrixData | None, CalibrationReport | None, ResidualsData | None
-]:
+]
+
+
+def _residuals(y_true: np.ndarray, y_p: np.ndarray) -> ResidualsData:
+    residuals = y_p - y_true
+    q = np.percentile(residuals, [5, 25, 50, 75, 95])
+    return ResidualsData(
+        mae=round(float(mean_absolute_error(y_true, y_p)), 4),
+        rmse=round(float(np.sqrt(mean_squared_error(y_true, y_p))), 4),
+        r2=round(float(r2_score(y_true, y_p)), 4),
+        max_error=round(float(max_error(y_true, y_p)), 4),
+        quantiles={k: round(float(v), 4) for k, v in zip(("p5", "p25", "p50", "p75", "p95"), q, strict=True)},
+        sample_residuals=[round(float(val), 4) for val in residuals[:50]],
+    )
+
+
+def _diagnose_forecaster(bundle: dict[str, Any], artifact_dir: Path) -> Diagnostics:
+    """Importances of a LightGBM forecaster and residuals of its rolling-origin test backtest."""
+    model = bundle["model"]
+    regressor = model.get("regressor") if isinstance(model, dict) else None
+    fi_list = extract_feature_importances(regressor, list(regressor.feature_name_)) if regressor else []
+    res = None
+    path = artifact_dir / "test_predictions.parquet"
+    if path.exists():
+        preds = pd.read_parquet(path)
+        if len(preds) >= 5:
+            res = _residuals(preds["y_true"].to_numpy(dtype=float), preds["y_pred"].to_numpy(dtype=float))
+    return fi_list, None, None, res
+
+
+def _diagnose(ctx: RunContext, spec: TaskSpec, bundle: dict[str, Any], artifact_dir: Path) -> Diagnostics:
     """Feature importances and test-split diagnostics for the selected model."""
+    if spec.task_type == TaskType.time_series_forecasting:
+        return _diagnose_forecaster(bundle, artifact_dir)
     sample = _test_sample(ctx, spec, bundle)
     model = bundle["model"]
     if spec.task_type == TaskType.text_classification:
@@ -277,21 +307,12 @@ def _diagnose(
     X, y = sample
     out = predict_dataframe(X, bundle)
     if spec.task_type == TaskType.tabular_regression:
-        y_true = y.to_numpy(dtype=float)
-        y_p = np.asarray(out["predictions"], dtype=float)
-        residuals = y_p - y_true
-        q = np.percentile(residuals, [5, 25, 50, 75, 95])
-        res = ResidualsData(
-            mae=round(float(mean_absolute_error(y_true, y_p)), 4),
-            rmse=round(float(np.sqrt(mean_squared_error(y_true, y_p))), 4),
-            r2=round(float(r2_score(y_true, y_p)), 4),
-            max_error=round(float(max_error(y_true, y_p)), 4),
-            quantiles={
-                k: round(float(v), 4) for k, v in zip(("p5", "p25", "p50", "p75", "p95"), q, strict=True)
-            },
-            sample_residuals=[round(float(val), 4) for val in residuals[:50]],
+        return (
+            fi_list,
+            None,
+            None,
+            _residuals(y.to_numpy(dtype=float), np.asarray(out["predictions"], dtype=float)),
         )
-        return fi_list, None, None, res
 
     y_true = y.astype(str).to_numpy()
     y_pred = np.asarray(out["predictions"], dtype=object).astype(str)
@@ -342,7 +363,7 @@ class ModelCardHook(PipelineHooks):
         except InferenceError:
             return
         try:
-            parts = await asyncio.to_thread(_diagnose, ctx, result.task_spec, bundle)
+            parts = await asyncio.to_thread(_diagnose, ctx, result.task_spec, bundle, Path(artifact_dir_str))
         except Exception:  # a model card must never fail a finished run
             log.warning("model card diagnostics failed", exc_info=True)
             parts = ([], None, None, None)

@@ -49,6 +49,41 @@ def _assign(n: int, fractions: tuple[float, float], rng: np.random.Generator) ->
     return ids
 
 
+def _assign_temporal(
+    split: np.ndarray,
+    r: np.ndarray,
+    idx: np.ndarray,
+    times: np.ndarray,
+    valid_fraction: float,
+    test_fraction: float,
+) -> None:
+    """Contiguous train -> valid -> test blocks cut on timestamps, so every series shares the boundaries.
+
+    No timestamp is ever split across two blocks. Within a block, ``__r`` is the share of rows
+    strictly more recent than the row (plus half a row), so ``__r < f`` keeps the most recent
+    whole timestamps covering about a fraction ``f`` of the block.
+    """
+    uniq, inverse, counts = np.unique(times, return_inverse=True, return_counts=True)
+    cum = np.cumsum(counts)
+    n_tot = cum[-1]
+    n_dates = len(uniq)
+    train_end = int(np.searchsorted(cum, n_tot * (1 - valid_fraction - test_fraction), side="right"))
+    valid_end = int(np.searchsorted(cum, n_tot * (1 - test_fraction), side="right"))
+    if n_dates >= 3:  # keep every block non-empty
+        train_end = min(max(train_end, 1), n_dates - 2)
+        valid_end = min(max(valid_end, train_end + 1), n_dates - 1)
+    block = np.where(inverse < train_end, TRAIN, np.where(inverse < valid_end, VALID, TEST)).astype(np.uint8)
+    split[idx] = block
+    for part in (TRAIN, VALID, TEST):
+        in_part = block == part
+        if not in_part.any():
+            continue
+        part_dates = inverse[in_part]
+        per_date = np.bincount(part_dates, minlength=n_dates)
+        newer = np.cumsum(per_date[::-1])[::-1] - per_date  # rows strictly after each date
+        r[idx[in_part]] = (newer[part_dates] + 0.5) / in_part.sum()
+
+
 def ensure_split(
     data_path: Path,
     target: str,
@@ -98,36 +133,13 @@ def ensure_split(
             idx = np.flatnonzero(valid_mask)
             if len(idx) > 0:
                 if t_col:
-                    t_vals = df[t_col].to_numpy()[idx]
-                    try:
-                        order = np.argsort(t_vals, kind="stable")
-                        idx_sorted = idx[order]
-                    except Exception:
-                        idx_sorted = idx
-                else:
-                    idx_sorted = idx
-
-                n_tot = len(idx_sorted)
-                n_valid = int(round(n_tot * valid_fraction))
-                n_test = int(round(n_tot * test_fraction))
-                if n_tot >= 3:
-                    n_valid, n_test = max(n_valid, 1), max(n_test, 1)
-                n_train = max(n_tot - n_valid - n_test, 1)
-
-                train_idx = idx_sorted[:n_train]
-                valid_idx = idx_sorted[n_train : n_train + n_valid]
-                test_idx = idx_sorted[n_train + n_valid :]
-
-                split[train_idx] = TRAIN
-                split[valid_idx] = VALID
-                split[test_idx] = TEST
-
-                # For suffix windows, most recent row in block has smallest __r
-                for part_idx in (train_idx, valid_idx, test_idx):
-                    n_part = len(part_idx)
-                    if n_part > 0:
-                        ranks_from_end = np.arange(n_part - 1, -1, -1, dtype=np.float32)
-                        r[part_idx] = (ranks_from_end + 0.5) / n_part
+                    times = df[t_col]
+                    if times.dtype == pl.String:
+                        times = times.str.to_datetime(strict=False)
+                    t_vals = times.to_numpy()[idx]
+                else:  # no time column: file order is time order
+                    t_vals = np.arange(len(idx))
+                _assign_temporal(split, r, idx, t_vals, valid_fraction, test_fraction)
 
             out.parent.mkdir(parents=True, exist_ok=True)
             pl.DataFrame({SPLIT_COL: split, RAND_COL: r}).write_parquet(

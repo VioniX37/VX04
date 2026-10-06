@@ -22,6 +22,7 @@ from fastapi.responses import Response
 from sqlmodel import Session
 
 from automl_agent.config import get_settings
+from automl_agent.execution import forecasting as forecasting_module
 from automl_agent.execution import inference as inference_module
 from automl_agent.execution.inference import (
     InferenceError,
@@ -305,6 +306,7 @@ def download_bundle(
 
     * ``model.joblib`` - trained model and the preprocessing state it was trained with.
     * ``automl_inference.py`` - the serving module the API itself uses.
+    * ``automl_forecasting.py`` - the forecasting core it uses for time-series models.
     * ``predict.py`` - standalone CLI scoring script built on it.
     * ``requirements.txt`` - dependencies pinned to the training versions.
     * ``schema.json`` - expected input columns and their kinds.
@@ -329,6 +331,7 @@ def download_bundle(
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.write(artifact_dir / "model.joblib", "model.joblib")
         zf.writestr("automl_inference.py", Path(inference_module.__file__).read_text(encoding="utf-8"))
+        zf.writestr("automl_forecasting.py", Path(forecasting_module.__file__).read_text(encoding="utf-8"))
         zf.writestr("predict.py", _PREDICT_SCRIPT)
         zf.writestr("requirements.txt", _pinned_requirements(bundle))
         zf.writestr("schema.json", json.dumps(_input_schema(bundle), indent=2))
