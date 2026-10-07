@@ -1,6 +1,6 @@
 # automl-agent (backend)
 
-Python backend of **Grounded AutoML-Agent**: the multi-agent pipeline, the FastAPI server, the
+Python backend of **GroundML**: the multi-agent pipeline, the FastAPI server, the
 `automl-agent` CLI and the evaluation harness.
 
 ```bash

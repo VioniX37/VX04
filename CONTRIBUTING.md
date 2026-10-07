@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve Grounded AutoML-Agent.
+Thanks for helping improve GroundML.
 
 This is proprietary software (see [LICENSE](LICENSE)). Contributions are accepted only from authorised contributors, and by contributing you agree that your contribution becomes part of the Software under the same all-rights-reserved terms.
 

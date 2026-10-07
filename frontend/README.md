@@ -1,6 +1,6 @@
 # Frontend
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 web UI for Grounded AutoML-Agent.
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 web UI for GroundML.
 
 ```bash
 npm install

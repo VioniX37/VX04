@@ -18,7 +18,7 @@ Indian Institute of Information Technology Kottayam.
 
 ```mermaid
 gantt
-    title Grounded AutoML-Agent
+    title GroundML
     dateFormat YYYY-MM-DD
     axisFormat %d %b
     section Foundation
@@ -116,6 +116,12 @@ The large-data study ran with Gemini on this machine (12th-gen Intel Core i5-123
 | 18:50 | Final result set merged with provenance (`backend/evaluation/results/local_large`); paper results, ablations, abstract and conclusion written from it |
 
 Results: [Results](../research/results.md) and the paper (`paper/`).
+
+## Phase 7: report and submission (7 October)
+
+- The project was renamed **GroundML** for the final report and submission.
+- The CSE311 project report was written from the final result set. It adds graphs of the large-data results drawn from `backend/evaluation/results/local_large/` and screenshots of a real run on the 8.9M-row malware set (run `360d85427be4`).
+- Version **1.0.0** was tagged in the changelog as the final submission.
 
 ## Test suite over time
 

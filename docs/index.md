@@ -1,4 +1,4 @@
-# Grounded AutoML-Agent
+# GroundML
 
 **A multi-agent LLM framework for full-pipeline AutoML that verifies its plans on real data and learns from experience.**
 
@@ -11,7 +11,7 @@ This project re-implements the pipeline of
 
 - **Grounded verification.** The paper ranks candidate plans on scores the LLM *predicts* without running any code. We rank them by actually training them on nested subsamples of increasing size (successive halving), under an explicit time and token budget. See [Grounded verification](concepts/grounded-verification.md).
 - **Experience memory.** Every run stores what worked and what failed on its dataset: the plans, observed scores and debugging fixes. Later runs on similar datasets recall this as planning knowledge. See [Experience memory](concepts/experience-memory.md).
-- **Large data on a laptop.** Data is converted to Parquet, profiled with Polars, and split into fixed train/validation/test sets. Training uses LightGBM or XGBoost with early stopping. A supervised sandbox enforces time and memory limits. 5M rows train end to end in about 1.5 minutes on a laptop CPU. See [Large data](concepts/large-data.md).
+- **Large data on a laptop.** Data is converted to Parquet, profiled with Polars, and split into fixed train/validation/test sets. Training uses LightGBM or XGBoost with early stopping. A supervised sandbox enforces time and memory limits. The system has been run end to end on 8.9M rows on a 16 GB laptop. See [Large data](concepts/large-data.md).
 
 </div>
 

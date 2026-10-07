@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-07
+
+Final submission for CSE311 Artificial Intelligence.
+
 ### Added
 
 - **Time-series forecasting.** New task type `time_series_forecasting` with `time_column`, `horizon`, `frequency` and `series_id_columns` in the task spec, extracted from requests such as "forecast the next 14 days of sales per store"; profiler detection of datetime columns, frequency, gaps and series; date-aligned temporal splits (every series shares the block boundaries) with suffix-window grounding rungs; a shared forecasting module (`execution/forecasting.py`) with a global direct multi-horizon LightGBM model and seasonal-naive and ETS baselines, all scored with a rolling-origin backtest; forecasts served from each series' recent history through the same REST endpoints and bundle; `store_sales` sample, `air_passengers` in the dataset fetcher and `evaluation.forecasting_benchmark`.
@@ -26,6 +30,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- **Renamed to GroundML** (formerly Grounded AutoML-Agent) in the documentation, paper and package metadata. The Python package (`automl_agent`) and the `automl-agent` CLI keep their names.
 - The project is proprietary: all rights reserved to the contributors (see `LICENSE`).
 - The default LLM provider is now `gemini`; `fake` remains for offline use.
 - Final scores are computed on a held-out test split that is never used for selection.

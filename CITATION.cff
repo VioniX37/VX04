@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it and the original AutoML-Agent paper."
-title: "Grounded AutoML-Agent: budget-aware multi-fidelity verification and experience memory for scalable LLM-driven AutoML"
+title: "GroundML: budget-aware multi-fidelity verification and experience memory for scalable LLM-driven AutoML"
 type: software
 authors:
   - given-names: Abhinandh
@@ -19,7 +19,7 @@ authors:
     family-names: S
     affiliation: "Indian Institute of Information Technology Kottayam"
 repository-code: "https://github.com/VioniX37/VX04"
-version: 0.2.0-dev
+version: 1.0.0
 keywords:
   - AutoML
   - LLM agents

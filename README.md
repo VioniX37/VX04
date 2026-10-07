@@ -1,4 +1,6 @@
-# Grounded AutoML-Agent
+# GroundML
+
+*Multi-agent AutoML that verifies plans on real data.* CSE311 Artificial Intelligence project, IIIT Kottayam.
 
 [![CI](https://github.com/VioniX37/VX04/actions/workflows/ci.yml/badge.svg)](https://github.com/VioniX37/VX04/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
@@ -28,7 +30,7 @@ This project re-implements, and extends:
 |---|---|---|
 | **Plan selection** | LLM *predicts* each plan's score; never checked | **Grounded verification**: successive halving with real runs on nested subsamples, under a time/token budget |
 | **Knowledge** | Static retrieval | **Experience memory**: plans, observed scores and bug fixes from past runs on similar datasets |
-| **Scale** | Small benchmark datasets, 8×A100 | **Large data** on one CPU machine: Parquet ingest, fixed splits, LightGBM/XGBoost, out-of-core text; 5M rows end to end in ~1.5 min |
+| **Scale** | Small benchmark datasets, 8×A100 | **Large data** on one CPU machine: Parquet ingest, fixed splits, LightGBM/XGBoost, out-of-core text; tested end to end on 8.9M rows with a 16 GB laptop |
 | **Backbone** | GPT-4o (+ fine-tuned Mixtral) | **Gemini free tier**: role-routed models, structured output, rate limiting, response cache, Google Search grounding |
 | **Tasks** | Tabular, text, time series, image, graph | Tabular classification/regression, text classification and **time-series forecasting** (direct multi-horizon LightGBM, seasonal-naive and ETS baselines, rolling-origin backtests) |
 | **Trust** | — | **Data audit** before training (target leakage, identifier columns, train/test duplicates) and a **model card** after it (importances, per-class metrics, calibration, residuals) |
@@ -76,6 +78,23 @@ flowchart LR
     V3 -- done --> MC[Model card] --> M[(Experience memory)]
     MC --> S[Serving<br/>API · UI · bundle]
 ```
+
+## Results
+
+Large-data study with the Gemini free tier on a laptop (Intel Core i5-1235U, 16 GB RAM, no GPU), one seed per configuration:
+
+| Variant | Malware (8.9M rows): test ROC AUC | Conversion (5M rows): test ROC AUC | LLM requests |
+|---|---|---|---|
+| `paper` (LLM-predicted scores select the plan) | 0.7288 | 0.7772 | 8 / 6 |
+| `grounded` (successive halving selects the plan) | **0.7302** | 0.7771 | 6 / 6 |
+| `full` (grounded + experience memory) | 0.7293 | **0.7775** | 6 / 5 |
+| Optuna + LightGBM (no LLM) | 0.7360 | 0.7784 | 0 / 0 |
+
+- **LLM score predictions are over-optimistic.** All 12 predicted validation scores were above the measured ones, by +0.104 ROC AUC on average, and within a task they did not rank the plans (Spearman ρ ≈ 0).
+- **Grounding corrects the choice cheaply.** It replaced the LLM's favourite plan (XGBoost) with the measured best (LightGBM) in two of the four runs that used it, at 6–30% of the compute of one full training run.
+- **Measurements need guards.** The data audit removed a planted leak that otherwise scored a false 1.000 ROC AUC (honest score: 0.761), and a full-data check rejects LLM-edited scripts that train on a subsample.
+
+Details: [Results](docs/research/results.md) · result set and provenance in [`backend/evaluation/results/local_large/`](backend/evaluation/results/local_large/) · [paper](paper/).
 
 ## Repository layout
 
@@ -143,5 +162,5 @@ See [`CITATION.cff`](CITATION.cff). Please also cite the original work:
 
 ## License
 
-Copyright (c) 2026 Grounded AutoML-Agent contributors. **All rights reserved.**
+Copyright (c) 2026 GroundML contributors. **All rights reserved.**
 This is proprietary software: no permission is granted to use, copy, modify or distribute it without prior written consent. See [LICENSE](LICENSE).

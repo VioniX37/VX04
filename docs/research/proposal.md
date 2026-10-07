@@ -1,6 +1,6 @@
 # Research proposal
 
-**Working title:** *Grounded AutoML-Agent: Budget-Aware Multi-Fidelity Verification and Experience Memory for Scalable LLM-Driven AutoML*
+**Working title:** *Grounded AutoML-Agent: Budget-Aware Multi-Fidelity Verification and Experience Memory for Scalable LLM-Driven AutoML* (final name: **GroundML**)
 
 ## Motivation
 
