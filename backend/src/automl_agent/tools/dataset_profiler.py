@@ -1,14 +1,16 @@
 """Scalable dataset profiling with Polars' lazy engine.
 
-Counts, null counts and distinct counts are computed in a single streaming
-pass (distinct counts become HyperLogLog approximations above 2M rows).
-Text/identifier detection and value samples use an evenly-strided sample, so
-profiling a 10M-row file takes seconds and little memory.
+Null counts and distinct counts are computed column by column for Parquet
+(only one column is ever in memory) and in one pass otherwise; distinct counts
+become HyperLogLog approximations above 2M rows. Text/identifier detection and
+value samples use evenly spaced blocks of rows, so profiling a 45M-row file
+takes seconds and little memory.
 """
 
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
@@ -31,6 +33,10 @@ _TARGET_NAMES = (
 _ID_HINTS = ("id", "uuid", "index", "key")
 EXACT_UNIQUE_MAX_ROWS = 2_000_000
 TOP_VALUES_MAX_UNIQUE = 50
+SAMPLE_BLOCKS = 100
+
+ProfileProgressFn = Callable[[str, float | None, str], None]
+"""`progress("profile", fraction, message)`."""
 
 
 def scan_table(path: Path) -> pl.LazyFrame:
@@ -95,22 +101,62 @@ def _kind(name: str, dtype: pl.DataType, sample: pl.Series, n_unique: int, n_row
     return "categorical"
 
 
-def profile_lazy(lf: pl.LazyFrame, *, size_bytes: int = 0, sample_rows: int = 100_000) -> DatasetProfile:
-    """Profile a lazy frame (see module docstring for the strategy)."""
+def _column_stats(
+    lf: pl.LazyFrame, names: list[str], exact: bool, per_column: bool, report: ProfileProgressFn
+) -> dict:
+    """Null and distinct counts as {"n<i>": ..., "u<i>": ...}."""
+
+    def exprs(i: int, name: str) -> list[pl.Expr]:
+        col = pl.col(name)
+        return [
+            col.null_count().alias(f"n{i}"),
+            (col.n_unique() if exact else col.approx_n_unique()).alias(f"u{i}"),
+        ]
+
+    if not names:
+        return {}
+    if not per_column:
+        report("profile", 0.0, f"Counting values in {len(names)} columns")
+        return lf.select([e for i, n in enumerate(names) for e in exprs(i, n)]).collect().row(0, named=True)
+    stats: dict = {}
+    for i, name in enumerate(names):
+        report("profile", i / (len(names) + 1), f"Column {i + 1} of {len(names)}: {name}")
+        stats |= lf.select(exprs(i, name)).collect().row(0, named=True)
+    return stats
+
+
+def _sample(lf: pl.LazyFrame, n_rows: int, sample_rows: int) -> pl.DataFrame:
+    """Up to `sample_rows` rows spread over the whole table, read as evenly spaced blocks."""
+    if n_rows <= sample_rows:
+        return lf.collect()
+    blocks = min(SAMPLE_BLOCKS, sample_rows)
+    size = sample_rows // blocks
+    offsets = [int(b * (n_rows - size) / (blocks - 1)) for b in range(blocks)] if blocks > 1 else [0]
+    return pl.concat([lf.slice(o, size).collect() for o in offsets])
+
+
+def profile_lazy(
+    lf: pl.LazyFrame,
+    *,
+    size_bytes: int = 0,
+    sample_rows: int = 100_000,
+    per_column: bool = False,
+    progress: ProfileProgressFn | None = None,
+) -> DatasetProfile:
+    """Profile a lazy frame (see module docstring for the strategy).
+
+    `per_column` computes counts one column at a time: cheap and memory-bounded for
+    Parquet scans, but it would re-parse a CSV once per column.
+    """
+    report = progress or (lambda *_: None)
     schema = lf.collect_schema()
     names = list(schema.names())
     n_rows = int(lf.select(pl.len()).collect().item())
     exact = n_rows <= EXACT_UNIQUE_MAX_ROWS
 
-    exprs = []
-    for i, name in enumerate(names):
-        col = pl.col(name)
-        exprs.append(col.null_count().alias(f"n{i}"))
-        exprs.append((col.n_unique() if exact else col.approx_n_unique()).alias(f"u{i}"))
-    stats = lf.select(exprs).collect().row(0, named=True) if names else {}
-
-    step = max(1, n_rows // max(sample_rows, 1))
-    sample = lf.gather_every(step).head(sample_rows).collect()
+    stats = _column_stats(lf, names, exact, per_column, report)
+    report("profile", len(names) / (len(names) + 1), "Sampling rows for type detection")
+    sample = _sample(lf, n_rows, sample_rows)
 
     columns: list[ColumnProfile] = []
     for i, name in enumerate(names):
@@ -270,9 +316,17 @@ def _infer_time_series_profile(
     )
 
 
-def profile_file(path: Path, *, sample_rows: int = 100_000) -> DatasetProfile:
+def profile_file(
+    path: Path, *, sample_rows: int = 100_000, progress: ProfileProgressFn | None = None
+) -> DatasetProfile:
     """Profile a file on disk (Parquet preferred; CSV/TSV/JSONL also work)."""
-    return profile_lazy(scan_table(path), size_bytes=path.stat().st_size, sample_rows=sample_rows)
+    return profile_lazy(
+        scan_table(path),
+        size_bytes=path.stat().st_size,
+        sample_rows=sample_rows,
+        per_column=source_suffix(path) in {".parquet", ".pq"},
+        progress=progress,
+    )
 
 
 def profile_dataframe(df) -> DatasetProfile:

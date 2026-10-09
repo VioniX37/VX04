@@ -96,10 +96,6 @@ function SinglePredictSection({ runId }: { runId: string }) {
   return (
     <div>
       <SectionHeading>Single prediction</SectionHeading>
-      <p className="mb-3 text-xs text-muted">
-        Fill in the feature values and get an instant prediction from the model. Leave a field empty to treat it as
-        missing.
-      </p>
       <form onSubmit={handleSubmit} id={`predict-form-${runId}`} className="space-y-3">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {schema.features.map((f) => (
@@ -249,10 +245,6 @@ function BatchScoreSection({ runId }: { runId: string }) {
   return (
     <div>
       <SectionHeading>Batch scoring</SectionHeading>
-      <p className="mb-3 text-xs text-muted">
-        Upload a CSV or Parquet file. The result is returned as a scored Parquet file with a{" "}
-        <code className="rounded bg-surface-muted px-1 py-0.5 font-mono text-[11px]">prediction</code> column.
-      </p>
       <div className="flex flex-wrap items-center gap-3">
         <label
           htmlFor={`batch-file-${runId}`}
@@ -298,16 +290,9 @@ function BundleDownloadSection({ runId }: { runId: string }) {
   return (
     <div>
       <SectionHeading>Export model bundle</SectionHeading>
-      <p className="mb-3 text-xs text-muted">
-        Download a self-contained zip with <code className="font-mono text-[11px]">model.joblib</code>,{" "}
-        <code className="font-mono text-[11px]">predict.py</code>,{" "}
-        <code className="font-mono text-[11px]">requirements.txt</code>,{" "}
-        <code className="font-mono text-[11px]">schema.json</code> and{" "}
-        <code className="font-mono text-[11px]">metrics.json</code>. Runs in a fresh venv with only its own requirements.
-      </p>
       <a
         href={api.bundleUrl(runId)}
-        download={`automl-bundle-${runId}.zip`}
+        download={`groundml-bundle-${runId}.zip`}
         id={`bundle-download-${runId}`}
         className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-surface-muted/60
                    px-4 py-2 text-sm font-medium text-foreground transition-all

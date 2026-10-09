@@ -45,6 +45,24 @@ export interface Dataset {
   profile: DatasetProfile;
 }
 
+/** Background dataset registration, polled for live progress. */
+export interface IngestJob {
+  id: string;
+  filename: string;
+  status: "running" | "succeeded" | "failed";
+  /** Phases this registration goes through, in order (subset of upload, download, decompress, convert, profile). */
+  steps: string[];
+  /** Current phase; also "save" (writing the record) and "ready". */
+  phase: string;
+  /** Progress within the phase (0-1), or null when unknown. */
+  fraction: number | null;
+  message: string;
+  error: string | null;
+  elapsed_s: number;
+  phase_elapsed_s: number;
+  dataset: Dataset | null;
+}
+
 export type TaskType =
   | "tabular_classification"
   | "tabular_regression"

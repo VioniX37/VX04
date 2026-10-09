@@ -4,10 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
-import { formatBytes } from "@/lib/stages";
-import type { ApprovalMode, Dataset } from "@/lib/types";
+import type { ApprovalMode, Dataset, IngestJob } from "@/lib/types";
 import { DatasetProfileTable } from "./DatasetProfileTable";
-import { IngestProgress, type IngestPhase } from "./viz/IngestProgress";
+import { IngestProgress, type UploadState } from "./viz/IngestProgress";
 import { Button, Card, CardTitle, ErrorNote, Spinner, cn } from "./ui";
 
 const EXAMPLES = [
@@ -18,6 +17,19 @@ const EXAMPLES = [
 ];
 
 type SourceTab = "upload" | "register" | "existing";
+
+/** A registration in progress (or just finished): browser upload first, then the server-side job. */
+interface Ingest {
+  name: string;
+  startedAt: number;
+  upload: UploadState | null;
+  job: IngestJob | null;
+  error: string | null;
+}
+
+const POLL_MS = 500;
+/** Consecutive failed polls before we tell the user the backend is gone (e.g. it crashed). */
+const MAX_POLL_FAILURES = 6;
 
 const TABS: { id: SourceTab; label: string }[] = [
   { id: "upload", label: "Upload" },
@@ -32,41 +44,68 @@ export function NewRunForm() {
   const [tab, setTab] = useState<SourceTab>("upload");
   const [dataset, setDataset] = useState<Dataset | null>(null);
   const [known, setKnown] = useState<Dataset[] | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [progress, setProgress] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
   const [location, setLocation] = useState("");
   const [prompt, setPrompt] = useState("");
   const [approval, setApproval] = useState<ApprovalMode>("auto");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ingest, setIngest] = useState<{ phase: IngestPhase; startedAt: number; viaPath: boolean } | null>(null);
+  const [ingest, setIngest] = useState<Ingest | null>(null);
+  const busy = ingest !== null && !ingest.error && ingest.job?.status !== "succeeded" && ingest.job?.status !== "failed";
 
   useEffect(() => {
     if (tab === "existing" && known === null) api.listDatasets().then(setKnown, (e) => setError(e.message));
   }, [tab, known]);
 
+  // Poll the server-side job until it finishes; a run of failed polls means the backend went away.
+  const jobId = ingest?.job?.status === "running" && !ingest.error ? ingest.job.id : null;
+  useEffect(() => {
+    if (!jobId) return;
+    let failures = 0;
+    const id = setInterval(() => {
+      api.getIngestJob(jobId).then(
+        (job) => {
+          failures = 0;
+          setIngest((s) => (s && s.job?.id === job.id ? { ...s, job } : s));
+          if (job.status === "succeeded" && job.dataset) {
+            setDataset(job.dataset);
+            setKnown(null);
+          }
+        },
+        (e: Error) => {
+          failures += 1;
+          const gone = e.message.includes("not found") || failures >= MAX_POLL_FAILURES;
+          if (gone)
+            setIngest((s) =>
+              s && {
+                ...s,
+                error: e.message.includes("not found")
+                  ? "The backend restarted and lost this registration. Check the backend terminal, then try again."
+                  : `Lost contact with the backend while it was processing the file (${e.message}). It may have crashed; check the backend terminal.`,
+              },
+            );
+        },
+      );
+    }, POLL_MS);
+    return () => clearInterval(id);
+  }, [jobId]);
+
   async function upload(file: File) {
     setError(null);
-    setProgress(0);
-    setBusy(`Uploading ${file.name} (${formatBytes(file.size)})`);
-    setIngest({ phase: "upload", startedAt: Date.now(), viaPath: false });
+    setIngest({
+      name: file.name,
+      startedAt: Date.now(),
+      upload: { filename: file.name, loaded: 0, total: file.size },
+      job: null,
+      error: null,
+    });
     try {
-      const ds = await api.uploadDataset(file, (f) => {
-        setProgress(f);
-        if (f >= 1) {
-          setBusy("Converting to Parquet and profiling…");
-          setIngest((s) => (s ? { ...s, phase: "process" } : s));
-        }
-      });
-      setDataset(ds);
-      setIngest((s) => (s ? { ...s, phase: "ready" } : s));
+      const job = await api.uploadDataset(file, (f) =>
+        setIngest((s) => s && s.upload && { ...s, upload: { ...s.upload, loaded: f * s.upload.total } }),
+      );
+      setIngest((s) => s && { ...s, job });
     } catch (e) {
-      setError((e as Error).message);
-      setIngest(null);
-    } finally {
-      setBusy(null);
-      setProgress(null);
+      setIngest((s) => s && { ...s, error: (e as Error).message });
     }
   }
 
@@ -74,17 +113,13 @@ export function NewRunForm() {
     const value = location.trim();
     if (!value) return;
     setError(null);
-    setBusy("Registering, converting to Parquet and profiling… (large files can take a minute)");
-    setIngest({ phase: "process", startedAt: Date.now(), viaPath: true });
+    setIngest({ name: value.split(/[\\/]/).pop() || value, startedAt: Date.now(), upload: null, job: null, error: null });
     try {
       const isUrl = /^https?:\/\//i.test(value);
-      setDataset(await api.registerDataset(isUrl ? { url: value } : { path: value }));
-      setIngest((s) => (s ? { ...s, phase: "ready" } : s));
+      const job = await api.registerDataset(isUrl ? { url: value } : { path: value });
+      setIngest((s) => s && { ...s, job });
     } catch (e) {
-      setError((e as Error).message);
-      setIngest(null);
-    } finally {
-      setBusy(null);
+      setIngest((s) => s && { ...s, error: (e as Error).message });
     }
   }
 
@@ -105,7 +140,6 @@ export function NewRunForm() {
     <div className="grid gap-6 lg:grid-cols-5">
       <Card className="lg:col-span-3">
         <CardTitle
-          eyebrow="step 1 · data"
           aside={
             <div role="tablist" className="flex rounded-lg bg-surface-muted p-0.5 text-xs">
               {TABS.map((t) => (
@@ -143,7 +177,7 @@ export function NewRunForm() {
               e.preventDefault();
               setDragging(false);
               const file = e.dataTransfer.files[0];
-              if (file) upload(file);
+              if (file && !busy) upload(file);
             }}
             className={cn(
               "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed px-4 py-8 text-center text-sm transition-colors",
@@ -151,16 +185,9 @@ export function NewRunForm() {
             )}
           >
             {busy ? (
-              <div className="w-full max-w-sm space-y-2">
-                <span className="flex items-center justify-center gap-2 text-muted">
-                  <Spinner /> {busy}
-                </span>
-                {progress !== null && progress < 1 && (
-                  <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
-                    <div className="h-full bg-accent transition-all" style={{ width: `${progress * 100}%` }} />
-                  </div>
-                )}
-              </div>
+              <span className="flex items-center justify-center gap-2 text-muted">
+                <Spinner /> Registering…
+              </span>
             ) : (
               <>
                 <span className="font-medium">
@@ -185,10 +212,6 @@ export function NewRunForm() {
 
         {tab === "register" && (
           <div className="space-y-2">
-            <p className="text-xs text-muted">
-              For multi-gigabyte data, register a file that is already on the server (e.g. a Kaggle or Colab input
-              path) or an http(s) URL. Nothing passes through the browser.
-            </p>
             <div className="flex gap-2">
               <input
                 value={location}
@@ -202,7 +225,6 @@ export function NewRunForm() {
                 Register
               </Button>
             </div>
-            {busy && <p className="text-xs text-muted">{busy}</p>}
           </div>
         )}
 
@@ -232,9 +254,15 @@ export function NewRunForm() {
           </div>
         )}
 
-        {ingest && (busy || ingest.phase === "ready") && tab !== "existing" && (
+        {ingest && tab !== "existing" && (
           <div className="mt-4">
-            <IngestProgress phase={ingest.phase} startedAt={ingest.startedAt} uploadFraction={progress} viaPath={ingest.viaPath} />
+            <IngestProgress
+              name={ingest.name}
+              job={ingest.job}
+              upload={ingest.upload}
+              startedAt={ingest.startedAt}
+              error={ingest.error}
+            />
           </div>
         )}
 
@@ -246,7 +274,7 @@ export function NewRunForm() {
       </Card>
 
       <Card className="flex flex-col lg:col-span-2">
-        <CardTitle eyebrow="step 2 · intent">Describe the task</CardTitle>
+        <CardTitle>Task</CardTitle>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
@@ -271,14 +299,13 @@ export function NewRunForm() {
         <div className="mt-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-foreground">Human-in-the-Loop</span>
-            <span className="text-[11px] text-muted">Approval Mode</span>
           </div>
           <div className="grid grid-cols-3 gap-1.5 rounded-lg bg-surface-muted p-1 text-xs">
             {(
               [
-                { id: "auto", label: "Auto", desc: "No review" },
-                { id: "plans", label: "Plans", desc: "Review plans" },
-                { id: "plans+code", label: "Plans+Code", desc: "Review code" },
+                { id: "auto", label: "Auto" },
+                { id: "plans", label: "Plans" },
+                { id: "plans+code", label: "Plans+Code" },
               ] as const
             ).map((opt) => (
               <button
@@ -293,7 +320,6 @@ export function NewRunForm() {
                 )}
               >
                 <span>{opt.label}</span>
-                <span className="text-[10px] font-normal text-muted">{opt.desc}</span>
               </button>
             ))}
           </div>
@@ -303,7 +329,7 @@ export function NewRunForm() {
           {error && <ErrorNote>{error}</ErrorNote>}
           <Button className="w-full" onClick={submit} disabled={!dataset || prompt.trim().length < 3 || submitting}>
             {submitting && <Spinner />}
-            Start AutoML run
+            Start run
           </Button>
         </div>
       </Card>

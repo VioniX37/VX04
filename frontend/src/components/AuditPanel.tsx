@@ -47,9 +47,6 @@ export function AuditPanel({ audit }: AuditPanelProps) {
                 {c}
               </span>
             ))}
-            <p className="mt-1 text-muted">
-              These features were automatically excluded from candidate plans to prevent winning grounded verification via target leakage.
-            </p>
           </div>
         )}
 
@@ -97,7 +94,7 @@ export function AuditPanel({ audit }: AuditPanelProps) {
           </div>
         ) : (
           <p className="text-xs text-muted">
-            All deterministic leakage and quality checks passed. No high-cardinality, ID, or post-outcome leakage detected.
+            All checks passed.
           </p>
         )}
       </div>

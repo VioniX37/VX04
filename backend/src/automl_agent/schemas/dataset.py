@@ -109,3 +109,19 @@ class DatasetRegister(BaseModel):
     path: str | None = Field(default=None, description="Server-side file path (CSV/TSV/Parquet/JSONL)")
     url: str | None = Field(default=None, description="http(s) URL to download")
     name: str | None = Field(default=None, description="Display name; defaults to the file name")
+
+
+class IngestJobOut(BaseModel):
+    """Progress of a background dataset registration."""
+
+    id: str
+    filename: str
+    status: Literal["running", "succeeded", "failed"]
+    steps: list[str] = Field(description="Phases this registration goes through, in order")
+    phase: str = Field(description="upload, download, decompress, convert, profile, save or ready")
+    fraction: float | None = Field(default=None, description="Progress within the phase (0-1), if known")
+    message: str
+    error: str | None = None
+    elapsed_s: float
+    phase_elapsed_s: float
+    dataset: DatasetOut | None = None

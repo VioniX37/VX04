@@ -34,9 +34,6 @@ export function DatasetProfileTable({ profile }: { profile: DatasetProfile }) {
           </span>
         )}
       </div>
-      {profile.approximate_counts && (
-        <p className="mb-3 text-xs text-muted">Distinct counts are estimates (HyperLogLog) for datasets this large.</p>
-      )}
       <div className="max-h-80 overflow-auto rounded-lg border border-border">
         <table className="w-full text-left text-sm">
           <thead className="sticky top-0 bg-surface-muted text-xs text-muted">

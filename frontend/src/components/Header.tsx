@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { api } from "@/lib/api";
 import type { Health, Run } from "@/lib/types";
+import { ThemeToggle } from "./ThemeToggle";
 import { cn, LiveDot } from "./ui";
 
 const NAV = [
@@ -66,8 +67,7 @@ export function Header() {
           <Link href="/" className="flex items-center gap-2.5">
             <Mark />
             <span className="leading-tight">
-              <span className="block text-sm font-semibold tracking-tight">AutoML-Agent</span>
-              <span className="eyebrow block !text-[9px]">grounded · multi-agent</span>
+              <span className="block text-sm font-semibold tracking-tight">GroundML</span>
             </span>
           </Link>
           <nav className="flex gap-1 rounded-xl border border-border bg-surface-muted/40 p-1">
@@ -111,6 +111,7 @@ export function Header() {
                   : `${models.smart ?? health.llm_model}${models.fast && models.fast !== models.smart ? ` · ${models.fast}` : ""}`
                 : "connecting…"}
           </div>
+          <ThemeToggle />
         </div>
       </div>
     </header>

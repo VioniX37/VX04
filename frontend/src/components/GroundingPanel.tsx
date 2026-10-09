@@ -80,12 +80,7 @@ export function GroundingPanel({
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-muted">
-        Predicted = the Model Agent&apos;s estimate before any code ran (the paper&apos;s pseudo-execution). Each
-        column trains the surviving plans for real on a larger nested sample and scores {metric ?? "the metric"} on
-        validation data; the weakest plans are dropped.
-        {stoppedForBudget && " Grounding stopped early because the next rung would not fit the time budget."}
-      </p>
+      {stoppedForBudget && <p className="text-xs text-muted">Stopped early: time budget reached.</p>}
     </div>
   );
 }

@@ -20,7 +20,7 @@ function niceStep(span: number): number {
 export function AgentGantt({ model, nowSec, live }: { model: RunModel; nowSec: number; live: boolean }) {
   const lanes = (Object.keys(LANE_META) as Lane[]).filter((l) => model.spans.some((s) => s.lane === l));
   if (!lanes.length) {
-    return <p className="text-sm text-muted">Agent activity appears here as soon as the first agent responds.</p>;
+    return <p className="text-sm text-muted">No agent activity yet.</p>;
   }
   const end = Math.max(nowSec, model.now, ...model.spans.map((s) => s.end), 1);
   const plotW = W - LABEL_W - 12;

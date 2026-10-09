@@ -1,4 +1,14 @@
-import type { AgentEvent, ApprovalMode, Dataset, Health, ModelSchema, PlanApprovalRequest, PredictResult, Run } from "./types";
+import type {
+  AgentEvent,
+  ApprovalMode,
+  Dataset,
+  Health,
+  IngestJob,
+  ModelSchema,
+  PlanApprovalRequest,
+  PredictResult,
+  Run,
+} from "./types";
 
 /** Base URL of the FastAPI backend (set `NEXT_PUBLIC_API_URL` in `frontend/.env.local`). */
 export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
@@ -44,12 +54,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 /**
  * Upload a file with progress reporting (fetch cannot report upload progress, so this uses XHR).
- * `onProgress` receives a fraction in [0, 1]; the promise resolves after server-side ingest and profiling.
+ * `onProgress` receives a fraction in [0, 1]; the promise resolves with the server-side ingest job.
  */
-function uploadWithProgress(file: File, onProgress?: (fraction: number) => void): Promise<Dataset> {
+function uploadWithProgress(file: File, onProgress?: (fraction: number) => void): Promise<IngestJob> {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${API_URL}/api/datasets`);
+    xhr.open("POST", `${API_URL}/api/datasets/jobs`);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress?.(e.loaded / e.total);
     };
@@ -60,7 +70,7 @@ function uploadWithProgress(file: File, onProgress?: (fraction: number) => void)
       } catch {
         /* ignore */
       }
-      if (xhr.status >= 200 && xhr.status < 300) resolve(body as Dataset);
+      if (xhr.status >= 200 && xhr.status < 300) resolve(body as IngestJob);
       else reject(new ApiError(xhr.status, detailOf(body, xhr.statusText || "Upload failed")));
     };
     xhr.onerror = () => reject(new ApiError(0, `Cannot reach the backend at ${API_URL}. Is it running?`));
@@ -73,14 +83,16 @@ function uploadWithProgress(file: File, onProgress?: (fraction: number) => void)
 /** Typed client for the backend REST API. */
 export const api = {
   health: () => request<Health>("/health"),
+  /** Upload a file; conversion and profiling then continue as a background job. */
   uploadDataset: uploadWithProgress,
-  /** Register a dataset that already exists on the server's disk or at an http(s) URL. */
+  /** Start registering a file on the server's disk or at an http(s) URL; poll the returned job. */
   registerDataset: (source: { path?: string; url?: string; name?: string }) =>
-    request<Dataset>("/datasets/register", {
+    request<IngestJob>("/datasets/jobs/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(source),
     }),
+  getIngestJob: (id: string) => request<IngestJob>(`/datasets/jobs/${id}`),
   listDatasets: () => request<Dataset[]>("/datasets"),
   createRun: (datasetId: string, prompt: string, approval: ApprovalMode = "auto") =>
     request<Run>("/runs", {

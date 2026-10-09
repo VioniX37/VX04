@@ -17,7 +17,7 @@ export function ResourceMonitor({ model }: { model: RunModel }) {
   if (!pts.length && !jobs.length) {
     return (
       <p className="text-sm text-muted">
-        CPU and memory of every training job stream here while the grounding runs and the final training execute.
+        No telemetry yet.
       </p>
     );
   }

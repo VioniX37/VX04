@@ -2,7 +2,7 @@
 
 /*
  * Design tokens. Components only use the semantic colours mapped in @theme below,
- * so light and dark themes stay consistent. Dark is the primary ("mission control") theme.
+ * so light and dark themes stay consistent. The theme is chosen by `data-theme` on <html> (see layout.tsx).
  */
 :root {
   --background: #f5f6f8;
@@ -35,37 +35,35 @@
   --chart-6: #7c3aed;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #06070b;
-    --surface: #0c0e15;
-    --surface-muted: #131623;
-    --surface-raised: #11141e;
-    --border: #1d2130;
-    --border-strong: #2a3044;
-    --foreground: #e8eaf2;
-    --muted: #8d93a8;
-    --faint: #5b6178;
-    --accent: #8b8cff;
-    --accent-2: #22d3ee;
-    --accent-soft: #1b1c3d;
-    --success: #34d399;
-    --success-soft: #0c2a20;
-    --warning: #fbbf24;
-    --warning-soft: #2e230c;
-    --danger: #f87171;
-    --danger-soft: #331414;
-    --code-bg: #05060a;
-    --code-fg: #e4e7f0;
-    --grid-line: rgba(139, 140, 255, 0.045);
-    --glow: rgba(139, 140, 255, 0.22);
-    --chart-1: #8b8cff;
-    --chart-2: #22d3ee;
-    --chart-3: #fbbf24;
-    --chart-4: #f472b6;
-    --chart-5: #34d399;
-    --chart-6: #c084fc;
-  }
+:root[data-theme="dark"] {
+  --background: #06070b;
+  --surface: #0c0e15;
+  --surface-muted: #131623;
+  --surface-raised: #11141e;
+  --border: #1d2130;
+  --border-strong: #2a3044;
+  --foreground: #e8eaf2;
+  --muted: #8d93a8;
+  --faint: #5b6178;
+  --accent: #8b8cff;
+  --accent-2: #22d3ee;
+  --accent-soft: #1b1c3d;
+  --success: #34d399;
+  --success-soft: #0c2a20;
+  --warning: #fbbf24;
+  --warning-soft: #2e230c;
+  --danger: #f87171;
+  --danger-soft: #331414;
+  --code-bg: #05060a;
+  --code-fg: #e4e7f0;
+  --grid-line: rgba(139, 140, 255, 0.045);
+  --glow: rgba(139, 140, 255, 0.22);
+  --chart-1: #8b8cff;
+  --chart-2: #22d3ee;
+  --chart-3: #fbbf24;
+  --chart-4: #f472b6;
+  --chart-5: #34d399;
+  --chart-6: #c084fc;
 }
 
 @theme inline {
@@ -94,7 +92,11 @@
 }
 
 :root {
-  color-scheme: light dark; /* native controls and scrollbars follow the theme */
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark; /* native controls and scrollbars follow the theme */
 }
 
 body {
@@ -132,10 +134,8 @@ body::before {
     0 12px 32px -18px rgb(0 0 0 / 0.35);
 }
 
-@media (prefers-color-scheme: dark) {
-  .panel {
-    background: linear-gradient(180deg, #10131d 0%, var(--surface) 42%);
-  }
+:root[data-theme="dark"] .panel {
+  background: linear-gradient(180deg, #10131d 0%, var(--surface) 42%);
 }
 
 .panel-glow::before {

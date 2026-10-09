@@ -15,18 +15,29 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AutoML-Agent",
-  description: "Multi-agent LLM framework for full-pipeline AutoML",
+  title: "GroundML",
+  description: "Grounded multi-agent machine learning",
 };
+
+/** Resolves the saved (or system) theme before first paint, so there is no light/dark flash. */
+const THEME_BOOT = `try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=t}catch(e){document.documentElement.dataset.theme="dark"}`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      data-theme="dark"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       <body className="flex min-h-full flex-col font-sans">
         <Header />
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8">{children}</main>
         <footer className="mx-auto w-full max-w-7xl px-4 pb-8 pt-4">
-          <p className="eyebrow">grounded automl-agent · proprietary · all rights reserved</p>
+          <p className="eyebrow">groundml · proprietary · all rights reserved</p>
         </footer>
       </body>
     </html>

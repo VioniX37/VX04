@@ -55,7 +55,6 @@ export function LlmActivity({ calls }: { calls: LlmCall[] }) {
             </div>
           );
         })}
-        <p className="text-[10.5px] text-faint">Light: input tokens · solid: output tokens</p>
       </div>
 
       <div>

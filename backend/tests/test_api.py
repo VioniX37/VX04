@@ -94,3 +94,36 @@ def test_disk_full_during_upload_gives_clear_error():
         resp = client.get("/boom")
     assert resp.status_code == 507
     assert "register the file by path" in resp.json()["detail"]
+
+
+def _wait_for_job(client, job):
+    deadline = time.time() + 60
+    while job["status"] == "running" and time.time() < deadline:
+        time.sleep(0.1)
+        job = client.get(f"/api/datasets/jobs/{job['id']}").json()
+    return job
+
+
+def test_background_registration_reports_progress(sample_csvs, tmp_path):
+    with TestClient(create_app()) as client:
+        started = client.post("/api/datasets/jobs/register", json={"path": str(sample_csvs["houses"])})
+        assert started.status_code == 202, started.text
+        assert started.json()["steps"] == ["convert", "profile"]
+        job = _wait_for_job(client, started.json())
+        assert job["status"] == "succeeded", job["error"]
+        assert job["phase"] == "ready" and job["fraction"] == 1.0
+        assert job["dataset"]["profile"]["n_rows"] == 400
+
+        with sample_csvs["churn"].open("rb") as f:
+            started = client.post("/api/datasets/jobs", files={"file": ("churn.csv", f, "text/csv")})
+        assert started.status_code == 202 and started.json()["steps"] == ["upload", "convert", "profile"]
+        assert _wait_for_job(client, started.json())["dataset"]["profile"]["guessed_target"] == "churn"
+
+        # Bad input fails at once; unreadable content fails inside the job with a message.
+        assert client.post("/api/datasets/jobs/register", json={"path": "nope.csv"}).status_code == 400
+        empty = tmp_path / "empty.csv"
+        empty.write_text("a,b\n")
+        started = client.post("/api/datasets/jobs/register", json={"path": str(empty)})
+        job = _wait_for_job(client, started.json())
+        assert job["status"] == "failed" and "no rows" in job["error"]
+        assert client.get("/api/datasets/jobs/missing").status_code == 404

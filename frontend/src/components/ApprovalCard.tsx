@@ -143,11 +143,6 @@ export function ApprovalCard({ run, events, onUpdated }: ApprovalCardProps) {
         {approvalStep === "code" ? "Review & Approve Training Code" : "Review & Select Model Plan"}
       </CardTitle>
 
-      <p className="mt-1 text-sm text-muted">
-        {approvalStep === "code"
-          ? "The pipeline has generated executable training code. Inspect the implementation or edit it before execution."
-          : "Candidate plans were trained on sample rungs to evaluate real validation performance. Select the winning plan, customize hyperparameters, or approve the top recommendation."}
-      </p>
 
       {error && <div className="mt-3"><ErrorNote>{error}</ErrorNote></div>}
 
